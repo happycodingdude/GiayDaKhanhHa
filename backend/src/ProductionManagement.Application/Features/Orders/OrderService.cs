@@ -256,6 +256,7 @@ public sealed class OrderService(IAppDbContext db, IClock clock)
             derived.BehindQuantity,
             derived.DaysRemaining,
             derived.IsOverdue,
+            derived.IsPastDueDate,
             order.CreatedAt,
             order.UpdatedAt);
 

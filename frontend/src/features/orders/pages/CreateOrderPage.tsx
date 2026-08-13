@@ -227,10 +227,33 @@ function PlanStep({
   const totalMatches = difference === 0
   const canContinue = totalMatches && (!lastDayIsZero || zeroLastDayConfirmed)
 
+  /**
+   * Spreads the order quantity across every day so the manager does not have to type each one.
+   * When it does not divide evenly the remainder goes one unit at a time to the earliest days,
+   * the same way the server splits a shortage, so the two never disagree by a unit.
+   */
+  const distributeEvenly = () => {
+    if (dates.length === 0) return
+
+    const baseShare = Math.floor(info.quantity / dates.length)
+    const remainder = info.quantity % dates.length
+
+    onChange(
+      Object.fromEntries(
+        dates.map((date, index) => [date, String(baseShare + (index < remainder ? 1 : 0))]),
+      ),
+    )
+  }
+
   return (
     <Card
       title="Lập kế hoạch sản xuất"
       description={`${info.orderCode} · ${formatNumber(info.quantity)} đôi · ${formatDate(info.startDate)} → ${formatDate(info.dueDate)}`}
+      actions={
+        <Button onClick={distributeEvenly} title="Ghi đè toàn bộ kế hoạch đang nhập">
+          Chia đều cho {dates.length} ngày
+        </Button>
+      }
     >
       <div className="table-wrapper">
         <table className="table">
@@ -283,7 +306,7 @@ function PlanStep({
       </div>
 
       {totalMatches && lastDayIsZero && (
-        // A zero on the deadline is valid business-wise, so this is a confirmation, not an error.
+        // A zero on the due date is valid business-wise, so this is a confirmation, not an error.
         <label className="confirm-check">
           <input
             type="checkbox"

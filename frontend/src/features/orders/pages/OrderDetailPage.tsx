@@ -62,10 +62,19 @@ export function OrderDetailPage() {
   const days = plansQuery.data.items
   const currentDate = today()
 
-  // The most useful day to open from the header: today, otherwise the first day still missing an actual.
+  // An order whose due date has passed is frozen: the screen shows the final state and nothing
+  // else. Completed orders are included — the deciding factor is the calendar, not the status.
+  // The server enforces the same rule (ORDER_OVERDUE), this only keeps dead actions off the screen.
+  const readOnly = order.isPastDueDate
+
+  // The most useful day to open from the header: today, otherwise the first day still missing an
+  // actual. Never a future day — that day has not happened yet, so it takes no entry.
   const suggestedDay =
     days.find((day) => day.productionDate === currentDate && day.plannedQuantity > 0) ??
-    days.find((day) => day.actualQuantity === null && day.plannedQuantity > 0) ??
+    days.find(
+      (day) =>
+        day.actualQuantity === null && day.plannedQuantity > 0 && day.productionDate < currentDate,
+    ) ??
     null
 
   return (
@@ -89,23 +98,31 @@ export function OrderDetailPage() {
           </p>
         </div>
 
-        {suggestedDay && order.status !== 'Completed' && (
+        {suggestedDay && order.status !== 'Completed' && !readOnly && (
           <Button variant="primary" onClick={() => setActualDay(suggestedDay)}>
             Nhập sản lượng
           </Button>
         )}
       </header>
 
+      {readOnly && (
+        <p className="notice notice--danger">
+          🔒 Đơn hàng đã quá hạn hoàn thành ({formatDate(order.dueDate)}) nên chỉ được xem lại. Không
+          thể nhập, sửa sản lượng hay bù sản lượng thiếu.
+        </p>
+      )}
+
       <OrderSummary order={order} />
 
       <ProductionTimeline
         days={days}
         orderCompleted={order.status === 'Completed'}
+        readOnly={readOnly}
         onEnterActual={setActualDay}
         onHandleShortage={setShortageDay}
       />
 
-      <AdjustmentHistory orderId={orderId} />
+      <AdjustmentHistory orderId={orderId} readOnly={readOnly} />
 
       <OrderStatisticsPanel orderId={orderId} />
 

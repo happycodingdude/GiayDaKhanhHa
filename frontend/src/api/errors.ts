@@ -45,6 +45,7 @@ const MESSAGES: Record<string, string> = {
 
   ORDER_NOT_FOUND: 'Không tìm thấy đơn hàng.',
   ORDER_CODE_ALREADY_EXISTS: 'Mã đơn hàng đã tồn tại. Vui lòng chọn mã khác.',
+  ORDER_OVERDUE: 'Đơn hàng đã quá hạn hoàn thành nên chỉ được xem, không thể thay đổi dữ liệu.',
   INITIAL_PLAN_TOTAL_MISMATCH: 'Tổng kế hoạch phải bằng tổng số lượng đơn hàng.',
 
   PRODUCTION_PLAN_NOT_FOUND: 'Không tìm thấy kế hoạch sản xuất.',
@@ -54,6 +55,8 @@ const MESSAGES: Record<string, string> = {
   NO_PRODUCTION_PLAN_FOR_DATE: 'Ngày này không có kế hoạch sản xuất.',
   PLAN_QUANTITY_IS_ZERO:
     'Ngày này không có kế hoạch sản xuất. Không thể nhập sản lượng thực tế.',
+  FUTURE_PRODUCTION_DATE:
+    'Ngày này chưa tới nên chưa thể nhập sản lượng thực tế.',
   ACTUAL_EXCEEDS_ORDER_QUANTITY:
     'Số lượng hoàn thành không thể vượt quá số lượng của đơn hàng.',
 

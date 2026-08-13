@@ -17,6 +17,7 @@ public static class ErrorCodes
     public const string OrderNotFound = "ORDER_NOT_FOUND";
     public const string OrderCodeAlreadyExists = "ORDER_CODE_ALREADY_EXISTS";
     public const string OrderCompleted = "ORDER_COMPLETED";
+    public const string OrderOverdue = "ORDER_OVERDUE";
     public const string InitialPlanTotalMismatch = "INITIAL_PLAN_TOTAL_MISMATCH";
 
     // Production plan / record
@@ -25,6 +26,7 @@ public static class ErrorCodes
     public const string ProductionRecordAlreadyExists = "PRODUCTION_RECORD_ALREADY_EXISTS";
     public const string NoProductionPlanForDate = "NO_PRODUCTION_PLAN_FOR_DATE";
     public const string PlanQuantityIsZero = "PLAN_QUANTITY_IS_ZERO";
+    public const string FutureProductionDate = "FUTURE_PRODUCTION_DATE";
     public const string ActualExceedsOrderQuantity = "ACTUAL_EXCEEDS_ORDER_QUANTITY";
 
     // Adjustment

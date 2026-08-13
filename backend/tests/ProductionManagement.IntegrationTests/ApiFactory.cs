@@ -37,6 +37,12 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 
     private string ConnectionString => $"{ServerConnectionString};Database={_databaseName}";
 
+    /// <summary>
+    /// The throwaway test database. Exposed so a test can set up state that no endpoint can
+    /// produce — ageing an order past its due date, for instance.
+    /// </summary>
+    public string TestConnectionString => ConnectionString;
+
     /// <summary>The business date the API sees, so date-dependent rules are deterministic.</summary>
     public DateOnly Today { get; private set; }
 

@@ -1,5 +1,6 @@
 using ProductionManagement.Application.Contracts;
 using ProductionManagement.Domain;
+using ProductionManagement.Domain.Entities;
 using ProductionManagement.Domain.Services;
 
 namespace ProductionManagement.Application.Common;
@@ -14,7 +15,8 @@ public sealed record OrderDerivedValues(
     ScheduleStatus ScheduleStatus,
     int BehindQuantity,
     int DaysRemaining,
-    bool IsOverdue);
+    bool IsOverdue,
+    bool IsPastDueDate);
 
 public static class OrderDerivedCalculator
 {
@@ -56,7 +58,7 @@ public static class OrderDerivedCalculator
                 : ScheduleStatus.OnSchedule;
 
         var daysRemaining = Math.Max(dueDate.DayNumber - today.DayNumber, 0);
-        var isOverdue = orderStatus != OrderStatus.Completed && dueDate < today;
+        var isOverdue = Order.IsOverdue(orderStatus, dueDate, today);
 
         return new OrderDerivedValues(
             TotalActual: totalActual,
@@ -67,6 +69,9 @@ public static class OrderDerivedCalculator
             ScheduleStatus: scheduleStatus,
             BehindQuantity: behindQuantity,
             DaysRemaining: daysRemaining,
-            IsOverdue: isOverdue);
+            IsOverdue: isOverdue,
+            // Not the same as IsOverdue: a completed order is not late, but its period is over and
+            // its data is frozen all the same.
+            IsPastDueDate: Order.IsPastDueDate(dueDate, today));
     }
 }

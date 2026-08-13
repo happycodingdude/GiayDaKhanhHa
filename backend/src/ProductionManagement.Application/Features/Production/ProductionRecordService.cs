@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using ProductionManagement.Application.Abstractions;
+using ProductionManagement.Application.Common;
 using ProductionManagement.Application.Contracts;
 using ProductionManagement.Application.Features.Adjustments;
 using ProductionManagement.Domain;
@@ -37,6 +38,9 @@ public sealed class ProductionRecordService(
 
         var order = await db.Orders.FirstAsync(o => o.Id == orderId, ct);
 
+        // An overdue order is read-only, so the shortage it ended with stays exactly as it was.
+        OrderMutationGuard.EnsureEditable(order, clock.Today);
+
         var plan = await db.ProductionPlans
             .FirstOrDefaultAsync(p => p.OrderId == orderId && p.ProductionDate == request.ProductionDate, ct);
 
@@ -54,6 +58,16 @@ public sealed class ProductionRecordService(
             throw new BusinessRuleException(
                 ErrorCodes.PlanQuantityIsZero,
                 "This day has no production planned. Adjust the plan before recording an actual quantity.");
+        }
+
+        // The actual is what was produced, so it cannot be recorded before the day happens. Today
+        // is allowed: the actual is entered at the end of the day. Checked after the plan so that
+        // "this date is not in the plan at all" stays the more specific answer.
+        if (request.ProductionDate > clock.Today)
+        {
+            throw new BusinessRuleException(
+                ErrorCodes.FutureProductionDate,
+                "This production day has not happened yet, so an actual quantity cannot be recorded for it.");
         }
 
         var existing = await db.ProductionRecords
@@ -113,6 +127,8 @@ public sealed class ProductionRecordService(
         }
 
         var order = await db.Orders.FirstAsync(o => o.Id == orderId, ct);
+
+        OrderMutationGuard.EnsureEditable(order, clock.Today);
 
         var record = await db.ProductionRecords
             .FirstOrDefaultAsync(r => r.Id == productionRecordId && r.OrderId == orderId, ct)

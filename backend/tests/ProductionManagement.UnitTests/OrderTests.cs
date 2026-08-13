@@ -120,4 +120,68 @@ public class OrderTests
 
         Assert.Equal(OrderStatus.Incomplete, order.Status);
     }
+
+    [Fact]
+    public void IsOverdueOn_is_false_up_to_and_including_the_due_date()
+    {
+        var order = CreateOrder();
+
+        Assert.False(order.IsOverdueOn(Start));
+        Assert.False(order.IsOverdueOn(Due));
+    }
+
+    [Fact]
+    public void IsOverdueOn_is_true_the_day_after_the_due_date()
+    {
+        var order = CreateOrder();
+
+        Assert.True(order.IsOverdueOn(Due.AddDays(1)));
+    }
+
+    [Fact]
+    public void IsOverdueOn_is_false_for_a_completed_order_however_late_it_is()
+    {
+        var order = CreateOrder();
+        order.RecalculateStatus(100, Now);
+
+        Assert.False(order.IsOverdueOn(Due.AddDays(365)));
+    }
+
+    [Fact]
+    public void IsOverdueOn_turns_true_again_when_a_late_completed_order_reopens()
+    {
+        var order = CreateOrder();
+        order.RecalculateStatus(100, Now);
+        order.RecalculateStatus(80, Now);
+
+        Assert.True(order.IsOverdueOn(Due.AddDays(1)));
+    }
+
+    [Fact]
+    public void IsPastDueDateOn_is_false_up_to_and_including_the_due_date()
+    {
+        var order = CreateOrder();
+
+        Assert.False(order.IsPastDueDateOn(Start));
+        Assert.False(order.IsPastDueDateOn(Due));
+    }
+
+    [Fact]
+    public void IsPastDueDateOn_is_true_the_day_after_the_due_date()
+    {
+        var order = CreateOrder();
+
+        Assert.True(order.IsPastDueDateOn(Due.AddDays(1)));
+    }
+
+    [Fact]
+    public void IsPastDueDateOn_ignores_the_status_unlike_IsOverdueOn()
+    {
+        var order = CreateOrder();
+        order.RecalculateStatus(100, Now);
+
+        // Delivered in full, so not late — but the period is over, so the data is frozen.
+        Assert.False(order.IsOverdueOn(Due.AddDays(1)));
+        Assert.True(order.IsPastDueDateOn(Due.AddDays(1)));
+    }
 }

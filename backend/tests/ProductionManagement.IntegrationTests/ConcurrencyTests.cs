@@ -15,7 +15,7 @@ public class ConcurrencyTests(ApiFactory factory) : IntegrationTestBase(factory)
     {
         var client = await ClientAsync();
         // Two days of 60 each on a 100-unit order: either entry alone fits, together they do not.
-        var (order, days) = await CreateOrderAsync(client, 50, 50);
+        var (order, days) = await CreateOrderFromAsync(client, Today.AddDays(-1), 50, 50);
 
         var first = PostActualAsync(client, order.Id, days[0].ProductionDate, 60);
         var second = PostActualAsync(client, order.Id, days[1].ProductionDate, 60);

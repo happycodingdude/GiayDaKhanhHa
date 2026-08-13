@@ -177,7 +177,7 @@ export function ActualInputDialog({
             <dd className="strong">{formatNumber(parsed)} đôi</dd>
           </div>
           <div>
-            <dt>Kế hoạch hôm nay</dt>
+            <dt>Kế hoạch của ngày</dt>
             <dd>{formatNumber(day.plannedQuantity)} đôi</dd>
           </div>
           {shortage > 0 && (
@@ -218,7 +218,7 @@ export function ActualInputDialog({
 
       <dl className="summary-list summary-list--compact">
         <div>
-          <dt>Kế hoạch hôm nay</dt>
+          <dt>Kế hoạch của ngày</dt>
           <dd>{formatNumber(day.plannedQuantity)} đôi</dd>
         </div>
         <div>
@@ -258,7 +258,7 @@ export function ActualInputDialog({
             ? `⚠ Thiếu ${formatNumber(shortage)} đôi so với kế hoạch.`
             : difference && difference > 0
               ? `✓ Vượt kế hoạch ${formatNumber(difference)} đôi.`
-              : '✓ Đạt kế hoạch hôm nay.'}
+              : '✓ Đạt kế hoạch của ngày.'}
         </div>
       )}
 

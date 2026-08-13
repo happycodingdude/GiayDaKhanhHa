@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using ProductionManagement.Application.Abstractions;
+using ProductionManagement.Application.Common;
 using ProductionManagement.Application.Contracts;
 using ProductionManagement.Domain;
 using ProductionManagement.Domain.Entities;
@@ -24,6 +25,10 @@ public sealed class AdjustmentService(
 
         var source = await db.ProductionPlans.AsNoTracking().FirstOrDefaultAsync(p => p.Id == productionPlanId, ct)
                      ?? throw new NotFoundException(ErrorCodes.ProductionPlanNotFound, "Production plan was not found.");
+
+        // Preview exists only to prepare an Apply. On an overdue order that Apply can never
+        // succeed, so the proposal is refused here rather than offered and then rejected.
+        OrderMutationGuard.EnsureEditable(await GetOrderAsync(source.OrderId, ct), clock.Today);
 
         var (shortage, actual) = await GetShortageAsync(source, ct);
         if (shortage <= 0)
@@ -118,6 +123,8 @@ public sealed class AdjustmentService(
             throw new NotFoundException(ErrorCodes.OrderNotFound, "Order was not found.");
         }
 
+        OrderMutationGuard.EnsureEditable(await GetOrderAsync(sourceInfo.OrderId, ct), clock.Today);
+
         var planIdsToLock = targets.Select(t => t.ProductionPlanId).Append(productionPlanId).Distinct().ToList();
         await db.LockProductionPlansAsync(planIdsToLock, ct);
 
@@ -203,6 +210,14 @@ public sealed class AdjustmentService(
             .Include(a => a.Items)
             .FirstAsync(a => a.Id == adjustmentId, ct);
 
+        // plan_adjustments has no order_id; the order is reached through the source production plan.
+        var sourceOrderId = await db.ProductionPlans.AsNoTracking()
+            .Where(p => p.Id == adjustment.SourceProductionPlanId)
+            .Select(p => p.OrderId)
+            .FirstAsync(ct);
+
+        OrderMutationGuard.EnsureEditable(await GetOrderAsync(sourceOrderId, ct), clock.Today);
+
         var affectedPlanIds = adjustment.Items.Select(i => i.ProductionPlanId).Distinct().ToList();
         await db.LockProductionPlansAsync(affectedPlanIds, ct);
 
@@ -242,6 +257,10 @@ public sealed class AdjustmentService(
 
         return await BuildAdjustmentDtosAsync(adjustmentIds, ct);
     }
+
+    private async Task<Order> GetOrderAsync(long orderId, CancellationToken ct)
+        => await db.Orders.AsNoTracking().FirstOrDefaultAsync(o => o.Id == orderId, ct)
+           ?? throw new NotFoundException(ErrorCodes.OrderNotFound, "Order was not found.");
 
     private async Task<PlanAdjustmentDto> GetAdjustmentDtoAsync(long adjustmentId, CancellationToken ct)
     {

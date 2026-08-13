@@ -45,5 +45,7 @@ public sealed record OrderDetailDto(
     int BehindQuantity,
     int DaysRemaining,
     bool IsOverdue,
+    /// <summary>The production period is over, so the order is read-only. True for completed orders too.</summary>
+    bool IsPastDueDate,
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt);

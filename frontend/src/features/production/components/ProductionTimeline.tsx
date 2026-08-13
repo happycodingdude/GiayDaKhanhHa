@@ -1,4 +1,4 @@
-import { Button, Card } from '../../../shared/components/ui'
+import { Badge, Button, Card } from '../../../shared/components/ui'
 import { DayStatusBadge } from '../../../shared/components/StatusBadges'
 import { formatDate, formatWeekday, today } from '../../../shared/lib/date'
 import { formatDifference, formatNumber, formatQuantity } from '../../../shared/lib/format'
@@ -11,11 +11,14 @@ import type { ProductionDayDto } from '../types'
 export function ProductionTimeline({
   days,
   orderCompleted,
+  readOnly,
   onEnterActual,
   onHandleShortage,
 }: {
   days: ProductionDayDto[]
   orderCompleted: boolean
+  /** An overdue order can only be read; every action column collapses to a dash. */
+  readOnly: boolean
   onEnterActual: (day: ProductionDayDto) => void
   onHandleShortage: (day: ProductionDayDto) => void
 }) {
@@ -41,6 +44,8 @@ export function ProductionTimeline({
             {days.map((day) => {
               const isToday = day.productionDate === currentDate
               const hasActual = day.actualQuantity !== null
+              // The actual is what was produced, so a day that has not arrived yet takes no entry.
+              const isFuture = day.productionDate > currentDate
 
               return (
                 <tr key={day.id} className={isToday ? 'table__row--today' : ''}>
@@ -71,12 +76,13 @@ export function ProductionTimeline({
                       shortageQuantity={day.shortageQuantity}
                       difference={day.difference}
                       plannedQuantity={day.plannedQuantity}
+                      dayPosition={isFuture ? 'future' : isToday ? 'today' : 'past'}
                     />
                   </td>
                   <td className="table__actions">
                     <div>
-                      {day.plannedQuantity === 0 ? (
-                        <span className="muted">—</span>
+                      {readOnly || day.plannedQuantity === 0 || (isFuture && !hasActual) ? (
+                        !day.hasActiveAdjustment && <span className="muted">—</span>
                       ) : (
                         <>
                           {/* A completed order takes no further entry; corrections stay available. */}
@@ -90,9 +96,12 @@ export function ProductionTimeline({
                               Xử lý thiếu
                             </Button>
                           )}
-                          {day.hasActiveAdjustment && <span className="muted">Đã bù</span>}
                         </>
                       )}
+
+                      {/* Trails the button: the shortage being handled is state, not an action —
+                          which is also why it survives read-only. */}
+                      {day.hasActiveAdjustment && <Badge tone="success">Đã bù</Badge>}
                     </div>
                   </td>
                 </tr>

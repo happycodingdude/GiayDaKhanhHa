@@ -14,7 +14,9 @@ public sealed record OrderResponse(
     int Remaining,
     int TotalPlan,
     int TotalInitialPlan,
-    decimal ProgressPercentage);
+    decimal ProgressPercentage,
+    bool IsOverdue,
+    bool IsPastDueDate);
 
 public sealed record ProductionDayResponse(
     long Id,

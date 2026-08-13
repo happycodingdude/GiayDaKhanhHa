@@ -1,5 +1,5 @@
 import { Link, Outlet, useNavigate } from '@tanstack/react-router'
-import { formatDate, today } from '../../shared/lib/date'
+import { formatDate, formatWeekday, today } from '../../shared/lib/date'
 import { useCurrentUser, useLogout } from '../../features/auth/hooks/useAuth'
 import { Button } from '../../shared/components/ui'
 
@@ -38,12 +38,19 @@ export function AppLayout() {
         </nav>
 
         <div className="shell__account">
-          <p className="shell__date">{formatDate(today())}</p>
-          <p className="shell__user-name">
-            <span aria-hidden="true">👤</span> {user?.displayName ?? '…'}
-          </p>
+          <div className="shell__user">
+            <span className="shell__avatar" aria-hidden="true">
+              {user?.displayName?.trim().charAt(0).toUpperCase() ?? '·'}
+            </span>
+            <span className="shell__user-text">
+              <span className="shell__user-name">{user?.displayName ?? '…'}</span>
+              <span className="shell__date">
+                {formatWeekday(today())} · {formatDate(today())}
+              </span>
+            </span>
+          </div>
           <Button variant="ghost" onClick={onLogout} loading={logout.isPending} className="shell__logout">
-            Đăng xuất
+            <span aria-hidden="true">⇥</span> Đăng xuất
           </Button>
         </div>
       </aside>

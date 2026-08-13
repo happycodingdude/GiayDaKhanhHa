@@ -26,6 +26,27 @@ public sealed class Order
     public bool IsCompleted => Status == OrderStatus.Completed;
 
     /// <summary>
+    /// An order that passed its due date without being completed. This is the "late" flag shown to
+    /// the manager — an order delivered in full is not late, however long ago its due date was.
+    /// Derived from the due date and the status, never persisted.
+    /// </summary>
+    public static bool IsOverdue(OrderStatus status, DateOnly dueDate, DateOnly today)
+        => status != OrderStatus.Completed && dueDate < today;
+
+    /// <inheritdoc cref="IsOverdue(OrderStatus, DateOnly, DateOnly)"/>
+    public bool IsOverdueOn(DateOnly today) => IsOverdue(Status, DueDate, today);
+
+    /// <summary>
+    /// The production period is over. Deliberately independent of the status: an order that was
+    /// delivered in full is still past its due date, and is frozen just the same. The due date
+    /// itself still counts as inside the period — the actual for that day is entered at its end.
+    /// </summary>
+    public static bool IsPastDueDate(DateOnly dueDate, DateOnly today) => dueDate < today;
+
+    /// <inheritdoc cref="IsPastDueDate(DateOnly, DateOnly)"/>
+    public bool IsPastDueDateOn(DateOnly today) => IsPastDueDate(DueDate, today);
+
+    /// <summary>
     /// Creates the Order together with its initial production plans. Both are persisted in one
     /// transaction (Step 4 §19) and must satisfy SUM(InitialPlannedQuantity) == Order.Quantity.
     /// </summary>

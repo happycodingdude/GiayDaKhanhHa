@@ -13,7 +13,7 @@ import type { PlanAdjustmentDto } from '../types'
  * Adjustment history. Applied adjustments are immutable: an entry can only be reversed, and a
  * reversed entry stays visible (Step 4 §13, Step 5 §24).
  */
-export function AdjustmentHistory({ orderId }: { orderId: number }) {
+export function AdjustmentHistory({ orderId, readOnly }: { orderId: number; readOnly: boolean }) {
   const { showToast } = useToast()
   const query = usePlanAdjustments(orderId)
   const reverse = useReverseAdjustment(orderId)
@@ -77,7 +77,8 @@ export function AdjustmentHistory({ orderId }: { orderId: number }) {
                 </p>
               )}
 
-              {adjustment.status === 'Applied' && (
+              {/* Reversing is a change to the plan, so an overdue order keeps history read-only. */}
+              {adjustment.status === 'Applied' && !readOnly && (
                 <div className="history__actions">
                   <Button onClick={() => setPendingReverse(adjustment)}>Hoàn tác</Button>
                 </div>

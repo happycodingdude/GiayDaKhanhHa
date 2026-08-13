@@ -76,8 +76,8 @@ public class ProductionRecordApiTests(ApiFactory factory) : IntegrationTestBase(
     public async Task The_total_actual_can_never_exceed_the_order_quantity()
     {
         var client = await ClientAsync();
-        // A 500-unit order across two days.
-        var (order, days) = await CreateOrderAsync(client, 250, 250);
+        // A 500-unit order across two days, the second of which is today.
+        var (order, days) = await CreateOrderFromAsync(client, Today.AddDays(-1), 250, 250);
 
         (await PostActualAsync(client, order.Id, days[0].ProductionDate, 450)).EnsureSuccessStatusCode();
 
@@ -96,7 +96,7 @@ public class ProductionRecordApiTests(ApiFactory factory) : IntegrationTestBase(
     public async Task Editing_is_validated_against_the_total_excluding_the_edited_day()
     {
         var client = await ClientAsync();
-        var (order, days) = await CreateOrderAsync(client, 500, 500);
+        var (order, days) = await CreateOrderFromAsync(client, Today.AddDays(-1), 500, 500);
 
         var first = await PostActualAsync(client, order.Id, days[0].ProductionDate, 300);
         var firstRecord = await first.ReadAsync<ProductionRecordResponse>();
@@ -121,6 +121,35 @@ public class ProductionRecordApiTests(ApiFactory factory) : IntegrationTestBase(
 
         Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
         Assert.Equal("PLAN_QUANTITY_IS_ZERO", (await response.ReadErrorAsync()).Code);
+    }
+
+    [Fact]
+    public async Task A_production_day_that_has_not_arrived_yet_cannot_receive_an_actual()
+    {
+        var client = await ClientAsync();
+        // Day 0 is today, day 1 is tomorrow.
+        var (order, days) = await CreateOrderAsync(client, 100, 100);
+
+        var response = await PostActualAsync(client, order.Id, days[1].ProductionDate, 40);
+
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
+        Assert.Equal("FUTURE_PRODUCTION_DATE", (await response.ReadErrorAsync()).Code);
+
+        // Nothing was written.
+        Assert.Null((await GetDaysAsync(client, order.Id))[1].ActualQuantity);
+    }
+
+    [Fact]
+    public async Task Today_and_past_days_can_receive_an_actual()
+    {
+        var client = await ClientAsync();
+        // Day 0 is yesterday, day 1 is today — both are inside the window.
+        var (order, days) = await CreateOrderFromAsync(client, Today.AddDays(-1), 100, 100);
+
+        (await PostActualAsync(client, order.Id, days[0].ProductionDate, 90)).EnsureSuccessStatusCode();
+        (await PostActualAsync(client, order.Id, days[1].ProductionDate, 80)).EnsureSuccessStatusCode();
+
+        Assert.Equal(170, (await GetOrderAsync(client, order.Id)).TotalActual);
     }
 
     [Fact]
@@ -164,7 +193,7 @@ public class ProductionRecordApiTests(ApiFactory factory) : IntegrationTestBase(
     public async Task The_order_completes_when_the_total_actual_reaches_the_quantity()
     {
         var client = await ClientAsync();
-        var (order, days) = await CreateOrderAsync(client, 60, 40);
+        var (order, days) = await CreateOrderFromAsync(client, Today.AddDays(-1), 60, 40);
 
         (await PostActualAsync(client, order.Id, days[0].ProductionDate, 60)).EnsureSuccessStatusCode();
         Assert.Equal("Incomplete", (await GetOrderAsync(client, order.Id)).Status);

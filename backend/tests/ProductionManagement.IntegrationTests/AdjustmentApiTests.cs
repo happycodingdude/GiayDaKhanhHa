@@ -373,7 +373,8 @@ public class AdjustmentApiTests(ApiFactory factory) : IntegrationTestBase(factor
     public async Task A_shortage_on_the_final_production_day_has_nowhere_to_go()
     {
         var client = await ClientAsync();
-        var (order, days) = await CreateOrderAsync(client, 100, 100);
+        // The period ends today, so the shortage lands on the last day with nothing after it.
+        var (order, days) = await CreateOrderFromAsync(client, Today.AddDays(-1), 100, 100);
         (await PostActualAsync(client, order.Id, days[1].ProductionDate, 80)).EnsureSuccessStatusCode();
 
         var response = await PreviewAsync(client, days[1].Id, "Automatic");

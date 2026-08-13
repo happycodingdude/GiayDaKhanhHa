@@ -145,7 +145,7 @@ export function OrderListPage() {
                   <th className="num">Tổng SL</th>
                   <th className="num">Đã hoàn thành</th>
                   <th className="num">Còn lại</th>
-                  <th>Deadline</th>
+                  <th>Hạn hoàn thành</th>
                   <th>Tiến độ</th>
                   <th>Trạng thái</th>
                   <th>Tình trạng</th>

@@ -7,8 +7,8 @@ import { formatDifference, formatNumber, formatPercent } from '../../../shared/l
 import { useDashboardStatistics } from '../hooks/useStatistics'
 
 /**
- * "Nhìn → hiểu → hành động": warnings first, then today, then the orders that need attention
- * (dashboard spec §11).
+ * "Nhìn → hiểu → hành động": the totals and today's figures first, then the orders being tracked,
+ * with the warnings that need acting on closing the page.
  */
 export function DashboardPage() {
   const navigate = useNavigate()
@@ -71,31 +71,6 @@ export function DashboardPage() {
             <StatTile label="Đã hoàn thành" value={`${formatNumber(data.totalActualQuantity)} đôi`} />
             <StatTile label="Còn lại" value={`${formatNumber(data.totalRemainingQuantity)} đôi`} />
           </div>
-
-          {data.alerts.length > 0 && (
-            <Card title="⚠ Cần xử lý">
-              <ul className="alerts">
-                {data.alerts.map((alert) => (
-                  <li key={alert.orderId} className="alert">
-                    <div>
-                      <p className="alert__title">🔴 {alert.orderCode}</p>
-                      <p className="alert__text">
-                        Thiếu {formatNumber(alert.behindQuantity)} đôi so với kế hoạch
-                      </p>
-                      <p className="alert__meta">
-                        {alert.isOverdue
-                          ? `Đã quá hạn (${formatDate(alert.dueDate)})`
-                          : `Còn ${alert.daysRemaining} ngày đến hạn`}
-                      </p>
-                    </div>
-                    <Button variant="primary" onClick={() => openOrder(alert.orderId)}>
-                      Xử lý thiếu
-                    </Button>
-                  </li>
-                ))}
-              </ul>
-            </Card>
-          )}
 
           <Card title="Hôm nay">
             {data.today.plannedQuantity === 0 ? (
@@ -180,6 +155,31 @@ export function DashboardPage() {
               </div>
             )}
           </Card>
+
+          {data.alerts.length > 0 && (
+            <Card title="⚠ Cần xử lý">
+              <ul className="alerts">
+                {data.alerts.map((alert) => (
+                  <li key={alert.orderId} className="alert">
+                    <div>
+                      <p className="alert__title">🔴 {alert.orderCode}</p>
+                      <p className="alert__text">
+                        Thiếu {formatNumber(alert.behindQuantity)} đôi so với kế hoạch
+                      </p>
+                      <p className="alert__meta">
+                        {alert.isOverdue
+                          ? `Đã quá hạn (${formatDate(alert.dueDate)})`
+                          : `Còn ${alert.daysRemaining} ngày đến hạn`}
+                      </p>
+                    </div>
+                    <Button variant="primary" onClick={() => openOrder(alert.orderId)}>
+                      Xử lý thiếu
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          )}
         </>
       )}
     </div>

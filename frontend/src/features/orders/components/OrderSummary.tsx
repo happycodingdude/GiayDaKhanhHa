@@ -13,7 +13,7 @@ export function OrderSummary({ order }: { order: OrderDetailDto }) {
         <StatTile label="Đã hoàn thành" value={`${formatNumber(order.totalActual)} đôi`} tone="success" />
         <StatTile label="Còn lại" value={`${formatNumber(order.remaining)} đôi`} />
         <StatTile
-          label="Deadline"
+          label="Hạn hoàn thành"
           value={formatDate(order.dueDate)}
           hint={order.isOverdue ? 'Đã quá hạn' : `Còn ${order.daysRemaining} ngày`}
           tone={order.isOverdue ? 'danger' : 'neutral'}

@@ -19,15 +19,24 @@ public abstract class IntegrationTestBase(ApiFactory factory)
 
     /// <summary>
     /// Creates an order whose production period starts today, so every later day is a valid
-    /// adjustment target.
+    /// adjustment target. Only the first day can receive an actual — the rest are in the future.
     /// </summary>
-    protected async Task<(OrderResponse Order, IReadOnlyList<ProductionDayResponse> Days)> CreateOrderAsync(
+    protected Task<(OrderResponse Order, IReadOnlyList<ProductionDayResponse> Days)> CreateOrderAsync(
         HttpClient client, params int[] dailyPlan)
+        => CreateOrderFromAsync(client, Today, dailyPlan);
+
+    /// <summary>
+    /// Creates an order whose production period starts on <paramref name="startDate"/>. Use a start
+    /// date in the past when a test needs to record an actual on more than one day: an actual can
+    /// only be recorded up to today.
+    /// </summary>
+    protected async Task<(OrderResponse Order, IReadOnlyList<ProductionDayResponse> Days)> CreateOrderFromAsync(
+        HttpClient client, DateOnly startDate, params int[] dailyPlan)
     {
         var plans = dailyPlan
             .Select((quantity, index) => new
             {
-                productionDate = Today.AddDays(index).ToString("yyyy-MM-dd"),
+                productionDate = startDate.AddDays(index).ToString("yyyy-MM-dd"),
                 plannedQuantity = quantity,
             })
             .ToArray();
@@ -36,8 +45,8 @@ public abstract class IntegrationTestBase(ApiFactory factory)
         {
             orderCode = NextOrderCode(),
             quantity = dailyPlan.Sum(),
-            startDate = Today.ToString("yyyy-MM-dd"),
-            dueDate = Today.AddDays(dailyPlan.Length - 1).ToString("yyyy-MM-dd"),
+            startDate = startDate.ToString("yyyy-MM-dd"),
+            dueDate = startDate.AddDays(dailyPlan.Length - 1).ToString("yyyy-MM-dd"),
             productionPlans = plans,
         });
 
