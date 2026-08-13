@@ -1,0 +1,112 @@
+{
+  "$comment": [
+    "Bộ dữ liệu mẫu để xem đủ mọi trạng thái UI đã thiết kế.",
+    "Ngày được tính tương đối theo 'hôm nay' (dayOffset = 0 là hôm nay, -1 là hôm qua),",
+    "nên bộ dữ liệu luôn hợp lệ dù chạy vào ngày nào.",
+    "Tổng số lượng đơn = tổng kế hoạch, script tự tính nên không bao giờ lệch."
+  ],
+
+  "orders": [
+    {
+      "orderCode": "ORD-2026-001",
+      "label": "Đúng tiến độ — đã sản xuất đủ kế hoạch 3 ngày đầu",
+      "uiState": "Order list: 🟢 Đúng tiến độ. Dashboard: không nằm trong Cần xử lý.",
+      "startOffset": -3,
+      "plan": [100, 100, 100, 100, 100, 100, 100, 100],
+      "actuals": [
+        { "dayOffset": -3, "quantity": 100 },
+        { "dayOffset": -2, "quantity": 100 },
+        { "dayOffset": -1, "quantity": 100 }
+      ],
+      "adjustments": []
+    },
+
+    {
+      "orderCode": "ORD-2026-002",
+      "label": "Chậm tiến độ — còn thiếu 30 đôi chưa xử lý",
+      "uiState": "Timeline: nút 'Xử lý thiếu' hiện ở ngày hôm qua. Dashboard: nằm trong ⚠ Cần xử lý.",
+      "startOffset": -2,
+      "plan": [100, 100, 100, 100, 100, 100],
+      "actuals": [
+        { "dayOffset": -2, "quantity": 100 },
+        { "dayOffset": -1, "quantity": 70 }
+      ],
+      "adjustments": []
+    },
+
+    {
+      "orderCode": "ORD-2026-003",
+      "label": "Đã bù bằng Option 1 — chọn 1 ngày nhận toàn bộ phần thiếu",
+      "uiState": "Timeline: cột 'Bù thêm' có +20. Lịch sử: 1 mục 'Đang áp dụng', loại 'Chọn ngày để bù'.",
+      "startOffset": -2,
+      "plan": [100, 100, 100, 100, 100],
+      "actuals": [{ "dayOffset": -2, "quantity": 80 }],
+      "adjustments": [
+        { "type": "Manual", "sourceDayOffset": -2, "targetDayOffset": 1 }
+      ]
+    },
+
+    {
+      "orderCode": "ORD-2026-004",
+      "label": "Đã bù tự động, có cả lịch sử hoàn tác — thiếu 23 chia cho 4 ngày",
+      "uiState": "Lịch sử: 1 mục 'Đã hoàn tác' (chia đều 6/6/6/5) + 1 mục 'Đang áp dụng' (dồn 1 ngày).",
+      "startOffset": -1,
+      "plan": [100, 120, 200, 250, 330],
+      "actuals": [{ "dayOffset": -1, "quantity": 77 }],
+      "adjustments": [
+        { "type": "Automatic", "sourceDayOffset": -1, "thenReverse": true },
+        { "type": "Manual", "sourceDayOffset": -1, "targetDayOffset": 2 }
+      ]
+    },
+
+    {
+      "orderCode": "ORD-2026-005",
+      "label": "Hoàn thành — tổng thực tế đạt đúng tổng đơn",
+      "uiState": "Badge 'Hoàn thành', tiến độ 100%, timeline chỉ còn nút 'Sửa sản lượng'.",
+      "startOffset": -5,
+      "plan": [60, 60, 60, 60, 60],
+      "actuals": [
+        { "dayOffset": -5, "quantity": 60 },
+        { "dayOffset": -4, "quantity": 60 },
+        { "dayOffset": -3, "quantity": 60 },
+        { "dayOffset": -2, "quantity": 60 },
+        { "dayOffset": -1, "quantity": 60 }
+      ],
+      "adjustments": []
+    },
+
+    {
+      "orderCode": "ORD-2026-006",
+      "label": "Quá hạn nhưng chưa hoàn thành",
+      "uiState": "Order list: badge đỏ 'Quá hạn'. Chi tiết: 'Đã quá hạn' ở ô Deadline.",
+      "startOffset": -8,
+      "plan": [80, 80, 80, 80, 80],
+      "actuals": [
+        { "dayOffset": -8, "quantity": 80 },
+        { "dayOffset": -7, "quantity": 80 },
+        { "dayOffset": -6, "quantity": 50 }
+      ],
+      "adjustments": []
+    },
+
+    {
+      "orderCode": "ORD-2026-007",
+      "label": "Chưa nhập sản lượng nào — đơn bắt đầu ngày mai",
+      "uiState": "Toàn bộ timeline hiển thị '—' và badge 'Chờ sản xuất', không phải số 0.",
+      "startOffset": 1,
+      "plan": [100, 100, 100, 100, 100],
+      "actuals": [],
+      "adjustments": []
+    },
+
+    {
+      "orderCode": "ORD-2026-008",
+      "label": "Có ngày nghỉ, kế hoạch = 0",
+      "uiState": "Ngày mai: badge 'Không sản xuất', không có nút nhập sản lượng.",
+      "startOffset": 0,
+      "plan": [100, 0, 100, 100, 100],
+      "actuals": [],
+      "adjustments": []
+    }
+  ]
+}
