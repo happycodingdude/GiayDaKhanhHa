@@ -48,7 +48,7 @@ export function ActualInputDialog({
 }: {
   open: boolean
   day: ProductionDayDto | null
-  orderId: number
+  orderId: string
   orderCode: string
   orderQuantity: number
   totalActual: number

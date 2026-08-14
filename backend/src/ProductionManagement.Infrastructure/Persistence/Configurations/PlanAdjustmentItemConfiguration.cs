@@ -12,7 +12,7 @@ public sealed class PlanAdjustmentItemConfiguration : IEntityTypeConfiguration<P
             t.HasCheckConstraint("ck_plan_adjustment_items_add_on", "add_on_quantity > 0"));
 
         builder.HasKey(i => i.Id);
-        builder.Property(i => i.Id).HasColumnName("id").UseIdentityAlwaysColumn();
+        builder.Property(i => i.Id).HasColumnName("id").ValueGeneratedNever();
 
         builder.Property(i => i.PlanAdjustmentId).HasColumnName("plan_adjustment_id").IsRequired();
         builder.Property(i => i.ProductionPlanId).HasColumnName("production_plan_id").IsRequired();

@@ -107,7 +107,9 @@ public class OrderApiTests(ApiFactory factory) : IntegrationTestBase(factory)
     {
         var client = await ClientAsync();
 
-        var response = await client.GetAsync("/api/v1/orders/999999");
+        // A well-formed id that no order has. A malformed one would not match the {orderId:guid}
+        // route at all, and would return a routing 404 without the error body this test is about.
+        var response = await client.GetAsync($"/api/v1/orders/{Guid.NewGuid()}");
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
         Assert.Equal("ORDER_NOT_FOUND", (await response.ReadErrorAsync()).Code);

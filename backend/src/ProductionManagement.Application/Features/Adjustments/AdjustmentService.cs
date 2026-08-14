@@ -19,7 +19,7 @@ public sealed class AdjustmentService(
     IAutomaticAllocationStrategy automaticAllocation)
 {
     public async Task<AdjustmentPreviewDto> PreviewAsync(
-        long productionPlanId, PreviewAdjustmentRequest request, CancellationToken ct = default)
+        Guid productionPlanId, PreviewAdjustmentRequest request, CancellationToken ct = default)
     {
         var adjustmentType = ParseAdjustmentType(request.AdjustmentType);
 
@@ -41,7 +41,7 @@ public sealed class AdjustmentService(
 
         var candidates = await GetEligibleTargetsAsync(source, ct);
 
-        List<(long PlanId, DateOnly Date, int Current, int AddOn)> proposal;
+        List<(Guid PlanId, DateOnly Date, int Current, int AddOn)> proposal;
         string? validationCode = null;
         string? validationMessage = null;
 
@@ -98,7 +98,7 @@ public sealed class AdjustmentService(
     }
 
     public async Task<PlanAdjustmentDto> ApplyAsync(
-        long productionPlanId, ApplyAdjustmentRequest request, CancellationToken ct = default)
+        Guid productionPlanId, ApplyAdjustmentRequest request, CancellationToken ct = default)
     {
         var adjustmentType = ParseAdjustmentType(request.AdjustmentType);
         var targets = request.Targets ?? [];
@@ -197,7 +197,7 @@ public sealed class AdjustmentService(
         return await GetAdjustmentDtoAsync(adjustment.Id, ct);
     }
 
-    public async Task<PlanAdjustmentDto> ReverseAsync(long adjustmentId, CancellationToken ct = default)
+    public async Task<PlanAdjustmentDto> ReverseAsync(Guid adjustmentId, CancellationToken ct = default)
     {
         await using var transaction = await db.BeginTransactionAsync(ct);
 
@@ -240,7 +240,7 @@ public sealed class AdjustmentService(
         return await GetAdjustmentDtoAsync(adjustment.Id, ct);
     }
 
-    public async Task<IReadOnlyList<PlanAdjustmentDto>> GetHistoryAsync(long orderId, CancellationToken ct = default)
+    public async Task<IReadOnlyList<PlanAdjustmentDto>> GetHistoryAsync(Guid orderId, CancellationToken ct = default)
     {
         if (!await db.Orders.AnyAsync(o => o.Id == orderId, ct))
         {
@@ -258,18 +258,18 @@ public sealed class AdjustmentService(
         return await BuildAdjustmentDtosAsync(adjustmentIds, ct);
     }
 
-    private async Task<Order> GetOrderAsync(long orderId, CancellationToken ct)
+    private async Task<Order> GetOrderAsync(Guid orderId, CancellationToken ct)
         => await db.Orders.AsNoTracking().FirstOrDefaultAsync(o => o.Id == orderId, ct)
            ?? throw new NotFoundException(ErrorCodes.OrderNotFound, "Order was not found.");
 
-    private async Task<PlanAdjustmentDto> GetAdjustmentDtoAsync(long adjustmentId, CancellationToken ct)
+    private async Task<PlanAdjustmentDto> GetAdjustmentDtoAsync(Guid adjustmentId, CancellationToken ct)
     {
         var dtos = await BuildAdjustmentDtosAsync([adjustmentId], ct);
         return dtos[0];
     }
 
     private async Task<IReadOnlyList<PlanAdjustmentDto>> BuildAdjustmentDtosAsync(
-        IReadOnlyList<long> adjustmentIds, CancellationToken ct)
+        IReadOnlyList<Guid> adjustmentIds, CancellationToken ct)
     {
         if (adjustmentIds.Count == 0)
         {
@@ -292,7 +292,7 @@ public sealed class AdjustmentService(
             .ToDictionaryAsync(p => p.Id, p => p.ProductionDate, ct);
 
         var userIds = adjustments
-            .SelectMany(a => new[] { (long?)a.CreatedBy, a.AppliedBy, a.ReversedBy })
+            .SelectMany(a => new[] { (Guid?)a.CreatedBy, a.AppliedBy, a.ReversedBy })
             .Where(id => id.HasValue)
             .Select(id => id!.Value)
             .Distinct()
@@ -340,7 +340,7 @@ public sealed class AdjustmentService(
         return (ProductionCalculations.Shortage(source.PlannedQuantity, actual), actual);
     }
 
-    private async Task GuardNoActiveAdjustmentAsync(long sourceProductionPlanId, CancellationToken ct)
+    private async Task GuardNoActiveAdjustmentAsync(Guid sourceProductionPlanId, CancellationToken ct)
     {
         // At most one Applied adjustment per source plan (Step 4 §12). This also makes a duplicate
         // apply after a network retry impossible without an idempotency table.
@@ -387,7 +387,7 @@ public sealed class AdjustmentService(
         }
 
         var eligibleIds = candidates.Select(c => c.Id).ToHashSet();
-        var seen = new HashSet<long>();
+        var seen = new HashSet<Guid>();
 
         foreach (var target in targets)
         {

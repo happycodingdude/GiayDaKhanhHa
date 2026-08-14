@@ -5,7 +5,7 @@ import { formatDifference, formatNumber, formatQuantity } from '../../../shared/
 import { useOrderStatistics } from '../hooks/useStatistics'
 
 /** Cumulative plan vs cumulative actual — all values derived by the backend (Step 4 §16). */
-export function OrderStatisticsPanel({ orderId }: { orderId: number }) {
+export function OrderStatisticsPanel({ orderId }: { orderId: string }) {
   const query = useOrderStatistics(orderId)
 
   return (

@@ -8,8 +8,14 @@ public class PlanAdjustmentTests
 {
     private static readonly DateTimeOffset Now = new(2026, 8, 13, 10, 0, 0, TimeSpan.Zero);
 
-    private static PlanAdjustment Apply(int shortage, params (long PlanId, int AddOn)[] targets)
-        => PlanAdjustment.Apply(1, shortage, AdjustmentType.Manual, targets, userId: 1, Now);
+    private static PlanAdjustment Apply(int shortage, params (int PlanId, int AddOn)[] targets)
+        => PlanAdjustment.Apply(
+            TestIds.Of(1),
+            shortage,
+            AdjustmentType.Manual,
+            targets.Select(t => (TestIds.Of(t.PlanId), t.AddOn)).ToList(),
+            userId: TestIds.Of(1),
+            Now);
 
     [Fact]
     public void An_applied_adjustment_records_who_applied_it_and_when()
@@ -17,8 +23,8 @@ public class PlanAdjustmentTests
         var adjustment = Apply(20, (2, 20));
 
         Assert.Equal(AdjustmentStatus.Applied, adjustment.Status);
-        Assert.Equal(1, adjustment.CreatedBy);
-        Assert.Equal(1, adjustment.AppliedBy);
+        Assert.Equal(TestIds.Of(1), adjustment.CreatedBy);
+        Assert.Equal(TestIds.Of(1), adjustment.AppliedBy);
         Assert.Equal(Now, adjustment.AppliedAt);
         Assert.Null(adjustment.ReversedAt);
     }
@@ -69,10 +75,10 @@ public class PlanAdjustmentTests
     {
         var adjustment = Apply(20, (2, 20));
 
-        adjustment.Reverse(userId: 2, Now.AddHours(1));
+        adjustment.Reverse(userId: TestIds.Of(2), Now.AddHours(1));
 
         Assert.Equal(AdjustmentStatus.Reversed, adjustment.Status);
-        Assert.Equal(2, adjustment.ReversedBy);
+        Assert.Equal(TestIds.Of(2), adjustment.ReversedBy);
         Assert.Equal(Now.AddHours(1), adjustment.ReversedAt);
         // History is never rewritten: the original apply information is untouched.
         Assert.Equal(Now, adjustment.AppliedAt);
@@ -83,9 +89,9 @@ public class PlanAdjustmentTests
     public void An_adjustment_cannot_be_reversed_twice()
     {
         var adjustment = Apply(20, (2, 20));
-        adjustment.Reverse(userId: 1, Now);
+        adjustment.Reverse(userId: TestIds.Of(1), Now);
 
-        var exception = Assert.Throws<ConflictException>(() => adjustment.Reverse(userId: 1, Now));
+        var exception = Assert.Throws<ConflictException>(() => adjustment.Reverse(userId: TestIds.Of(1), Now));
 
         Assert.Equal(ErrorCodes.AdjustmentNotApplied, exception.Code);
     }

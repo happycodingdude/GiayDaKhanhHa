@@ -12,7 +12,7 @@ public sealed record DailyStatisticsDto(
     int CumulativeActual);
 
 public sealed record OrderStatisticsDto(
-    long OrderId,
+    Guid OrderId,
     string OrderCode,
     int OrderQuantity,
     int TotalActual,
@@ -35,7 +35,7 @@ public sealed record DashboardTodayDto(
     decimal CompletionPercentage);
 
 public sealed record DashboardAlertDto(
-    long OrderId,
+    Guid OrderId,
     string OrderCode,
     int BehindQuantity,
     int DaysRemaining,
@@ -43,7 +43,7 @@ public sealed record DashboardAlertDto(
     DateOnly DueDate);
 
 public sealed record DashboardOrderDto(
-    long OrderId,
+    Guid OrderId,
     string OrderCode,
     decimal ProgressPercentage,
     int? TodayDifference,

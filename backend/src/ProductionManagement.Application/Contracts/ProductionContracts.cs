@@ -5,7 +5,7 @@ namespace ProductionManagement.Application.Contracts;
 /// frontend never has to join several APIs to build the daily view (Step 4 §6).
 /// </summary>
 public sealed record ProductionDayDto(
-    long Id,
+    Guid Id,
     DateOnly ProductionDate,
     int InitialPlannedQuantity,
     int AddOnQuantity,
@@ -13,17 +13,17 @@ public sealed record ProductionDayDto(
 
     // Null means the actual has not been entered yet, which is distinct from 0.
     int? ActualQuantity,
-    long? ProductionRecordId,
+    Guid? ProductionRecordId,
     int ShortageQuantity,
     int? Difference,
 
     // True when this day is the source of an adjustment that is currently Applied.
     bool HasActiveAdjustment,
-    long? ActiveAdjustmentId,
+    Guid? ActiveAdjustmentId,
     string? ActualEnteredBy,
     DateTimeOffset? ActualUpdatedAt);
 
-public sealed record ProductionPlanListDto(long OrderId, IReadOnlyList<ProductionDayDto> Items);
+public sealed record ProductionPlanListDto(Guid OrderId, IReadOnlyList<ProductionDayDto> Items);
 
 public sealed record CreateProductionRecordRequest(DateOnly ProductionDate, int ActualQuantity);
 
@@ -33,8 +33,8 @@ public sealed record CreateProductionRecordRequest(DateOnly ProductionDate, int 
 public sealed record UpdateProductionRecordRequest(int ActualQuantity);
 
 public sealed record ProductionRecordDto(
-    long Id,
-    long OrderId,
+    Guid Id,
+    Guid OrderId,
     DateOnly ProductionDate,
     int ActualQuantity,
     DateTimeOffset CreatedAt,

@@ -4,7 +4,7 @@ import { useInvalidateOrder } from '../../../shared/hooks/useInvalidateOrder'
 import { productionApi } from '../api/productionApi'
 import type { CreateProductionRecordRequest, UpdateProductionRecordRequest } from '../types'
 
-export function useProductionPlans(orderId: number) {
+export function useProductionPlans(orderId: string) {
   return useQuery({
     queryKey: queryKeys.orderProductionPlans(orderId),
     queryFn: ({ signal }) => productionApi.getProductionPlans(orderId, signal),
@@ -15,7 +15,7 @@ export function useProductionPlans(orderId: number) {
  * Submit → loading → server transaction → success → refetch. Deliberately not optimistic: the
  * total-actual invariant is enforced server-side (Step 5 §31).
  */
-export function useCreateActual(orderId: number) {
+export function useCreateActual(orderId: string) {
   const { invalidateAfterActualChange } = useInvalidateOrder()
 
   return useMutation({
@@ -24,7 +24,7 @@ export function useCreateActual(orderId: number) {
   })
 }
 
-export function useUpdateActual(orderId: number) {
+export function useUpdateActual(orderId: string) {
   const { invalidateAfterActualChange } = useInvalidateOrder()
 
   return useMutation({
@@ -32,7 +32,7 @@ export function useUpdateActual(orderId: number) {
       productionRecordId,
       request,
     }: {
-      productionRecordId: number
+      productionRecordId: string
       request: UpdateProductionRecordRequest
     }) => productionApi.updateActual(orderId, productionRecordId, request),
     onSuccess: () => invalidateAfterActualChange(orderId),

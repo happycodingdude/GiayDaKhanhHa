@@ -16,7 +16,7 @@ public static class AdjustmentRules
     /// (master summary §8 Rule 7, §11).
     /// </summary>
     public static Expression<Func<ProductionPlan, bool>> EligibleTarget(
-        long orderId, long sourcePlanId, DateOnly sourceDate, DateOnly today)
+        Guid orderId, Guid sourcePlanId, DateOnly sourceDate, DateOnly today)
         => plan => plan.OrderId == orderId
                    && plan.Id != sourcePlanId
                    && plan.ProductionDate > sourceDate

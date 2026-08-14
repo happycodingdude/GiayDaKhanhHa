@@ -10,7 +10,7 @@ export function useInvalidateOrder() {
   const queryClient = useQueryClient()
 
   const invalidateAfterActualChange = useCallback(
-    async (orderId: number) => {
+    async (orderId: string) => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.order(orderId) }),
         queryClient.invalidateQueries({ queryKey: queryKeys.orderProductionPlans(orderId) }),
@@ -26,7 +26,7 @@ export function useInvalidateOrder() {
   )
 
   const invalidateAfterAdjustmentChange = useCallback(
-    async (orderId: number) => {
+    async (orderId: string) => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.order(orderId) }),
         queryClient.invalidateQueries({ queryKey: queryKeys.orderProductionPlans(orderId) }),

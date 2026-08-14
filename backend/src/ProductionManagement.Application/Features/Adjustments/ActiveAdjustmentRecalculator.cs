@@ -34,7 +34,7 @@ public sealed class ActiveAdjustmentRecalculator(
     /// nothing to recalculate.
     /// </summary>
     public async Task<AdjustmentRecalculationDto?> RecalculateAsync(
-        long orderId, DateOnly productionDate, CancellationToken ct = default)
+        Guid orderId, DateOnly productionDate, CancellationToken ct = default)
     {
         var source = await db.ProductionPlans
             .FirstOrDefaultAsync(p => p.OrderId == orderId && p.ProductionDate == productionDate, ct);
@@ -139,9 +139,9 @@ public sealed class ActiveAdjustmentRecalculator(
     private (PlanAdjustment Adjustment, IReadOnlyList<AllocationResult> Allocation)? BuildReplacement(
         PlanAdjustment previous,
         ProductionPlan source,
-        IReadOnlyDictionary<long, ProductionPlan> plans,
-        IReadOnlyList<long> previousTargetIds,
-        IReadOnlyList<long> candidateIds,
+        IReadOnlyDictionary<Guid, ProductionPlan> plans,
+        IReadOnlyList<Guid> previousTargetIds,
+        IReadOnlyList<Guid> candidateIds,
         int newShortage,
         DateTimeOffset now)
     {

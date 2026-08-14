@@ -46,7 +46,7 @@ export function OrderListPage() {
   const hasFilters = search !== '' || status !== 'All'
   const totalPages = Math.max(result?.totalPages ?? 1, 1)
 
-  const openOrder = (orderId: number) =>
+  const openOrder = (orderId: string) =>
     navigate({ to: '/orders/$orderId', params: { orderId: String(orderId) } })
 
   return (

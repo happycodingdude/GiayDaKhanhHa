@@ -13,7 +13,7 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
             t.HasCheckConstraint("ck_users_status", "status IN ('Active', 'Inactive')"));
 
         builder.HasKey(u => u.Id);
-        builder.Property(u => u.Id).HasColumnName("id").UseIdentityAlwaysColumn();
+        builder.Property(u => u.Id).HasColumnName("id").ValueGeneratedNever();
 
         builder.Property(u => u.Username).HasColumnName("username").HasMaxLength(100).IsRequired();
         builder.Property(u => u.PasswordHash).HasColumnName("password_hash").HasMaxLength(255).IsRequired();

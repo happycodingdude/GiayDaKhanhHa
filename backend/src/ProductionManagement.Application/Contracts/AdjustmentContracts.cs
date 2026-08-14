@@ -1,6 +1,6 @@
 namespace ProductionManagement.Application.Contracts;
 
-public sealed record AdjustmentTargetRequest(long ProductionPlanId, int AddOnQuantity);
+public sealed record AdjustmentTargetRequest(Guid ProductionPlanId, int AddOnQuantity);
 
 /// <summary>
 /// Preview request. Manual carries the manager's chosen targets; Automatic asks the backend to
@@ -20,14 +20,14 @@ public sealed record ApplyAdjustmentRequest(
     IReadOnlyList<AdjustmentTargetRequest>? Targets);
 
 public sealed record AdjustmentPreviewItemDto(
-    long ProductionPlanId,
+    Guid ProductionPlanId,
     DateOnly ProductionDate,
     int CurrentPlannedQuantity,
     int AddOnQuantity,
     int PlannedQuantityAfter);
 
 public sealed record AdjustmentPreviewDto(
-    long SourceProductionPlanId,
+    Guid SourceProductionPlanId,
     DateOnly SourceProductionDate,
     int SourcePlannedQuantity,
     int? SourceActualQuantity,
@@ -40,7 +40,7 @@ public sealed record AdjustmentPreviewDto(
     string? ValidationMessage);
 
 public sealed record PlanAdjustmentItemDto(
-    long ProductionPlanId,
+    Guid ProductionPlanId,
     DateOnly ProductionDate,
     int AddOnQuantity);
 
@@ -69,16 +69,16 @@ public enum AdjustmentRecalculationOutcome
 /// </summary>
 public sealed record AdjustmentRecalculationDto(
     AdjustmentRecalculationOutcome Outcome,
-    long ReversedAdjustmentId,
+    Guid ReversedAdjustmentId,
     int PreviousShortageQuantity,
     int ShortageQuantity,
     string AdjustmentType,
-    long? AdjustmentId,
+    Guid? AdjustmentId,
     IReadOnlyList<PlanAdjustmentItemDto> Items);
 
 public sealed record PlanAdjustmentDto(
-    long Id,
-    long SourceProductionPlanId,
+    Guid Id,
+    Guid SourceProductionPlanId,
     DateOnly SourceProductionDate,
     int ShortageQuantity,
     string AdjustmentType,

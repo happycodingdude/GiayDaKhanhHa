@@ -3,24 +3,24 @@ import type { AdjustmentRecalculationDto } from '../adjustments/types'
 
 /** One production day: plan, actual and derived values combined by the backend. */
 export interface ProductionDayDto {
-  id: number
+  id: string
   productionDate: IsoDate
   initialPlannedQuantity: number
   addOnQuantity: number
   plannedQuantity: number
   /** null means the actual has not been entered yet — never render this as 0. */
   actualQuantity: number | null
-  productionRecordId: number | null
+  productionRecordId: string | null
   shortageQuantity: number
   difference: number | null
   hasActiveAdjustment: boolean
-  activeAdjustmentId: number | null
+  activeAdjustmentId: string | null
   actualEnteredBy: string | null
   actualUpdatedAt: string | null
 }
 
 export interface ProductionPlanListDto {
-  orderId: number
+  orderId: string
   items: ProductionDayDto[]
 }
 
@@ -34,8 +34,8 @@ export interface UpdateProductionRecordRequest {
 }
 
 export interface ProductionRecordDto {
-  id: number
-  orderId: number
+  id: string
+  orderId: string
   productionDate: IsoDate
   actualQuantity: number
   createdAt: string

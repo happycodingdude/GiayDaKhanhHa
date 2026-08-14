@@ -11,7 +11,7 @@ public sealed class Order
 
     private Order() { }
 
-    public long Id { get; private set; }
+    public Guid Id { get; private set; }
     public string OrderCode { get; private set; } = null!;
     public int Quantity { get; private set; }
     public DateOnly StartDate { get; private set; }
@@ -128,6 +128,7 @@ public sealed class Order
 
         var order = new Order
         {
+            Id = Guid.CreateVersion7(),
             OrderCode = orderCode,
             Quantity = quantity,
             StartDate = startDate,

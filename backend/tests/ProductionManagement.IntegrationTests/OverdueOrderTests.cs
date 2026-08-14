@@ -16,7 +16,7 @@ public class OverdueOrderTests(ApiFactory factory) : IntegrationTestBase(factory
     /// and no endpoint can change an order's dates, so the order is aged directly in the throwaway
     /// database. Both dates move so the ck_orders_date_range check still holds.
     /// </summary>
-    private async Task MakeOverdueAsync(long orderId)
+    private async Task MakeOverdueAsync(Guid orderId)
     {
         await using var connection = new NpgsqlConnection(Factory.TestConnectionString);
         await connection.OpenAsync();

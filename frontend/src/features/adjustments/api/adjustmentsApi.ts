@@ -7,18 +7,18 @@ import type {
 } from '../types'
 
 export const adjustmentsApi = {
-  preview: (productionPlanId: number, request: PreviewAdjustmentRequest) =>
+  preview: (productionPlanId: string, request: PreviewAdjustmentRequest) =>
     apiClient.post<AdjustmentPreviewDto>(
       `/production-plans/${productionPlanId}/adjustments/preview`,
       request,
     ),
 
-  apply: (productionPlanId: number, request: ApplyAdjustmentRequest) =>
+  apply: (productionPlanId: string, request: ApplyAdjustmentRequest) =>
     apiClient.post<PlanAdjustmentDto>(`/production-plans/${productionPlanId}/adjustments`, request),
 
-  reverse: (adjustmentId: number) =>
+  reverse: (adjustmentId: string) =>
     apiClient.post<PlanAdjustmentDto>(`/plan-adjustments/${adjustmentId}/reverse`),
 
-  history: (orderId: number, signal?: AbortSignal) =>
+  history: (orderId: string, signal?: AbortSignal) =>
     apiClient.get<PlanAdjustmentDto[]>(`/orders/${orderId}/plan-adjustments`, { signal }),
 }

@@ -11,15 +11,15 @@ public sealed class PlanAdjustment
 
     private PlanAdjustment() { }
 
-    public long Id { get; private set; }
-    public long SourceProductionPlanId { get; private set; }
+    public Guid Id { get; private set; }
+    public Guid SourceProductionPlanId { get; private set; }
     public ProductionPlan SourceProductionPlan { get; private set; } = null!;
     public int ShortageQuantity { get; private set; }
     public AdjustmentType AdjustmentType { get; private set; }
     public AdjustmentStatus Status { get; private set; }
-    public long CreatedBy { get; private set; }
-    public long? AppliedBy { get; private set; }
-    public long? ReversedBy { get; private set; }
+    public Guid CreatedBy { get; private set; }
+    public Guid? AppliedBy { get; private set; }
+    public Guid? ReversedBy { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
     public DateTimeOffset? AppliedAt { get; private set; }
     public DateTimeOffset? ReversedAt { get; private set; }
@@ -31,11 +31,11 @@ public sealed class PlanAdjustment
     /// state an adjustment is ever persisted in (Step 3 §4.5).
     /// </summary>
     public static PlanAdjustment Apply(
-        long sourceProductionPlanId,
+        Guid sourceProductionPlanId,
         int shortageQuantity,
         AdjustmentType adjustmentType,
-        IReadOnlyList<(long ProductionPlanId, int AddOnQuantity)> targets,
-        long userId,
+        IReadOnlyList<(Guid ProductionPlanId, int AddOnQuantity)> targets,
+        Guid userId,
         DateTimeOffset now)
     {
         if (shortageQuantity <= 0)
@@ -50,7 +50,7 @@ public sealed class PlanAdjustment
                 ErrorCodes.InvalidAdjustmentTarget, "An adjustment requires at least one target production plan.");
         }
 
-        var seen = new HashSet<long>();
+        var seen = new HashSet<Guid>();
         foreach (var (planId, addOn) in targets)
         {
             if (addOn <= 0)
@@ -79,6 +79,7 @@ public sealed class PlanAdjustment
 
         var adjustment = new PlanAdjustment
         {
+            Id = Guid.CreateVersion7(),
             SourceProductionPlanId = sourceProductionPlanId,
             ShortageQuantity = shortageQuantity,
             AdjustmentType = adjustmentType,
@@ -100,7 +101,7 @@ public sealed class PlanAdjustment
     /// <summary>
     /// Applied → Reversed. History is never rewritten and an adjustment cannot be reversed twice.
     /// </summary>
-    public void Reverse(long userId, DateTimeOffset now)
+    public void Reverse(Guid userId, DateTimeOffset now)
     {
         if (Status != AdjustmentStatus.Applied)
         {

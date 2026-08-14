@@ -12,7 +12,7 @@ namespace ProductionManagement.Application.Features.Statistics;
 /// </summary>
 public sealed class StatisticsService(IAppDbContext db, IClock clock)
 {
-    public async Task<OrderStatisticsDto> GetOrderStatisticsAsync(long orderId, CancellationToken ct = default)
+    public async Task<OrderStatisticsDto> GetOrderStatisticsAsync(Guid orderId, CancellationToken ct = default)
     {
         var order = await db.Orders.AsNoTracking().FirstOrDefaultAsync(o => o.Id == orderId, ct)
                     ?? throw new NotFoundException(ErrorCodes.OrderNotFound, "Order was not found.");

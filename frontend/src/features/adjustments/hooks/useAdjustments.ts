@@ -4,7 +4,7 @@ import { useInvalidateOrder } from '../../../shared/hooks/useInvalidateOrder'
 import { adjustmentsApi } from '../api/adjustmentsApi'
 import type { ApplyAdjustmentRequest, PreviewAdjustmentRequest } from '../types'
 
-export function usePlanAdjustments(orderId: number) {
+export function usePlanAdjustments(orderId: string) {
   return useQuery({
     queryKey: queryKeys.orderPlanAdjustments(orderId),
     queryFn: ({ signal }) => adjustmentsApi.history(orderId, signal),
@@ -21,13 +21,13 @@ export function usePreviewAdjustment() {
       productionPlanId,
       request,
     }: {
-      productionPlanId: number
+      productionPlanId: string
       request: PreviewAdjustmentRequest
     }) => adjustmentsApi.preview(productionPlanId, request),
   })
 }
 
-export function useApplyAdjustment(orderId: number) {
+export function useApplyAdjustment(orderId: string) {
   const { invalidateAfterAdjustmentChange } = useInvalidateOrder()
 
   return useMutation({
@@ -35,18 +35,18 @@ export function useApplyAdjustment(orderId: number) {
       productionPlanId,
       request,
     }: {
-      productionPlanId: number
+      productionPlanId: string
       request: ApplyAdjustmentRequest
     }) => adjustmentsApi.apply(productionPlanId, request),
     onSuccess: () => invalidateAfterAdjustmentChange(orderId),
   })
 }
 
-export function useReverseAdjustment(orderId: number) {
+export function useReverseAdjustment(orderId: string) {
   const { invalidateAfterAdjustmentChange } = useInvalidateOrder()
 
   return useMutation({
-    mutationFn: (adjustmentId: number) => adjustmentsApi.reverse(adjustmentId),
+    mutationFn: (adjustmentId: string) => adjustmentsApi.reverse(adjustmentId),
     onSuccess: () => invalidateAfterAdjustmentChange(orderId),
   })
 }

@@ -13,7 +13,7 @@ public class ProductionRecordTests
     [Fact]
     public void An_explicit_zero_actual_is_valid()
     {
-        var record = ProductionRecord.Create(1, Date, 0, userId: 1, Now);
+        var record = ProductionRecord.Create(TestIds.Of(1), Date,0, userId: TestIds.Of(1), Now);
 
         Assert.Equal(0, record.ActualQuantity);
     }
@@ -22,7 +22,7 @@ public class ProductionRecordTests
     public void A_negative_actual_is_rejected()
     {
         var exception = Assert.Throws<ValidationException>(() =>
-            ProductionRecord.Create(1, Date, -1, userId: 1, Now));
+            ProductionRecord.Create(TestIds.Of(1), Date,-1, userId: TestIds.Of(1), Now));
 
         Assert.Contains(exception.Failures, f => f.Field == "actualQuantity");
     }
@@ -30,14 +30,14 @@ public class ProductionRecordTests
     [Fact]
     public void Editing_replaces_the_value_instead_of_accumulating_it()
     {
-        var record = ProductionRecord.Create(1, Date, 80, userId: 1, Now);
+        var record = ProductionRecord.Create(TestIds.Of(1), Date,80, userId: TestIds.Of(1), Now);
 
-        record.UpdateActual(75, userId: 2, Now.AddHours(1));
+        record.UpdateActual(75, userId: TestIds.Of(2), Now.AddHours(1));
 
         Assert.Equal(75, record.ActualQuantity);
-        Assert.Equal(2, record.UpdatedBy);
+        Assert.Equal(TestIds.Of(2), record.UpdatedBy);
         // The creator is preserved; only the editor changes.
-        Assert.Equal(1, record.CreatedBy);
+        Assert.Equal(TestIds.Of(1), record.CreatedBy);
     }
 }
 

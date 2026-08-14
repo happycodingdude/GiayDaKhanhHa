@@ -31,7 +31,7 @@ export function DashboardPage() {
   }
 
   const data = query.data
-  const openOrder = (orderId: number) =>
+  const openOrder = (orderId: string) =>
     navigate({ to: '/orders/$orderId', params: { orderId: String(orderId) } })
 
   return (

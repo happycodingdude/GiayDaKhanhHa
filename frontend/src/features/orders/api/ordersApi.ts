@@ -22,6 +22,6 @@ export const ordersApi = {
       },
     }),
 
-  getById: (orderId: number, signal?: AbortSignal) =>
+  getById: (orderId: string, signal?: AbortSignal) =>
     apiClient.get<OrderDetailDto>(`/orders/${orderId}`, { signal }),
 }

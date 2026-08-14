@@ -58,7 +58,7 @@ public class ConcurrencyTests(ApiFactory factory) : IntegrationTestBase(factory)
         var (order, days) = await CreateOrderAsync(client, 100, 120, 200);
         (await PostActualAsync(client, order.Id, days[0].ProductionDate, 80)).EnsureSuccessStatusCode();
 
-        async Task<HttpResponseMessage> Apply(long targetPlanId) =>
+        async Task<HttpResponseMessage> Apply(Guid targetPlanId) =>
             await client.PostAsJsonAsync($"/api/v1/production-plans/{days[0].Id}/adjustments", new
             {
                 adjustmentType = "Manual",

@@ -14,7 +14,7 @@ export interface DailyStatisticsDto {
 }
 
 export interface OrderStatisticsDto {
-  orderId: number
+  orderId: string
   orderCode: string
   orderQuantity: number
   totalActual: number
@@ -38,7 +38,7 @@ export interface DashboardTodayDto {
 }
 
 export interface DashboardAlertDto {
-  orderId: number
+  orderId: string
   orderCode: string
   behindQuantity: number
   daysRemaining: number
@@ -47,7 +47,7 @@ export interface DashboardAlertDto {
 }
 
 export interface DashboardOrderDto {
-  orderId: number
+  orderId: string
   orderCode: string
   progressPercentage: number
   todayDifference: number | null

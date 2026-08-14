@@ -16,7 +16,7 @@ public interface ICurrentUser
 {
     bool IsAuthenticated { get; }
 
-    long UserId { get; }
+    Guid UserId { get; }
 }
 
 /// <summary>Clock abstraction so time-dependent business rules stay testable.</summary>

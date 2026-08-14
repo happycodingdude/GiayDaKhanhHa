@@ -9,23 +9,24 @@ public sealed class ProductionRecord
 {
     private ProductionRecord() { }
 
-    public long Id { get; private set; }
-    public long OrderId { get; private set; }
+    public Guid Id { get; private set; }
+    public Guid OrderId { get; private set; }
     public Order Order { get; private set; } = null!;
     public DateOnly ProductionDate { get; private set; }
     public int ActualQuantity { get; private set; }
-    public long CreatedBy { get; private set; }
-    public long UpdatedBy { get; private set; }
+    public Guid CreatedBy { get; private set; }
+    public Guid UpdatedBy { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
     public DateTimeOffset UpdatedAt { get; private set; }
 
     public static ProductionRecord Create(
-        long orderId, DateOnly productionDate, int actualQuantity, long userId, DateTimeOffset now)
+        Guid orderId, DateOnly productionDate, int actualQuantity, Guid userId, DateTimeOffset now)
     {
         GuardQuantity(actualQuantity);
 
         return new ProductionRecord
         {
+            Id = Guid.CreateVersion7(),
             OrderId = orderId,
             ProductionDate = productionDate,
             ActualQuantity = actualQuantity,
@@ -37,7 +38,7 @@ public sealed class ProductionRecord
     }
 
     /// <summary>Replaces the actual value. The old value is not accumulated.</summary>
-    public void UpdateActual(int actualQuantity, long userId, DateTimeOffset now)
+    public void UpdateActual(int actualQuantity, Guid userId, DateTimeOffset now)
     {
         GuardQuantity(actualQuantity);
 

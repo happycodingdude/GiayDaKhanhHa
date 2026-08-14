@@ -4,7 +4,7 @@ export type OrderStatus = 'Incomplete' | 'Completed'
 export type ScheduleStatus = 'OnSchedule' | 'Behind' | 'Completed'
 
 export interface OrderListItemDto {
-  id: number
+  id: string
   orderCode: string
   quantity: number
   startDate: IsoDate
@@ -21,7 +21,7 @@ export interface OrderListItemDto {
 }
 
 export interface OrderDetailDto extends Omit<OrderListItemDto, 'id'> {
-  id: number
+  id: string
   totalInitialPlan: number
   /** The production period is over, so the order is read-only. True for completed orders too. */
   isPastDueDate: boolean

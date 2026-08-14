@@ -9,7 +9,7 @@ export function useDashboardStatistics() {
   })
 }
 
-export function useOrderStatistics(orderId: number) {
+export function useOrderStatistics(orderId: string) {
   return useQuery({
     queryKey: queryKeys.orderStatistics(orderId),
     queryFn: ({ signal }) => statisticsApi.orderStatistics(orderId, signal),

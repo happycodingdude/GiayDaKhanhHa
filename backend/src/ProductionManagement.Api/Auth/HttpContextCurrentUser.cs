@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using ProductionManagement.Application.Abstractions;
+using ProductionManagement.Domain;
 
 namespace ProductionManagement.Api.Auth;
 
@@ -11,13 +12,19 @@ public sealed class HttpContextCurrentUser(IHttpContextAccessor httpContextAcces
 {
     public bool IsAuthenticated => TryGetUserId(out _);
 
-    public long UserId => TryGetUserId(out var userId)
+    /// <summary>
+    /// A principal the cookie middleware accepted can still carry an id this application cannot
+    /// use — a cookie issued while ids were still numeric, for instance. That is a stale
+    /// credential, not a server fault, so it has to surface as 401 rather than 500.
+    /// </summary>
+    public Guid UserId => TryGetUserId(out var userId)
         ? userId
-        : throw new InvalidOperationException("There is no authenticated user on the current request.");
+        : throw new UnauthenticatedException(
+            ErrorCodes.NotAuthenticated, "Authentication is required.");
 
-    private bool TryGetUserId(out long userId)
+    private bool TryGetUserId(out Guid userId)
     {
-        userId = 0;
+        userId = Guid.Empty;
 
         var principal = httpContextAccessor.HttpContext?.User;
         if (principal?.Identity?.IsAuthenticated != true)
@@ -26,6 +33,6 @@ public sealed class HttpContextCurrentUser(IHttpContextAccessor httpContextAcces
         }
 
         var value = principal.FindFirstValue(ClaimTypes.NameIdentifier);
-        return long.TryParse(value, out userId);
+        return Guid.TryParse(value, out userId);
     }
 }

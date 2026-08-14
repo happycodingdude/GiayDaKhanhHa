@@ -7,20 +7,21 @@ public sealed class PlanAdjustmentItem
 {
     private PlanAdjustmentItem() { }
 
-    public long Id { get; private set; }
-    public long PlanAdjustmentId { get; private set; }
+    public Guid Id { get; private set; }
+    public Guid PlanAdjustmentId { get; private set; }
     public PlanAdjustment PlanAdjustment { get; private set; } = null!;
 
     /// <summary>The target production plan that receives the add-on.</summary>
-    public long ProductionPlanId { get; private set; }
+    public Guid ProductionPlanId { get; private set; }
     public ProductionPlan ProductionPlan { get; private set; } = null!;
 
     public int AddOnQuantity { get; private set; }
 
-    internal static PlanAdjustmentItem Create(PlanAdjustment adjustment, long productionPlanId, int addOnQuantity)
+    internal static PlanAdjustmentItem Create(PlanAdjustment adjustment, Guid productionPlanId, int addOnQuantity)
     {
         return new PlanAdjustmentItem
         {
+            Id = Guid.CreateVersion7(),
             PlanAdjustment = adjustment,
             ProductionPlanId = productionPlanId,
             AddOnQuantity = addOnQuantity

@@ -240,12 +240,27 @@ async function main() {
     return
   }
 
+  // Một kịch bản hỏng không được làm hỏng cả lần nạp: các kịch bản độc lập với nhau,
+  // nên ghi nhận lỗi rồi đi tiếp và báo cáo tổng kết ở cuối.
+  const skipped = []
   for (const scenario of scenarios) {
-    await seedScenario(scenario)
+    try {
+      await seedScenario(scenario)
+    } catch (error) {
+      skipped.push({ orderCode: scenario.orderCode, reason: error.message })
+      log.fail(`Bỏ qua ${scenario.orderCode}: ${error.message}`)
+    }
     console.log()
   }
 
   const dashboard = await call('GET', '/statistics/dashboard')
+
+  if (skipped.length > 0) {
+    console.log(`${colors.yellow}Bỏ qua ${skipped.length} kịch bản:${colors.reset}`)
+    for (const item of skipped) log.info(`${item.orderCode}: ${item.reason}`)
+    console.log()
+  }
+
   console.log(`${colors.green}Xong.${colors.reset}`)
   console.log(
     `${colors.dim}${dashboard.totalOrders} đơn · ${dashboard.incompleteOrders} đang chạy · ` +

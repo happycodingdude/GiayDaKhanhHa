@@ -4,7 +4,7 @@ export type AdjustmentType = 'Manual' | 'Automatic'
 export type AdjustmentStatus = 'Applied' | 'Reversed'
 
 export interface AdjustmentTargetRequest {
-  productionPlanId: number
+  productionPlanId: string
   addOnQuantity: number
 }
 
@@ -20,7 +20,7 @@ export interface ApplyAdjustmentRequest {
 }
 
 export interface AdjustmentPreviewItemDto {
-  productionPlanId: number
+  productionPlanId: string
   productionDate: IsoDate
   currentPlannedQuantity: number
   addOnQuantity: number
@@ -29,7 +29,7 @@ export interface AdjustmentPreviewItemDto {
 
 /** A preview is UI state only — it is never persisted (Step 5 §20). */
 export interface AdjustmentPreviewDto {
-  sourceProductionPlanId: number
+  sourceProductionPlanId: string
   sourceProductionDate: IsoDate
   sourcePlannedQuantity: number
   sourceActualQuantity: number | null
@@ -43,7 +43,7 @@ export interface AdjustmentPreviewDto {
 }
 
 export interface PlanAdjustmentItemDto {
-  productionPlanId: number
+  productionPlanId: string
   productionDate: IsoDate
   addOnQuantity: number
 }
@@ -56,17 +56,17 @@ export type AdjustmentRecalculationOutcome = 'Recalculated' | 'Removed' | 'Unhan
  */
 export interface AdjustmentRecalculationDto {
   outcome: AdjustmentRecalculationOutcome
-  reversedAdjustmentId: number
+  reversedAdjustmentId: string
   previousShortageQuantity: number
   shortageQuantity: number
   adjustmentType: AdjustmentType
-  adjustmentId: number | null
+  adjustmentId: string | null
   items: PlanAdjustmentItemDto[]
 }
 
 export interface PlanAdjustmentDto {
-  id: number
-  sourceProductionPlanId: number
+  id: string
+  sourceProductionPlanId: string
   sourceProductionDate: IsoDate
   shortageQuantity: number
   adjustmentType: AdjustmentType

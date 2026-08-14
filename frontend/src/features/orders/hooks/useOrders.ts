@@ -11,7 +11,7 @@ export function useOrders(filters: OrderListFilters) {
   })
 }
 
-export function useOrder(orderId: number) {
+export function useOrder(orderId: string) {
   return useQuery({
     queryKey: queryKeys.order(orderId),
     queryFn: ({ signal }) => ordersApi.getById(orderId, signal),

@@ -8,8 +8,8 @@ public sealed class ProductionPlan
 {
     private ProductionPlan() { }
 
-    public long Id { get; private set; }
-    public long OrderId { get; private set; }
+    public Guid Id { get; private set; }
+    public Guid OrderId { get; private set; }
     public Order Order { get; private set; } = null!;
     public DateOnly ProductionDate { get; private set; }
     public int InitialPlannedQuantity { get; private set; }
@@ -21,6 +21,7 @@ public sealed class ProductionPlan
     {
         return new ProductionPlan
         {
+            Id = Guid.CreateVersion7(),
             Order = order,
             ProductionDate = productionDate,
             InitialPlannedQuantity = plannedQuantity,

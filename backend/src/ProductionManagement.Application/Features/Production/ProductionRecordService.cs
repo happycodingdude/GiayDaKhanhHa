@@ -19,7 +19,7 @@ public sealed class ProductionRecordService(
     ActiveAdjustmentRecalculator adjustmentRecalculator)
 {
     public async Task<ProductionRecordDto> CreateAsync(
-        long orderId, CreateProductionRecordRequest request, CancellationToken ct = default)
+        Guid orderId, CreateProductionRecordRequest request, CancellationToken ct = default)
     {
         if (request.ActualQuantity < 0)
         {
@@ -111,7 +111,7 @@ public sealed class ProductionRecordService(
     }
 
     public async Task<ProductionRecordDto> UpdateAsync(
-        long orderId, long productionRecordId, UpdateProductionRecordRequest request, CancellationToken ct = default)
+        Guid orderId, Guid productionRecordId, UpdateProductionRecordRequest request, CancellationToken ct = default)
     {
         if (request.ActualQuantity < 0)
         {

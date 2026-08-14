@@ -8,7 +8,7 @@ public sealed class User
 {
     private User() { }
 
-    public long Id { get; private set; }
+    public Guid Id { get; private set; }
     public string Username { get; private set; } = null!;
     public string PasswordHash { get; private set; } = null!;
     public string DisplayName { get; private set; } = null!;
@@ -22,6 +22,7 @@ public sealed class User
     {
         return new User
         {
+            Id = Guid.CreateVersion7(),
             Username = username.Trim(),
             PasswordHash = passwordHash,
             DisplayName = displayName.Trim(),

@@ -6,7 +6,7 @@ namespace ProductionManagement.IntegrationTests;
 public sealed record ApiErrorResponse(string Code, string Message);
 
 public sealed record OrderResponse(
-    long Id,
+    Guid Id,
     string OrderCode,
     int Quantity,
     string Status,
@@ -19,40 +19,40 @@ public sealed record OrderResponse(
     bool IsPastDueDate);
 
 public sealed record ProductionDayResponse(
-    long Id,
+    Guid Id,
     DateOnly ProductionDate,
     int InitialPlannedQuantity,
     int AddOnQuantity,
     int PlannedQuantity,
     int? ActualQuantity,
-    long? ProductionRecordId,
+    Guid? ProductionRecordId,
     int ShortageQuantity,
     int? Difference,
     bool HasActiveAdjustment,
-    long? ActiveAdjustmentId);
+    Guid? ActiveAdjustmentId);
 
-public sealed record ProductionPlanListResponse(long OrderId, IReadOnlyList<ProductionDayResponse> Items);
+public sealed record ProductionPlanListResponse(Guid OrderId, IReadOnlyList<ProductionDayResponse> Items);
 
 public sealed record ProductionRecordResponse(
-    long Id,
+    Guid Id,
     DateOnly ProductionDate,
     int ActualQuantity,
     AdjustmentRecalculationResponse? AdjustmentRecalculation);
 
 public sealed record AdjustmentRecalculationResponse(
     string Outcome,
-    long ReversedAdjustmentId,
+    Guid ReversedAdjustmentId,
     int PreviousShortageQuantity,
     int ShortageQuantity,
     string AdjustmentType,
-    long? AdjustmentId,
+    Guid? AdjustmentId,
     IReadOnlyList<PlanAdjustmentItemResponse> Items);
 
 public sealed record AdjustmentPreviewItemResponse(
-    long ProductionPlanId, DateOnly ProductionDate, int CurrentPlannedQuantity, int AddOnQuantity, int PlannedQuantityAfter);
+    Guid ProductionPlanId, DateOnly ProductionDate, int CurrentPlannedQuantity, int AddOnQuantity, int PlannedQuantityAfter);
 
 public sealed record AdjustmentPreviewResponse(
-    long SourceProductionPlanId,
+    Guid SourceProductionPlanId,
     int ShortageQuantity,
     string AdjustmentType,
     IReadOnlyList<AdjustmentPreviewItemResponse> Items,
@@ -60,11 +60,11 @@ public sealed record AdjustmentPreviewResponse(
     bool Valid,
     string? ValidationCode);
 
-public sealed record PlanAdjustmentItemResponse(long ProductionPlanId, DateOnly ProductionDate, int AddOnQuantity);
+public sealed record PlanAdjustmentItemResponse(Guid ProductionPlanId, DateOnly ProductionDate, int AddOnQuantity);
 
 public sealed record PlanAdjustmentResponse(
-    long Id,
-    long SourceProductionPlanId,
+    Guid Id,
+    Guid SourceProductionPlanId,
     int ShortageQuantity,
     string AdjustmentType,
     string Status,

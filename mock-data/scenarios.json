@@ -63,14 +63,14 @@
       "orderCode": "ORD-2026-005",
       "label": "Hoàn thành — tổng thực tế đạt đúng tổng đơn",
       "uiState": "Badge 'Hoàn thành', tiến độ 100%, timeline chỉ còn nút 'Sửa sản lượng'.",
-      "startOffset": -5,
+      "startOffset": -4,
       "plan": [60, 60, 60, 60, 60],
       "actuals": [
-        { "dayOffset": -5, "quantity": 60 },
         { "dayOffset": -4, "quantity": 60 },
         { "dayOffset": -3, "quantity": 60 },
         { "dayOffset": -2, "quantity": 60 },
-        { "dayOffset": -1, "quantity": 60 }
+        { "dayOffset": -1, "quantity": 60 },
+        { "dayOffset": 0, "quantity": 60 }
       ],
       "adjustments": []
     },

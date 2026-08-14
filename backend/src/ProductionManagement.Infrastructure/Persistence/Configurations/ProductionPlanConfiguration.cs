@@ -15,7 +15,7 @@ public sealed class ProductionPlanConfiguration : IEntityTypeConfiguration<Produ
         });
 
         builder.HasKey(p => p.Id);
-        builder.Property(p => p.Id).HasColumnName("id").UseIdentityAlwaysColumn();
+        builder.Property(p => p.Id).HasColumnName("id").ValueGeneratedNever();
 
         builder.Property(p => p.OrderId).HasColumnName("order_id").IsRequired();
         builder.Property(p => p.ProductionDate).HasColumnName("production_date").HasColumnType("date").IsRequired();

@@ -22,36 +22,39 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public async Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default)
         => await Database.BeginTransactionAsync(cancellationToken);
 
-    public async Task<bool> LockOrderAsync(long orderId, CancellationToken cancellationToken = default)
+    public async Task<bool> LockOrderAsync(Guid orderId, CancellationToken cancellationToken = default)
     {
         var locked = await Database
-            .SqlQuery<long>($"SELECT id AS \"Value\" FROM orders WHERE id = {orderId} FOR UPDATE")
+            .SqlQuery<Guid>($"SELECT id AS \"Value\" FROM orders WHERE id = {orderId} FOR UPDATE")
             .ToListAsync(cancellationToken);
 
         return locked.Count > 0;
     }
 
     public async Task LockProductionPlansAsync(
-        IReadOnlyCollection<long> productionPlanIds, CancellationToken cancellationToken = default)
+        IReadOnlyCollection<Guid> productionPlanIds, CancellationToken cancellationToken = default)
     {
         if (productionPlanIds.Count == 0)
         {
             return;
         }
 
-        // Ordering by id gives every caller the same lock acquisition order, which keeps two
-        // concurrent adjustments touching overlapping days from deadlocking (Step 4 §18).
-        var ids = productionPlanIds.Distinct().OrderBy(id => id).ToArray();
+        var ids = productionPlanIds.Distinct().ToArray();
 
+        // ORDER BY id gives every caller the same lock acquisition order, which keeps two
+        // concurrent adjustments touching overlapping days from deadlocking (Step 4 §18).
+        // The ordering is PostgreSQL's, not the caller's: uuid sorts byte-wise in the database,
+        // which does not match Guid's comparison order in .NET. Sorting the array here would
+        // therefore prove nothing — the ORDER BY in the statement below is what matters.
         await Database
-            .SqlQuery<long>($"SELECT id AS \"Value\" FROM production_plans WHERE id = ANY({ids}) ORDER BY id FOR UPDATE")
+            .SqlQuery<Guid>($"SELECT id AS \"Value\" FROM production_plans WHERE id = ANY({ids}) ORDER BY id FOR UPDATE")
             .ToListAsync(cancellationToken);
     }
 
-    public async Task<bool> LockPlanAdjustmentAsync(long planAdjustmentId, CancellationToken cancellationToken = default)
+    public async Task<bool> LockPlanAdjustmentAsync(Guid planAdjustmentId, CancellationToken cancellationToken = default)
     {
         var locked = await Database
-            .SqlQuery<long>($"SELECT id AS \"Value\" FROM plan_adjustments WHERE id = {planAdjustmentId} FOR UPDATE")
+            .SqlQuery<Guid>($"SELECT id AS \"Value\" FROM plan_adjustments WHERE id = {planAdjustmentId} FOR UPDATE")
             .ToListAsync(cancellationToken);
 
         return locked.Count > 0;

@@ -45,7 +45,7 @@ export function ShortageDialog({
   onClose,
 }: {
   open: boolean
-  orderId: number
+  orderId: string
   sourceDay: ProductionDayDto | null
   allDays: ProductionDayDto[]
   onClose: () => void
@@ -56,7 +56,7 @@ export function ShortageDialog({
 
   const [step, setStep] = useState<Step>('method')
   const [method, setMethod] = useState<AdjustmentType>('Manual')
-  const [selectedPlanId, setSelectedPlanId] = useState<number | null>(null)
+  const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null)
   const [proposal, setProposal] = useState<AdjustmentPreviewDto | null>(null)
 
   useEffect(() => {
@@ -79,7 +79,7 @@ export function ShortageDialog({
     (day) => day.productionDate > sourceDay.productionDate && day.productionDate >= currentDate,
   )
 
-  const runPreview = async (type: AdjustmentType, planId: number | null) => {
+  const runPreview = async (type: AdjustmentType, planId: string | null) => {
     const result = await preview.mutateAsync({
       productionPlanId: sourceDay.id,
       request:

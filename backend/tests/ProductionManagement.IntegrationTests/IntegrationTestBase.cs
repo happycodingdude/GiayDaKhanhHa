@@ -56,14 +56,14 @@ public abstract class IntegrationTestBase(ApiFactory factory)
         return (order, await GetDaysAsync(client, order.Id));
     }
 
-    protected static async Task<IReadOnlyList<ProductionDayResponse>> GetDaysAsync(HttpClient client, long orderId)
+    protected static async Task<IReadOnlyList<ProductionDayResponse>> GetDaysAsync(HttpClient client, Guid orderId)
     {
         var response = await client.GetAsync($"/api/v1/orders/{orderId}/production-plans");
         response.EnsureSuccessStatusCode();
         return (await response.ReadAsync<ProductionPlanListResponse>()).Items;
     }
 
-    protected static async Task<OrderResponse> GetOrderAsync(HttpClient client, long orderId)
+    protected static async Task<OrderResponse> GetOrderAsync(HttpClient client, Guid orderId)
     {
         var response = await client.GetAsync($"/api/v1/orders/{orderId}");
         response.EnsureSuccessStatusCode();
@@ -71,7 +71,7 @@ public abstract class IntegrationTestBase(ApiFactory factory)
     }
 
     protected static Task<HttpResponseMessage> PostActualAsync(
-        HttpClient client, long orderId, DateOnly date, int actualQuantity)
+        HttpClient client, Guid orderId, DateOnly date, int actualQuantity)
         => client.PostAsJsonAsync($"/api/v1/orders/{orderId}/production-records", new
         {
             productionDate = date.ToString("yyyy-MM-dd"),
@@ -79,7 +79,7 @@ public abstract class IntegrationTestBase(ApiFactory factory)
         });
 
     protected static Task<HttpResponseMessage> PutActualAsync(
-        HttpClient client, long orderId, long recordId, int actualQuantity)
+        HttpClient client, Guid orderId, Guid recordId, int actualQuantity)
         => client.PutAsJsonAsync(
             $"/api/v1/orders/{orderId}/production-records/{recordId}", new { actualQuantity });
 }

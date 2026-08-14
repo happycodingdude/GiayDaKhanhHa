@@ -23,14 +23,14 @@ public interface IAppDbContext
     Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default);
 
     /// <summary>Takes a row lock on the order (SELECT ... FOR UPDATE). Returns false when it does not exist.</summary>
-    Task<bool> LockOrderAsync(long orderId, CancellationToken cancellationToken = default);
+    Task<bool> LockOrderAsync(Guid orderId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Takes row locks on the given production plans. Rows are locked in ascending id order to
     /// reduce deadlock risk (Step 4 §18).
     /// </summary>
-    Task LockProductionPlansAsync(IReadOnlyCollection<long> productionPlanIds, CancellationToken cancellationToken = default);
+    Task LockProductionPlansAsync(IReadOnlyCollection<Guid> productionPlanIds, CancellationToken cancellationToken = default);
 
     /// <summary>Takes a row lock on the plan adjustment. Returns false when it does not exist.</summary>
-    Task<bool> LockPlanAdjustmentAsync(long planAdjustmentId, CancellationToken cancellationToken = default);
+    Task<bool> LockPlanAdjustmentAsync(Guid planAdjustmentId, CancellationToken cancellationToken = default);
 }

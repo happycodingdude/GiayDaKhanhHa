@@ -14,7 +14,7 @@ public sealed record CreateOrderRequest(
 /// Order row for the list screen. All quantity aggregates are derived, never persisted.
 /// </summary>
 public sealed record OrderListItemDto(
-    long Id,
+    Guid Id,
     string OrderCode,
     int Quantity,
     DateOnly StartDate,
@@ -30,7 +30,7 @@ public sealed record OrderListItemDto(
     bool IsOverdue);
 
 public sealed record OrderDetailDto(
-    long Id,
+    Guid Id,
     string OrderCode,
     int Quantity,
     DateOnly StartDate,

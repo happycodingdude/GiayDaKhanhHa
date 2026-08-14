@@ -12,7 +12,7 @@ public sealed class ProductionRecordConfiguration : IEntityTypeConfiguration<Pro
             t.HasCheckConstraint("ck_production_records_actual_quantity", "actual_quantity >= 0"));
 
         builder.HasKey(r => r.Id);
-        builder.Property(r => r.Id).HasColumnName("id").UseIdentityAlwaysColumn();
+        builder.Property(r => r.Id).HasColumnName("id").ValueGeneratedNever();
 
         builder.Property(r => r.OrderId).HasColumnName("order_id").IsRequired();
         builder.Property(r => r.ProductionDate).HasColumnName("production_date").HasColumnType("date").IsRequired();

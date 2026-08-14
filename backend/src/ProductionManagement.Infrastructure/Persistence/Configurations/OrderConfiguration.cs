@@ -16,7 +16,7 @@ public sealed class OrderConfiguration : IEntityTypeConfiguration<Order>
         });
 
         builder.HasKey(o => o.Id);
-        builder.Property(o => o.Id).HasColumnName("id").UseIdentityAlwaysColumn();
+        builder.Property(o => o.Id).HasColumnName("id").ValueGeneratedNever();
 
         builder.Property(o => o.OrderCode).HasColumnName("order_code").HasMaxLength(50).IsRequired();
         builder.Property(o => o.Quantity).HasColumnName("quantity").IsRequired();

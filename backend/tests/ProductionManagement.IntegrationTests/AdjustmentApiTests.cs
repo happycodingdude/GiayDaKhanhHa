@@ -20,7 +20,7 @@ public class AdjustmentApiTests(ApiFactory factory) : IntegrationTestBase(factor
     }
 
     private static Task<HttpResponseMessage> PreviewAsync(
-        HttpClient client, long planId, string type, params (long PlanId, int AddOn)[] targets)
+        HttpClient client, Guid planId, string type, params (Guid PlanId, int AddOn)[] targets)
         => client.PostAsJsonAsync($"/api/v1/production-plans/{planId}/adjustments/preview", new
         {
             adjustmentType = type,
@@ -28,7 +28,7 @@ public class AdjustmentApiTests(ApiFactory factory) : IntegrationTestBase(factor
         });
 
     private static Task<HttpResponseMessage> ApplyAsync(
-        HttpClient client, long planId, string type, int shortage, params (long PlanId, int AddOn)[] targets)
+        HttpClient client, Guid planId, string type, int shortage, params (Guid PlanId, int AddOn)[] targets)
         => client.PostAsJsonAsync($"/api/v1/production-plans/{planId}/adjustments", new
         {
             adjustmentType = type,
@@ -262,7 +262,7 @@ public class AdjustmentApiTests(ApiFactory factory) : IntegrationTestBase(factor
         Assert.False(after[1].HasActiveAdjustment);
     }
 
-    private static async Task<IReadOnlyList<PlanAdjustmentResponse>> HistoryAsync(HttpClient client, long orderId)
+    private static async Task<IReadOnlyList<PlanAdjustmentResponse>> HistoryAsync(HttpClient client, Guid orderId)
         => await (await client.GetAsync($"/api/v1/orders/{orderId}/plan-adjustments"))
             .ReadAsync<List<PlanAdjustmentResponse>>();
 

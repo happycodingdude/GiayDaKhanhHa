@@ -139,7 +139,7 @@ public sealed class OrderService(IAppDbContext db, IClock clock)
         return new PagedResult<OrderListItemDto>(items, page, pageSize, totalCount);
     }
 
-    public async Task<OrderDetailDto> GetByIdAsync(long orderId, CancellationToken ct = default)
+    public async Task<OrderDetailDto> GetByIdAsync(Guid orderId, CancellationToken ct = default)
     {
         var order = await db.Orders.AsNoTracking().FirstOrDefaultAsync(o => o.Id == orderId, ct)
                     ?? throw new NotFoundException(ErrorCodes.OrderNotFound, "Order was not found.");
@@ -152,7 +152,7 @@ public sealed class OrderService(IAppDbContext db, IClock clock)
     /// Returns the daily production view: plan, actual and derived shortage/difference joined by
     /// Order + ProductionDate so the frontend does not have to combine several APIs (Step 4 §6).
     /// </summary>
-    public async Task<ProductionPlanListDto> GetProductionPlansAsync(long orderId, CancellationToken ct = default)
+    public async Task<ProductionPlanListDto> GetProductionPlansAsync(Guid orderId, CancellationToken ct = default)
     {
         if (!await db.Orders.AnyAsync(o => o.Id == orderId, ct))
         {
@@ -225,8 +225,8 @@ public sealed class OrderService(IAppDbContext db, IClock clock)
             clock.Today);
     }
 
-    private async Task<Dictionary<long, string>> GetUserDisplayNamesAsync(
-        IEnumerable<long> userIds, CancellationToken ct)
+    private async Task<Dictionary<Guid, string>> GetUserDisplayNamesAsync(
+        IEnumerable<Guid> userIds, CancellationToken ct)
     {
         var ids = userIds.Distinct().ToList();
         if (ids.Count == 0)

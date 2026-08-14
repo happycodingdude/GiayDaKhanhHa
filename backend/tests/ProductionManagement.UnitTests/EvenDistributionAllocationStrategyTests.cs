@@ -10,7 +10,7 @@ public class EvenDistributionAllocationStrategyTests
 
     private static IReadOnlyList<AllocationCandidate> Days(int count, int startDay = 14)
         => Enumerable.Range(0, count)
-            .Select(i => new AllocationCandidate(i + 1, new DateOnly(2026, 8, startDay + i), 20))
+            .Select(i => new AllocationCandidate(TestIds.Of(i + 1), new DateOnly(2026, 8, startDay + i), 20))
             .ToList();
 
     [Fact]

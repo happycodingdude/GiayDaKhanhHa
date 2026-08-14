@@ -17,8 +17,7 @@ import { useOrder } from '../hooks/useOrders'
 
 /** The central production-management screen (Step 5 §15). */
 export function OrderDetailPage() {
-  const { orderId: orderIdParam } = useParams({ from: '/authenticated/orders/$orderId' })
-  const orderId = Number(orderIdParam)
+  const { orderId } = useParams({ from: '/authenticated/orders/$orderId' })
 
   const orderQuery = useOrder(orderId)
   const plansQuery = useProductionPlans(orderId)

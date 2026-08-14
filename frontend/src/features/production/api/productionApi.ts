@@ -7,14 +7,14 @@ import type {
 } from '../types'
 
 export const productionApi = {
-  getProductionPlans: (orderId: number, signal?: AbortSignal) =>
+  getProductionPlans: (orderId: string, signal?: AbortSignal) =>
     apiClient.get<ProductionPlanListDto>(`/orders/${orderId}/production-plans`, { signal }),
 
-  createActual: (orderId: number, request: CreateProductionRecordRequest) =>
+  createActual: (orderId: string, request: CreateProductionRecordRequest) =>
     apiClient.post<ProductionRecordDto>(`/orders/${orderId}/production-records`, request),
 
   /** Editing replaces the recorded value; actual is never accumulated. */
-  updateActual: (orderId: number, productionRecordId: number, request: UpdateProductionRecordRequest) =>
+  updateActual: (orderId: string, productionRecordId: string, request: UpdateProductionRecordRequest) =>
     apiClient.put<ProductionRecordDto>(
       `/orders/${orderId}/production-records/${productionRecordId}`,
       request,
