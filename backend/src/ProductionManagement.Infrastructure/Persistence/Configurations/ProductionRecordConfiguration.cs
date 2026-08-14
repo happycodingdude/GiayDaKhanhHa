@@ -22,8 +22,8 @@ public sealed class ProductionRecordConfiguration : IEntityTypeConfiguration<Pro
         builder.Property(r => r.CreatedAt).HasColumnName("created_at").IsRequired();
         builder.Property(r => r.UpdatedAt).HasColumnName("updated_at").IsRequired();
 
-        // One actual record per Order per day. This is also what prevents a duplicate daily entry
-        // without introducing an idempotency table (Step 4 §17).
+        // Mỗi đơn hàng mỗi ngày một bản ghi thực tế. Đây cũng là thứ ngăn việc nhập trùng trong ngày
+        // mà không cần thêm bảng idempotency (Step 4 §17).
         builder.HasIndex(r => new { r.OrderId, r.ProductionDate })
             .IsUnique()
             .HasDatabaseName("uq_production_records_order_date");

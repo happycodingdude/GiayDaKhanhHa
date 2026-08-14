@@ -27,7 +27,7 @@ public class OrderTests
         Assert.Equal(OrderStatus.Incomplete, order.Status);
         Assert.Equal(5, order.ProductionPlans.Count);
         Assert.Equal(100, order.ProductionPlans.Sum(p => p.InitialPlannedQuantity));
-        // The current plan starts equal to the initial plan.
+        // Kế hoạch hiện tại lúc đầu bằng đúng kế hoạch ban đầu.
         Assert.Equal(100, order.ProductionPlans.Sum(p => p.PlannedQuantity));
     }
 
@@ -115,7 +115,7 @@ public class OrderTests
         var order = CreateOrder();
         order.RecalculateStatus(100, Now);
 
-        // Editing an actual downwards must be able to reopen the order (Step 1 §13).
+        // Sửa thực tế giảm xuống phải mở lại được đơn hàng (Step 1 §13).
         order.RecalculateStatus(80, Now);
 
         Assert.Equal(OrderStatus.Incomplete, order.Status);
@@ -180,7 +180,7 @@ public class OrderTests
         var order = CreateOrder();
         order.RecalculateStatus(100, Now);
 
-        // Delivered in full, so not late — but the period is over, so the data is frozen.
+        // Đã giao đủ nên không trễ — nhưng kỳ sản xuất đã kết thúc nên dữ liệu bị đóng băng.
         Assert.False(order.IsOverdueOn(Due.AddDays(1)));
         Assert.True(order.IsPastDueDateOn(Due.AddDays(1)));
     }

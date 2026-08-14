@@ -80,7 +80,7 @@ public class PlanAdjustmentTests
         Assert.Equal(AdjustmentStatus.Reversed, adjustment.Status);
         Assert.Equal(TestIds.Of(2), adjustment.ReversedBy);
         Assert.Equal(Now.AddHours(1), adjustment.ReversedAt);
-        // History is never rewritten: the original apply information is untouched.
+        // Lịch sử không bao giờ bị viết lại: thông tin của lượt apply gốc không bị đụng tới.
         Assert.Equal(Now, adjustment.AppliedAt);
         Assert.Equal(20, adjustment.Items.Sum(i => i.AddOnQuantity));
     }
@@ -118,7 +118,7 @@ public class ProductionPlanAddOnTests
         plan.AddOn(20, Now);
 
         Assert.Equal(140, plan.PlannedQuantity);
-        // InitialPlannedQuantity is immutable (Step 1 §4).
+        // InitialPlannedQuantity là bất biến (Step 1 §4).
         Assert.Equal(120, plan.InitialPlannedQuantity);
     }
 

@@ -8,7 +8,7 @@ namespace ProductionManagement.Api.Controllers;
 [Route("api/v1/statistics")]
 public sealed class StatisticsController(StatisticsService statisticsService) : ControllerBase
 {
-    /// <summary>Derived dashboard figures. There is no dashboard entity or table (Step 4 §16).</summary>
+    /// <summary>Số liệu dashboard đều là suy ra. Không có entity hay bảng dashboard nào (Step 4 §16).</summary>
     [HttpGet("dashboard")]
     public async Task<ActionResult<DashboardStatisticsDto>> GetDashboard(CancellationToken ct)
         => Ok(await statisticsService.GetDashboardAsync(ct));

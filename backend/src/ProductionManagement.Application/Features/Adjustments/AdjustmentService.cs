@@ -9,8 +9,8 @@ using ProductionManagement.Domain.Services;
 namespace ProductionManagement.Application.Features.Adjustments;
 
 /// <summary>
-/// Shortage handling. Preview never persists; only Apply creates a PlanAdjustment, and an applied
-/// adjustment is immutable history that can only be Reversed (Step 4 §8–§13).
+/// Xử lý phần thiếu. Preview không bao giờ lưu xuống; chỉ Apply mới tạo PlanAdjustment, và điều
+/// chỉnh đã áp dụng là lịch sử bất biến, chỉ có thể chuyển sang Reversed (Step 4 §8–§13).
 /// </summary>
 public sealed class AdjustmentService(
     IAppDbContext db,
@@ -26,8 +26,8 @@ public sealed class AdjustmentService(
         var source = await db.ProductionPlans.AsNoTracking().FirstOrDefaultAsync(p => p.Id == productionPlanId, ct)
                      ?? throw new NotFoundException(ErrorCodes.ProductionPlanNotFound, "Production plan was not found.");
 
-        // Preview exists only to prepare an Apply. On an overdue order that Apply can never
-        // succeed, so the proposal is refused here rather than offered and then rejected.
+        // Preview chỉ tồn tại để chuẩn bị cho Apply. Với đơn hàng quá hạn thì Apply không bao giờ
+        // thành công, nên từ chối đề xuất ngay ở đây thay vì đưa ra rồi mới bác.
         OrderMutationGuard.EnsureEditable(await GetOrderAsync(source.OrderId, ct), clock.Today);
 
         var (shortage, actual) = await GetShortageAsync(source, ct);
@@ -47,7 +47,7 @@ public sealed class AdjustmentService(
 
         if (adjustmentType == AdjustmentType.Automatic)
         {
-            // Option 2 — the system distributes the whole shortage across every remaining day.
+            // Option 2 — hệ thống chia toàn bộ phần thiếu cho mọi ngày còn lại.
             var allocation = automaticAllocation.Allocate(
                 shortage,
                 candidates.Select(c => new AllocationCandidate(c.Id, c.ProductionDate, c.PlannedQuantity)).ToList());
@@ -59,14 +59,14 @@ public sealed class AdjustmentService(
         }
         else
         {
-            // Option 1 — the manager's chosen targets, validated but never silently rewritten.
+            // Option 1 — các ngày đích do quản lý chọn, có kiểm tra nhưng không bao giờ sửa ngầm.
             var targets = request.Targets ?? [];
             var validation = ValidateManualTargets(targets, candidates, shortage);
             validationCode = validation.Code;
             validationMessage = validation.Message;
 
-            // Only eligible targets are echoed back, so the preview never shows a row the server
-            // would refuse. An ineligible selection is reported through the validation message.
+            // Chỉ trả về các ngày đích hợp lệ, nên preview không bao giờ hiện ra dòng mà server sẽ từ
+            // chối. Lựa chọn không hợp lệ được báo qua thông báo validation.
             var byId = candidates.ToDictionary(c => c.Id);
             proposal = targets
                 .Where(t => byId.ContainsKey(t.ProductionPlanId))
@@ -116,8 +116,8 @@ public sealed class AdjustmentService(
             .FirstOrDefaultAsync(ct)
             ?? throw new NotFoundException(ErrorCodes.ProductionPlanNotFound, "Production plan was not found.");
 
-        // Lock the order first (it serialises against actual create/edit, which is what determines
-        // the shortage), then the plans in ascending id order (Step 4 §18).
+        // Khóa đơn hàng trước (nó tuần tự hóa với thao tác tạo/sửa thực tế, thứ quyết định phần
+        // thiếu), rồi tới các kế hoạch theo thứ tự id tăng dần (Step 4 §18).
         if (!await db.LockOrderAsync(sourceInfo.OrderId, ct))
         {
             throw new NotFoundException(ErrorCodes.OrderNotFound, "Order was not found.");
@@ -130,7 +130,7 @@ public sealed class AdjustmentService(
 
         var source = await db.ProductionPlans.FirstAsync(p => p.Id == productionPlanId, ct);
 
-        // Never trust the preview: recalculate the current shortage from live state (Step 4 §10).
+        // Không bao giờ tin preview: tính lại phần thiếu hiện tại từ trạng thái sống (Step 4 §10).
         var (currentShortage, _) = await GetShortageAsync(source, ct);
         if (currentShortage <= 0 || currentShortage != request.ShortageQuantity)
         {
@@ -151,8 +151,8 @@ public sealed class AdjustmentService(
 
         if (adjustmentType == AdjustmentType.Automatic)
         {
-            // Recompute the automatic proposal and require the submitted one to match it exactly.
-            // The server validates the manager's submission rather than silently replacing it.
+            // Tính lại đề xuất tự động và bắt buộc cái client gửi lên phải khớp chính xác.
+            // Server kiểm tra thứ quản lý gửi lên chứ không âm thầm thay thế nó.
             var expected = automaticAllocation.Allocate(
                 currentShortage,
                 candidates.Select(c => new AllocationCandidate(c.Id, c.ProductionDate, c.PlannedQuantity)).ToList());
@@ -181,7 +181,7 @@ public sealed class AdjustmentService(
 
         db.PlanAdjustments.Add(adjustment);
 
-        // Increase the target plans. No other day's plan is ever reduced.
+        // Tăng kế hoạch của các ngày đích. Không bao giờ giảm kế hoạch của ngày nào khác.
         var targetPlans = await db.ProductionPlans
             .Where(p => planIdsToLock.Contains(p.Id))
             .ToDictionaryAsync(p => p.Id, ct);
@@ -210,7 +210,7 @@ public sealed class AdjustmentService(
             .Include(a => a.Items)
             .FirstAsync(a => a.Id == adjustmentId, ct);
 
-        // plan_adjustments has no order_id; the order is reached through the source production plan.
+        // plan_adjustments không có order_id; đơn hàng được truy ra qua kế hoạch sản xuất nguồn.
         var sourceOrderId = await db.ProductionPlans.AsNoTracking()
             .Where(p => p.Id == adjustment.SourceProductionPlanId)
             .Select(p => p.OrderId)
@@ -221,7 +221,7 @@ public sealed class AdjustmentService(
         var affectedPlanIds = adjustment.Items.Select(i => i.ProductionPlanId).Distinct().ToList();
         await db.LockProductionPlansAsync(affectedPlanIds, ct);
 
-        // Applied → Reversed only. A reversed adjustment can never be reversed again.
+        // Chỉ Applied → Reversed. Điều chỉnh đã hoàn tác không bao giờ hoàn tác được lần nữa.
         adjustment.Reverse(currentUser.UserId, clock.UtcNow);
 
         var plans = await db.ProductionPlans
@@ -247,7 +247,7 @@ public sealed class AdjustmentService(
             throw new NotFoundException(ErrorCodes.OrderNotFound, "Order was not found.");
         }
 
-        // The order is reached through the source production plan; plan_adjustments has no order_id.
+        // Đơn hàng được truy ra qua kế hoạch sản xuất nguồn; plan_adjustments không có order_id.
         var adjustmentIds = await db.PlanAdjustments.AsNoTracking()
             .Where(a => db.ProductionPlans.Any(p => p.Id == a.SourceProductionPlanId && p.OrderId == orderId))
             .OrderByDescending(a => a.CreatedAt)
@@ -329,7 +329,7 @@ public sealed class AdjustmentService(
             .ToList();
     }
 
-    /// <summary>Shortage for the source day. Requires an actual to have been entered.</summary>
+    /// <summary>Phần thiếu của ngày nguồn. Yêu cầu ngày đó đã nhập thực tế.</summary>
     private async Task<(int Shortage, int? Actual)> GetShortageAsync(ProductionPlan source, CancellationToken ct)
     {
         var actual = await db.ProductionRecords.AsNoTracking()
@@ -342,8 +342,8 @@ public sealed class AdjustmentService(
 
     private async Task GuardNoActiveAdjustmentAsync(Guid sourceProductionPlanId, CancellationToken ct)
     {
-        // At most one Applied adjustment per source plan (Step 4 §12). This also makes a duplicate
-        // apply after a network retry impossible without an idempotency table.
+        // Mỗi kế hoạch nguồn tối đa một điều chỉnh Applied (Step 4 §12). Điều này cũng khiến việc
+        // apply trùng sau khi retry mạng là không thể, mà không cần bảng idempotency.
         var hasActive = await db.PlanAdjustments
             .AnyAsync(a => a.SourceProductionPlanId == sourceProductionPlanId && a.Status == AdjustmentStatus.Applied, ct);
 
@@ -356,8 +356,8 @@ public sealed class AdjustmentService(
     }
 
     /// <summary>
-    /// Plans that may receive an add-on: after the shortage day and not in the past. Adjusting a
-    /// past day would rewrite history (master summary §8 Rule 7, §11).
+    /// Các kế hoạch được nhận khoản bù: nằm sau ngày thiếu và không thuộc quá khứ. Điều chỉnh một
+    /// ngày đã qua là viết lại lịch sử (master summary §8 Rule 7, §11).
     /// </summary>
     private async Task<List<ProductionPlan>> GetEligibleTargetsAsync(ProductionPlan source, CancellationToken ct)
     {

@@ -24,12 +24,12 @@ public sealed class ProductionPlanConfiguration : IEntityTypeConfiguration<Produ
         builder.Property(p => p.CreatedAt).HasColumnName("created_at").IsRequired();
         builder.Property(p => p.UpdatedAt).HasColumnName("updated_at").IsRequired();
 
-        // One production plan per Order per day.
+        // Mỗi đơn hàng mỗi ngày chỉ một kế hoạch sản xuất.
         builder.HasIndex(p => new { p.OrderId, p.ProductionDate })
             .IsUnique()
             .HasDatabaseName("uq_production_plans_order_date");
 
-        // Production history must never disappear through a cascading delete (Step 3 §7).
+        // Lịch sử sản xuất không bao giờ được biến mất vì xóa dây chuyền (Step 3 §7).
         builder.HasOne(p => p.Order)
             .WithMany(o => o.ProductionPlans)
             .HasForeignKey(p => p.OrderId)

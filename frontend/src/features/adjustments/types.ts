@@ -27,7 +27,7 @@ export interface AdjustmentPreviewItemDto {
   plannedQuantityAfter: number
 }
 
-/** A preview is UI state only — it is never persisted (Step 5 §20). */
+/** Preview chỉ là state UI — không bao giờ được lưu xuống (Step 5 §20). */
 export interface AdjustmentPreviewDto {
   sourceProductionPlanId: string
   sourceProductionDate: IsoDate
@@ -51,8 +51,9 @@ export interface PlanAdjustmentItemDto {
 export type AdjustmentRecalculationOutcome = 'Recalculated' | 'Removed' | 'Unhandled'
 
 /**
- * Reported when editing a day's actual changed the shortage its applied add-on was based on. The
- * outdated adjustment is reversed and replaced server-side, so history is never rewritten.
+ * Được báo về khi việc sửa sản lượng thực tế của một ngày làm thay đổi phần thiếu mà khoản bù
+ * đã áp dụng dựa vào. Điều chỉnh cũ bị hoàn tác và thay thế ở phía server, nên lịch sử không
+ * bị viết lại.
  */
 export interface AdjustmentRecalculationDto {
   outcome: AdjustmentRecalculationOutcome

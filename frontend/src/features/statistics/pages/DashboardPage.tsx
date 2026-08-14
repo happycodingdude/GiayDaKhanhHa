@@ -7,8 +7,8 @@ import { formatDifference, formatNumber, formatPercent } from '../../../shared/l
 import { useDashboardStatistics } from '../hooks/useStatistics'
 
 /**
- * "Nhìn → hiểu → hành động": the totals and today's figures first, then the orders being tracked,
- * with the warnings that need acting on closing the page.
+ * "Nhìn → hiểu → hành động": số tổng và số liệu hôm nay trước, rồi tới các đơn hàng đang theo
+ * dõi, và khép lại trang là những cảnh báo cần xử lý.
  */
 export function DashboardPage() {
   const navigate = useNavigate()
@@ -60,7 +60,7 @@ export function DashboardPage() {
         </Card>
       ) : (
         <>
-          <div className="stats stats--cards">
+          <div className="stats">
             <StatTile label="Đơn đang chạy" value={formatNumber(data.incompleteOrders)} />
             <StatTile
               label="Đang chậm"

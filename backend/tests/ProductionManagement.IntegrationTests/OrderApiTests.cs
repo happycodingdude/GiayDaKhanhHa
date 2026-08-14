@@ -43,7 +43,7 @@ public class OrderApiTests(ApiFactory factory) : IntegrationTestBase(factory)
         Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
         Assert.Equal("INITIAL_PLAN_TOTAL_MISMATCH", (await response.ReadErrorAsync()).Code);
 
-        // The order and its plans are created in one transaction, so nothing is left behind.
+        // Đơn hàng và các kế hoạch của nó được tạo trong một transaction, nên không sót lại gì.
         var list = await client.GetAsync($"/api/v1/orders?search={orderCode}");
         var body = await list.Content.ReadAsStringAsync();
         Assert.DoesNotContain(orderCode, body, StringComparison.Ordinal);
@@ -107,8 +107,8 @@ public class OrderApiTests(ApiFactory factory) : IntegrationTestBase(factory)
     {
         var client = await ClientAsync();
 
-        // A well-formed id that no order has. A malformed one would not match the {orderId:guid}
-        // route at all, and would return a routing 404 without the error body this test is about.
+        // Một id đúng định dạng nhưng không đơn hàng nào có. Id sai định dạng sẽ không khớp route
+        // {orderId:guid}, và trả về 404 do routing, không kèm body lỗi mà test này đang kiểm.
         var response = await client.GetAsync($"/api/v1/orders/{Guid.NewGuid()}");
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);

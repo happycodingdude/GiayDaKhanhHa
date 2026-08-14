@@ -8,19 +8,19 @@ using ProductionManagement.Domain.Services;
 namespace ProductionManagement.Application.Features.Adjustments;
 
 /// <summary>
-/// Keeps an applied add-on in step with the actual quantity it was based on.
+/// Giữ cho khoản bù đã áp dụng luôn khớp với sản lượng thực tế mà nó dựa vào.
 ///
-/// The shortage of a day is a derived value: correcting that day's actual changes it. An add-on
-/// left at the old shortage would keep planning the wrong quantity onto the target days, so when
-/// the actual is edited the active adjustment is recalculated from the new shortage.
+/// Phần thiếu của một ngày là giá trị suy ra: sửa thực tế của ngày đó là nó đổi theo. Khoản bù để
+/// nguyên theo phần thiếu cũ sẽ tiếp tục lên sai số lượng cho các ngày đích, nên khi thực tế bị sửa
+/// thì điều chỉnh đang hiệu lực được tính lại từ phần thiếu mới.
 ///
-/// An applied adjustment is immutable history (Step 4 §13), so this never edits one: it reverses
-/// the outdated adjustment and applies a fresh one, which is the documented way to correct an
-/// adjustment. Both entries stay visible in the history.
+/// Điều chỉnh đã áp dụng là lịch sử bất biến (Step 4 §13) nên ở đây không bao giờ sửa nó: hệ thống
+/// hoàn tác điều chỉnh đã cũ rồi áp dụng một cái mới, đúng cách sửa điều chỉnh mà tài liệu quy định.
+/// Cả hai bản ghi đều tiếp tục hiển thị trong lịch sử.
 ///
-/// The manager's original decision is preserved:
-///   Manual    the same target day(s) they chose absorb the new shortage.
-///   Automatic the new shortage is spread evenly over the remaining days again.
+/// Quyết định ban đầu của quản lý được giữ nguyên:
+///   Manual     đúng (các) ngày đích họ đã chọn sẽ gánh phần thiếu mới.
+///   Automatic  phần thiếu mới lại được chia đều cho các ngày còn lại.
 /// </summary>
 public sealed class ActiveAdjustmentRecalculator(
     IAppDbContext db,
@@ -29,9 +29,8 @@ public sealed class ActiveAdjustmentRecalculator(
     IAutomaticAllocationStrategy automaticAllocation)
 {
     /// <summary>
-    /// Must be called inside the transaction that changed the actual, after that change has been
-    /// saved — the new shortage is read back from the database. Returns null when there was
-    /// nothing to recalculate.
+    /// Phải gọi bên trong transaction đã thay đổi thực tế, sau khi thay đổi đó đã được lưu — phần
+    /// thiếu mới được đọc lại từ database. Trả về null khi không có gì phải tính lại.
     /// </summary>
     public async Task<AdjustmentRecalculationDto?> RecalculateAsync(
         Guid orderId, DateOnly productionDate, CancellationToken ct = default)
@@ -44,7 +43,7 @@ public sealed class ActiveAdjustmentRecalculator(
             return null;
         }
 
-        // At most one adjustment per source day is ever Applied (Step 4 §12).
+        // Mỗi ngày nguồn tối đa chỉ có một điều chỉnh ở trạng thái Applied (Step 4 §12).
         var adjustment = await db.PlanAdjustments
             .Include(a => a.Items)
             .FirstOrDefaultAsync(
@@ -63,7 +62,7 @@ public sealed class ActiveAdjustmentRecalculator(
         var previousShortage = adjustment.ShortageQuantity;
         var newShortage = ProductionCalculations.Shortage(source.PlannedQuantity, actual);
 
-        // An edit that leaves the shortage where it was must not churn the history.
+        // Một lần sửa mà không làm đổi phần thiếu thì không được làm nhiễu lịch sử.
         if (newShortage == previousShortage)
         {
             return null;
@@ -76,8 +75,8 @@ public sealed class ActiveAdjustmentRecalculator(
             .Select(p => p.Id)
             .ToListAsync(ct);
 
-        // Same lock protocol as the manager-driven apply: the caller has already locked the order,
-        // then the plans are locked in ascending id order (Step 4 §18).
+        // Cùng giao thức khóa như luồng apply do quản lý kích hoạt: bên gọi đã khóa đơn hàng, sau đó
+        // các kế hoạch được khóa theo thứ tự id tăng dần (Step 4 §18).
         var involvedIds = previousTargetIds.Concat(candidateIds).Distinct().ToList();
         await db.LockProductionPlansAsync(involvedIds, ct);
 
@@ -87,7 +86,7 @@ public sealed class ActiveAdjustmentRecalculator(
 
         var now = clock.UtcNow;
 
-        // Applied -> Reversed, and the add-on comes back off the target plans.
+        // Applied -> Reversed, và khoản bù được gỡ khỏi các kế hoạch đích.
         adjustment.Reverse(currentUser.UserId, now);
         foreach (var item in adjustment.Items)
         {
@@ -108,8 +107,8 @@ public sealed class ActiveAdjustmentRecalculator(
             }
         }
 
-        // Saved here so the replacement has its identity before it is reported back. The caller
-        // owns the transaction, so this is still all-or-nothing with the actual that triggered it.
+        // Lưu ở đây để bản thay thế có id trước khi được báo ngược về. Transaction do bên gọi sở hữu,
+        // nên thao tác này vẫn all-or-nothing cùng với thực tế đã kích hoạt nó.
         await db.SaveChangesAsync(ct);
 
         var outcome = newShortage <= 0
@@ -133,8 +132,7 @@ public sealed class ActiveAdjustmentRecalculator(
     }
 
     /// <summary>
-    /// Builds the adjustment that replaces the outdated one, or null when the new shortage has
-    /// nowhere left to go.
+    /// Dựng điều chỉnh thay thế cho cái đã cũ, hoặc null khi phần thiếu mới không còn chỗ nào để đặt.
     /// </summary>
     private (PlanAdjustment Adjustment, IReadOnlyList<AllocationResult> Allocation)? BuildReplacement(
         PlanAdjustment previous,
@@ -145,8 +143,8 @@ public sealed class ActiveAdjustmentRecalculator(
         int newShortage,
         DateTimeOffset now)
     {
-        // Manual keeps the manager's chosen days. A chosen day that has since fallen into the past
-        // is no longer eligible and is dropped rather than silently adjusted.
+        // Manual giữ đúng các ngày quản lý đã chọn. Ngày đã chọn mà nay rơi vào quá khứ thì không còn
+        // hợp lệ và bị loại bỏ, chứ không bị điều chỉnh ngầm.
         var targetIds = previous.AdjustmentType == AdjustmentType.Automatic
             ? candidateIds
             : previousTargetIds.Where(candidateIds.Contains).ToList();
@@ -156,13 +154,13 @@ public sealed class ActiveAdjustmentRecalculator(
             return null;
         }
 
-        // The candidates carry each plan as it stands after the old add-on was removed.
+        // Danh sách ứng viên mang theo từng kế hoạch ở trạng thái sau khi đã gỡ khoản bù cũ.
         var candidates = targetIds
             .Select(id => new AllocationCandidate(id, plans[id].ProductionDate, plans[id].PlannedQuantity))
             .ToList();
 
-        // Manual with a single chosen day gives that day the whole shortage, which is exactly what
-        // the Option 1 workflow does.
+        // Manual với đúng một ngày được chọn sẽ dồn toàn bộ phần thiếu vào ngày đó, đúng như luồng
+        // Option 1 vẫn làm.
         var allocation = automaticAllocation.Allocate(newShortage, candidates);
 
         var adjustment = PlanAdjustment.Apply(

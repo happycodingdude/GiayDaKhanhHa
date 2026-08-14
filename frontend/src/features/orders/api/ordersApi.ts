@@ -8,7 +8,7 @@ import type {
 } from '../types'
 
 export const ordersApi = {
-  /** Creates the order together with its initial production plans, in one transaction. */
+  /** Tạo đơn hàng cùng kế hoạch sản xuất ban đầu trong một transaction. */
   create: (request: CreateOrderRequest) => apiClient.post<OrderDetailDto>('/orders', request),
 
   list: (filters: OrderListFilters, signal?: AbortSignal) =>

@@ -23,7 +23,7 @@ export interface OrderListItemDto {
 export interface OrderDetailDto extends Omit<OrderListItemDto, 'id'> {
   id: string
   totalInitialPlan: number
-  /** The production period is over, so the order is read-only. True for completed orders too. */
+  /** Kỳ sản xuất đã kết thúc nên đơn hàng chỉ đọc. Đúng với cả đơn đã hoàn thành. */
   isPastDueDate: boolean
   createdAt: string
   updatedAt: string

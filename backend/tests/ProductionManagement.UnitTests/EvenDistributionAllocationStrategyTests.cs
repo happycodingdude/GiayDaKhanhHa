@@ -24,7 +24,7 @@ public class EvenDistributionAllocationStrategyTests
     [Fact]
     public void A_remainder_is_distributed_starting_from_the_nearest_day()
     {
-        // 10 across 3 days -> 4 / 3 / 3 (Option 2 spec §4.5).
+        // Chia 10 cho 3 ngày ra 4 / 3 / 3 (Option 2 spec §4.5).
         var result = _strategy.Allocate(10, Days(3));
 
         Assert.Equal([4, 3, 3], result.Select(r => r.AddOnQuantity));
@@ -62,7 +62,7 @@ public class EvenDistributionAllocationStrategyTests
     [Fact]
     public void Days_that_would_receive_nothing_are_left_out_of_the_proposal()
     {
-        // add_on_quantity > 0 is a database CHECK constraint, so zero-share days are dropped.
+        // add_on_quantity > 0 là ràng buộc CHECK của database, nên ngày chia được 0 sẽ bị loại.
         var result = _strategy.Allocate(2, Days(5));
 
         Assert.Equal(2, result.Count);

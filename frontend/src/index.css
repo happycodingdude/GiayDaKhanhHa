@@ -1,4 +1,4 @@
-/* Desktop-first design system for the production management app (Step 5 §34). */
+/* Design system ưu tiên desktop cho ứng dụng quản lý sản xuất (Step 5 §34). */
 
 :root {
   --bg: #f4f6f9;
@@ -61,12 +61,12 @@ ol {
   list-style: none;
 }
 
-/* ---------- App shell ---------- */
+/* ---------- Khung ứng dụng ---------- */
 
 .shell {
   display: grid;
   grid-template-columns: 232px 1fr;
-  /* The shell owns the viewport; only the content column scrolls, so the sidebar stays put. */
+  /* Khung chiếm trọn viewport; chỉ cột nội dung cuộn nên sidebar đứng yên. */
   height: 100vh;
   overflow: hidden;
 }
@@ -120,8 +120,8 @@ ol {
 }
 
 /*
- * The signed-in account sits at the bottom of the sidebar instead of in a separate header bar.
- * It is a raised panel rather than loose text so it reads as one block against the dark column.
+ * Tài khoản đang đăng nhập nằm ở đáy sidebar thay vì trên một thanh header riêng.
+ * Dùng panel nổi thay vì chữ rời để nó đọc thành một khối trên nền cột tối.
  */
 .shell__account {
   margin-top: auto;
@@ -138,7 +138,7 @@ ol {
   display: flex;
   align-items: center;
   gap: 10px;
-  /* Lets the name ellipsis instead of pushing the avatar out of the panel. */
+  /* Cho phép tên bị cắt bằng dấu ba chấm thay vì đẩy avatar ra khỏi panel. */
   min-width: 0;
 }
 
@@ -175,7 +175,7 @@ ol {
   font-size: 12px;
 }
 
-/* Two classes so these win over .btn--ghost, which is defined further down the file. */
+/* Dùng hai class để thắng .btn--ghost, vốn được định nghĩa ở phía dưới file. */
 .shell__account .shell__logout {
   width: 100%;
   gap: 8px;
@@ -198,7 +198,7 @@ ol {
   flex-direction: column;
 }
 
-/* ---------- Page ---------- */
+/* ---------- Trang ---------- */
 
 .page {
   display: flex;
@@ -210,8 +210,8 @@ ol {
 }
 
 /*
- * A page that fills the viewport exactly: the window never scrolls, the long region inside
- * (a table) scrolls on its own, and the footer below it stays visible.
+ * Trang lấp vừa khít viewport: cửa sổ không bao giờ cuộn, vùng dài bên trong (một bảng) tự
+ * cuộn, và footer bên dưới nó luôn nhìn thấy được.
  */
 .page--fill {
   flex: 1 1 auto;
@@ -262,7 +262,7 @@ ol {
   color: var(--primary);
 }
 
-/* ---------- Card ---------- */
+/* ---------- Thẻ (card) ---------- */
 
 .card {
   background: var(--surface);
@@ -293,7 +293,7 @@ ol {
 .card__actions {
   display: flex;
   gap: 8px;
-  /* Never squeezed by a long title. */
+  /* Không bao giờ bị tiêu đề dài bóp lại. */
   flex: 0 0 auto;
 }
 
@@ -304,7 +304,7 @@ ol {
   gap: 16px;
 }
 
-/* ---------- Buttons ---------- */
+/* ---------- Nút ---------- */
 
 .btn {
   display: inline-flex;
@@ -374,7 +374,7 @@ ol {
   }
 }
 
-/* ---------- Forms ---------- */
+/* ---------- Biểu mẫu ---------- */
 
 .form {
   display: flex;
@@ -453,7 +453,7 @@ ol {
   border-radius: var(--radius-sm);
 }
 
-/* ---------- Toolbar / filters ---------- */
+/* ---------- Thanh công cụ / bộ lọc ---------- */
 
 .toolbar {
   display: flex;
@@ -499,7 +499,7 @@ ol {
   min-width: 260px;
 }
 
-/* ---------- Table ---------- */
+/* ---------- Bảng ---------- */
 
 .table-wrapper {
   overflow-x: auto;
@@ -507,7 +507,7 @@ ol {
   border-radius: var(--radius-sm);
 }
 
-/* Grows to take the leftover height and scrolls internally, keeping its header row visible. */
+/* Giãn ra chiếm phần chiều cao còn lại và tự cuộn bên trong, giữ hàng tiêu đề luôn hiện. */
 .table-wrapper--fill {
   flex: 1 1 auto;
   min-height: 0;
@@ -593,15 +593,15 @@ ol {
   margin-bottom: 4px;
 }
 
-/* The flex box lives inside the cell, never on the cell itself: `display: flex` on a `<td>`
-   drops it out of the row's cell layout and the whole table loses its column alignment. */
+/* Hộp flex nằm bên trong ô, không bao giờ đặt lên chính ô đó: `display: flex` trên một `<td>`
+   sẽ kéo nó ra khỏi layout ô của hàng và cả bảng mất canh cột. */
 .table__actions > div {
   display: flex;
   gap: 8px;
   align-items: center;
 }
 
-/* ---------- Badges / stats ---------- */
+/* ---------- Badge / số liệu ---------- */
 
 .badge {
   display: inline-flex;
@@ -668,14 +668,18 @@ ol {
   background: var(--text-muted);
 }
 
+/* Dùng flex thay cho `grid-template-columns: repeat(auto-fit, minmax(...))`: auto-fit chốt số
+   cột theo số nguyên, nên hàng 5 ô sẽ rớt ô cuối xuống một dòng riêng ngay khi không còn đủ
+   chỗ cho cột thứ 5. Flex cho các ô co lại nên giữ được chúng trên cùng một hàng tới bề rộng
+   nhỏ hơn nhiều, và hàng nào có xuống dòng thì vẫn giãn kín chiều ngang. */
 .stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: 12px;
 }
 
-.stats--cards {
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+.stats > * {
+  flex: 1 1 140px;
 }
 
 .stat {
@@ -766,7 +770,7 @@ ol {
   padding-left: 2px;
 }
 
-/* ---------- States ---------- */
+/* ---------- Trạng thái ---------- */
 
 .state {
   display: flex;
@@ -868,10 +872,10 @@ ol {
   font-weight: 700;
 }
 
-/* ---------- Steps (left-to-right arrow flow) ---------- */
+/* ---------- Các bước (luồng mũi tên trái sang phải) ---------- */
 
-/* The flow always reads as a single horizontal line: a wrapped step would break the arrow
-   chain into two rows pointing nowhere. Items shrink instead of wrapping. */
+/* Luồng luôn phải đọc thành một hàng ngang duy nhất: một bước bị xuống dòng sẽ bẻ chuỗi mũi
+   tên thành hai hàng chỉ vào hư không. Các mục co lại thay vì xuống dòng. */
 .steps {
   display: flex;
   align-items: stretch;
@@ -884,21 +888,21 @@ ol {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  /* Equal shares of the full row width — the flow spans its container instead of leaving a gap
-     on the right, and a long label shrinks its own segment rather than wrapping the row. */
+  /* Chia đều bề rộng cả hàng — luồng trải kín container thay vì chừa khoảng trống bên phải, và
+     nhãn dài sẽ co đoạn của chính nó lại thay vì làm cả hàng xuống dòng. */
   flex: 1 1 0;
   min-width: 0;
-  /* Symmetric so the centred label is not pushed off-centre by the notch allowance. */
+  /* Đối xứng để nhãn căn giữa không bị phần chừa cho khấc đẩy lệch. */
   padding: 9px 32px;
   background: #e7ebf2;
   color: var(--text-muted);
   font-weight: 600;
-  /* A point on the right and a matching notch on the left, so the row reads as an arrow flow.
-     The shape is clipped, which is why these use a filled background instead of a border. */
+  /* Mũi nhọn bên phải và khấc lõm tương ứng bên trái, để hàng đọc ra thành luồng mũi tên.
+     Hình bị clip nên phải dùng nền đặc thay vì viền. */
   clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 0 100%, 14px 50%);
 }
 
-/* The ends of the flow are flat: nothing points into the first step, nothing follows the last. */
+/* Hai đầu luồng để phẳng: không có gì chỉ vào bước đầu, không có gì nối sau bước cuối. */
 .steps__item:first-child {
   clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 0 100%);
 }
@@ -917,7 +921,7 @@ ol {
   color: #fff;
 }
 
-/* Last resort when the container is genuinely too narrow: the label clips, the row stays intact. */
+/* Phương án cuối khi container thực sự quá hẹp: nhãn bị cắt, hàng vẫn nguyên vẹn. */
 .steps__label {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -944,7 +948,7 @@ ol {
   background: rgba(22, 122, 75, 0.16);
 }
 
-/* Inside a dialog the flow sits above the body content. */
+/* Trong dialog, luồng nằm phía trên phần nội dung. */
 .steps--compact {
   margin-bottom: 14px;
 }
@@ -954,7 +958,7 @@ ol {
   font-size: 13px;
 }
 
-/* ---------- Options (radio cards) ---------- */
+/* ---------- Lựa chọn (thẻ radio) ---------- */
 
 .options {
   display: flex;
@@ -994,7 +998,7 @@ ol {
   font-weight: 400;
 }
 
-/* ---------- Modal ---------- */
+/* ---------- Hộp thoại ---------- */
 
 .modal-backdrop {
   position: fixed;
@@ -1058,7 +1062,7 @@ ol {
   border-top: 1px solid var(--border);
 }
 
-/* ---------- Alerts / history ---------- */
+/* ---------- Cảnh báo / lịch sử ---------- */
 
 .alerts {
   display: flex;
@@ -1129,7 +1133,7 @@ ol {
   margin-top: 4px;
 }
 
-/* ---------- Pagination ---------- */
+/* ---------- Phân trang ---------- */
 
 .pagination {
   display: flex;
@@ -1172,7 +1176,7 @@ ol {
   cursor: pointer;
 }
 
-/* ---------- Toasts ---------- */
+/* ---------- Toast ---------- */
 
 .toasts {
   position: fixed;
@@ -1203,7 +1207,7 @@ ol {
   background: var(--primary);
 }
 
-/* ---------- Login ---------- */
+/* ---------- Đăng nhập ---------- */
 
 .login {
   display: flex;

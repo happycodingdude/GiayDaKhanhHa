@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import { toUserMessage } from '../../api/errors'
 import { Button } from '../components/ui'
 
-/** Every server-driven screen renders loading, error and empty states (Step 5 §30). */
+/** Mọi màn hình lấy dữ liệu từ server đều render trạng thái loading, lỗi và rỗng (Step 5 §30). */
 
 export function LoadingState({ label = 'Đang tải dữ liệu…' }: { label?: string }) {
   return (

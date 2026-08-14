@@ -7,8 +7,8 @@ using ProductionManagement.Domain.Entities;
 namespace ProductionManagement.Application.Features.Auth;
 
 /// <summary>
-/// Username + password authentication (Step 4 §2). The API layer turns a successful login into an
-/// HttpOnly authentication cookie; no token is ever handed to JavaScript.
+/// Xác thực bằng username + mật khẩu (Step 4 §2). Tầng API biến một lần đăng nhập thành công thành
+/// cookie xác thực HttpOnly; không bao giờ trao token nào cho JavaScript.
 /// </summary>
 public sealed class AuthService(IAppDbContext db, IPasswordHasher passwordHasher, ICurrentUser currentUser)
 {
@@ -33,8 +33,8 @@ public sealed class AuthService(IAppDbContext db, IPasswordHasher passwordHasher
         var username = request.Username!.Trim();
         var user = await db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Username == username, ct);
 
-        // An unknown username and a wrong password are reported identically so the response does
-        // not reveal which usernames exist.
+        // Username không tồn tại và mật khẩu sai được báo lỗi giống hệt nhau, để response không tiết
+        // lộ username nào đang tồn tại.
         if (user is null || !passwordHasher.Verify(request.Password!, user.PasswordHash))
         {
             throw new UnauthenticatedException(ErrorCodes.InvalidCredentials, "Invalid username or password.");

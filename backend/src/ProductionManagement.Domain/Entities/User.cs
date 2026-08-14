@@ -1,8 +1,8 @@
 namespace ProductionManagement.Domain.Entities;
 
 /// <summary>
-/// Phase 1 identity model. Lives outside the Order aggregate and acts as the actor for
-/// audited production operations (Step 3 §2). No Role/Permission tables in Phase 1.
+/// Mô hình định danh của Phase 1. Nằm ngoài aggregate Order và đóng vai trò chủ thể cho các thao
+/// tác sản xuất có audit (Step 3 §2). Phase 1 không có bảng Role/Permission.
 /// </summary>
 public sealed class User
 {

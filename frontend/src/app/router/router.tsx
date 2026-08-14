@@ -31,8 +31,8 @@ const loginRoute = createRoute({
 })
 
 /**
- * Protected area. The current user is resolved once before the shell renders, so an expired
- * session lands on /login instead of flashing an empty screen.
+ * Vùng cần đăng nhập. Người dùng hiện tại được resolve một lần trước khi render khung, nên
+ * phiên hết hạn sẽ về thẳng /login thay vì chớp qua một màn hình trống.
  */
 const authenticatedRoute = createRoute({
   getParentRoute: () => rootRoute,

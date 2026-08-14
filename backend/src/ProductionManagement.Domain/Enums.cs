@@ -1,7 +1,7 @@
 namespace ProductionManagement.Domain;
 
 /// <summary>
-/// Persisted as varchar + CHECK constraint (Step 3 §5). PostgreSQL native enums are not used.
+/// Lưu dưới dạng varchar + ràng buộc CHECK (Step 3 §5). Không dùng enum gốc của PostgreSQL.
 /// </summary>
 public enum UserStatus
 {
@@ -17,10 +17,10 @@ public enum OrderStatus
 
 public enum AdjustmentType
 {
-    /// <summary>Option 1 — the manager picks the target production day(s).</summary>
+    /// <summary>Option 1 — quản lý tự chọn (các) ngày sản xuất đích.</summary>
     Manual,
 
-    /// <summary>Option 2 — the system distributes the shortage evenly across the remaining days.</summary>
+    /// <summary>Option 2 — hệ thống chia đều phần thiếu cho các ngày còn lại.</summary>
     Automatic
 }
 

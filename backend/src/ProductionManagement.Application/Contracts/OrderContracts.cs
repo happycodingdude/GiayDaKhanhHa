@@ -2,7 +2,7 @@ namespace ProductionManagement.Application.Contracts;
 
 public sealed record CreateProductionPlanRequest(DateOnly ProductionDate, int PlannedQuantity);
 
-/// <summary>Order creation always includes the initial production plans (Step 4 §5).</summary>
+/// <summary>Tạo đơn hàng luôn kèm theo kế hoạch sản xuất ban đầu (Step 4 §5).</summary>
 public sealed record CreateOrderRequest(
     string? OrderCode,
     int Quantity,
@@ -11,7 +11,7 @@ public sealed record CreateOrderRequest(
     IReadOnlyList<CreateProductionPlanRequest>? ProductionPlans);
 
 /// <summary>
-/// Order row for the list screen. All quantity aggregates are derived, never persisted.
+/// Dòng đơn hàng cho màn hình danh sách. Mọi số lượng tổng hợp đều là suy ra, không lưu xuống.
 /// </summary>
 public sealed record OrderListItemDto(
     Guid Id,
@@ -45,7 +45,7 @@ public sealed record OrderDetailDto(
     int BehindQuantity,
     int DaysRemaining,
     bool IsOverdue,
-    /// <summary>The production period is over, so the order is read-only. True for completed orders too.</summary>
+    /// <summary>Kỳ sản xuất đã kết thúc nên đơn hàng chỉ đọc. Đúng với cả đơn đã hoàn thành.</summary>
     bool IsPastDueDate,
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt);

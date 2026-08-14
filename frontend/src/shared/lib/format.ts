@@ -5,12 +5,12 @@ export function formatNumber(value: number): string {
   return numberFormat.format(value)
 }
 
-/** A quantity that has not been entered renders as an em dash, never as 0. */
+/** Số lượng chưa nhập sẽ hiển thị bằng dấu gạch ngang dài, không bao giờ là 0. */
 export function formatQuantity(value: number | null | undefined): string {
   return value === null || value === undefined ? '—' : numberFormat.format(value)
 }
 
-/** Signed difference: +10 / -10 / 0. */
+/** Chênh lệch có dấu: +10 / -10 / 0. */
 export function formatDifference(value: number | null | undefined): string {
   if (value === null || value === undefined) return '—'
   if (value > 0) return `+${numberFormat.format(value)}`

@@ -41,11 +41,11 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
 
         var ids = productionPlanIds.Distinct().ToArray();
 
-        // ORDER BY id gives every caller the same lock acquisition order, which keeps two
-        // concurrent adjustments touching overlapping days from deadlocking (Step 4 §18).
-        // The ordering is PostgreSQL's, not the caller's: uuid sorts byte-wise in the database,
-        // which does not match Guid's comparison order in .NET. Sorting the array here would
-        // therefore prove nothing — the ORDER BY in the statement below is what matters.
+        // ORDER BY id cho mọi bên gọi cùng một thứ tự giành khóa, nhờ đó hai điều chỉnh đồng thời
+        // đụng vào các ngày chồng nhau không bị deadlock (Step 4 §18).
+        // Thứ tự này là của PostgreSQL chứ không phải của bên gọi: uuid được sắp theo byte trong
+        // database, không khớp thứ tự so sánh Guid của .NET. Vì vậy sắp xếp mảng ở đây không chứng
+        // minh được gì — ORDER BY trong câu lệnh bên dưới mới là thứ có tác dụng.
         await Database
             .SqlQuery<Guid>($"SELECT id AS \"Value\" FROM production_plans WHERE id = ANY({ids}) ORDER BY id FOR UPDATE")
             .ToListAsync(cancellationToken);

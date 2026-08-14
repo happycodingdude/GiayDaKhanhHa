@@ -1,7 +1,7 @@
 namespace ProductionManagement.Domain.Entities;
 
 /// <summary>
-/// The add-on allocated to one target production plan by a <see cref="PlanAdjustment"/>.
+/// Khoản bù mà một <see cref="PlanAdjustment"/> phân bổ cho một kế hoạch sản xuất đích.
 /// </summary>
 public sealed class PlanAdjustmentItem
 {
@@ -11,7 +11,7 @@ public sealed class PlanAdjustmentItem
     public Guid PlanAdjustmentId { get; private set; }
     public PlanAdjustment PlanAdjustment { get; private set; } = null!;
 
-    /// <summary>The target production plan that receives the add-on.</summary>
+    /// <summary>Kế hoạch sản xuất đích nhận khoản bù.</summary>
     public Guid ProductionPlanId { get; private set; }
     public ProductionPlan ProductionPlan { get; private set; } = null!;
 

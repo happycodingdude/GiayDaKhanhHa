@@ -1,6 +1,6 @@
 namespace ProductionManagement.Application.Contracts;
 
-/// <summary>Server-side pagination envelope used by the order list (Step 5 §13).</summary>
+/// <summary>Khung phân trang phía server dùng cho danh sách đơn hàng (Step 5 §13).</summary>
 public sealed record PagedResult<T>(
     IReadOnlyList<T> Items,
     int Page,
@@ -11,8 +11,8 @@ public sealed record PagedResult<T>(
 }
 
 /// <summary>
-/// Progress condition, deliberately separate from the order status. "Behind schedule" is not an
-/// order status (order list spec §5).
+/// Tình trạng tiến độ, chủ đích tách khỏi trạng thái đơn hàng. "Chậm tiến độ" không phải là một
+/// trạng thái đơn hàng (order list spec §5).
 /// </summary>
 public enum ScheduleStatus
 {

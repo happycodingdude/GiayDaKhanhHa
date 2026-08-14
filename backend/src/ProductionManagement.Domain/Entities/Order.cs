@@ -1,8 +1,8 @@
 namespace ProductionManagement.Domain.Entities;
 
 /// <summary>
-/// Aggregate root for production management (Step 1 §3).
-/// Derived values (TotalActual, Remaining, Progress, TotalPlan) are never persisted here.
+/// Aggregate root của quản lý sản xuất (Step 1 §3).
+/// Các giá trị suy ra (TotalActual, Remaining, Progress, TotalPlan) không bao giờ được lưu ở đây.
 /// </summary>
 public sealed class Order
 {
@@ -26,9 +26,9 @@ public sealed class Order
     public bool IsCompleted => Status == OrderStatus.Completed;
 
     /// <summary>
-    /// An order that passed its due date without being completed. This is the "late" flag shown to
-    /// the manager — an order delivered in full is not late, however long ago its due date was.
-    /// Derived from the due date and the status, never persisted.
+    /// Đơn hàng đã qua ngày hạn mà chưa hoàn thành. Đây là cờ "trễ" hiển thị cho quản lý — đơn đã
+    /// giao đủ thì không trễ, dù ngày hạn đã qua bao lâu đi nữa.
+    /// Suy ra từ ngày hạn và trạng thái, không bao giờ được lưu xuống.
     /// </summary>
     public static bool IsOverdue(OrderStatus status, DateOnly dueDate, DateOnly today)
         => status != OrderStatus.Completed && dueDate < today;
@@ -37,9 +37,9 @@ public sealed class Order
     public bool IsOverdueOn(DateOnly today) => IsOverdue(Status, DueDate, today);
 
     /// <summary>
-    /// The production period is over. Deliberately independent of the status: an order that was
-    /// delivered in full is still past its due date, and is frozen just the same. The due date
-    /// itself still counts as inside the period — the actual for that day is entered at its end.
+    /// Kỳ sản xuất đã kết thúc. Chủ đích độc lập với trạng thái: đơn đã giao đủ thì vẫn là đã qua
+    /// ngày hạn, và vẫn bị đóng băng y như vậy. Bản thân ngày hạn vẫn tính là nằm trong kỳ — thực
+    /// tế của ngày đó được nhập vào cuối ngày.
     /// </summary>
     public static bool IsPastDueDate(DateOnly dueDate, DateOnly today) => dueDate < today;
 
@@ -47,8 +47,8 @@ public sealed class Order
     public bool IsPastDueDateOn(DateOnly today) => IsPastDueDate(DueDate, today);
 
     /// <summary>
-    /// Creates the Order together with its initial production plans. Both are persisted in one
-    /// transaction (Step 4 §19) and must satisfy SUM(InitialPlannedQuantity) == Order.Quantity.
+    /// Tạo Order cùng các kế hoạch sản xuất ban đầu. Cả hai được lưu trong một transaction
+    /// (Step 4 §19) và phải thỏa mãn SUM(InitialPlannedQuantity) == Order.Quantity.
     /// </summary>
     public static Order Create(
         string orderCode,
@@ -117,7 +117,7 @@ public sealed class Order
             throw new ValidationException(failures);
         }
 
-        // SUM(InitialPlannedQuantity) == Order.Quantity is a hard business invariant (Step 3 §12).
+        // SUM(InitialPlannedQuantity) == Order.Quantity là bất biến nghiệp vụ cứng (Step 3 §12).
         var totalPlanned = initialPlans.Sum(p => (long)p.PlannedQuantity);
         if (totalPlanned != quantity)
         {
@@ -147,8 +147,8 @@ public sealed class Order
     }
 
     /// <summary>
-    /// Order status is derived from the total actual quantity and is never set by the manager
-    /// (Step 1 §13). Must be called inside the same transaction that changed a production record.
+    /// Trạng thái đơn hàng suy ra từ tổng sản lượng thực tế và không bao giờ do quản lý đặt
+    /// (Step 1 §13). Phải gọi bên trong đúng transaction đã thay đổi bản ghi sản xuất.
     /// </summary>
     public void RecalculateStatus(int totalActual, DateTimeOffset now)
     {

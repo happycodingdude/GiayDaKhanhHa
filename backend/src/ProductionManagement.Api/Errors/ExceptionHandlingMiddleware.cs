@@ -5,8 +5,8 @@ using ProductionManagement.Domain;
 namespace ProductionManagement.Api.Errors;
 
 /// <summary>
-/// Maps domain/application exceptions onto the approved HTTP semantics (Step 4 §4).
-/// Technical exception details are never exposed to the client (Step 5 §12).
+/// Ánh xạ exception của domain/application sang ngữ nghĩa HTTP đã duyệt (Step 4 §4).
+/// Chi tiết kỹ thuật của exception không bao giờ bị lộ ra client (Step 5 §12).
 /// </summary>
 public sealed class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<ExceptionHandlingMiddleware> logger)
 {

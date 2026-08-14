@@ -21,7 +21,7 @@ public sealed class OrderConfiguration : IEntityTypeConfiguration<Order>
         builder.Property(o => o.OrderCode).HasColumnName("order_code").HasMaxLength(50).IsRequired();
         builder.Property(o => o.Quantity).HasColumnName("quantity").IsRequired();
 
-        // Business dates are date-only with no timezone attached (Step 3 §8).
+        // Ngày nghiệp vụ là giá trị chỉ có ngày, không gắn múi giờ (Step 3 §8).
         builder.Property(o => o.StartDate).HasColumnName("start_date").HasColumnType("date").IsRequired();
         builder.Property(o => o.DueDate).HasColumnName("due_date").HasColumnType("date").IsRequired();
 

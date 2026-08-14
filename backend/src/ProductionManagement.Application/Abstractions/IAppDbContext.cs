@@ -5,9 +5,9 @@ using ProductionManagement.Domain.Entities;
 namespace ProductionManagement.Application.Abstractions;
 
 /// <summary>
-/// Persistence surface used by the application use cases. Row locking is exposed explicitly
-/// because the cross-row invariants are protected by transaction + row locking rather than by
-/// database triggers or a version column (Step 4 §18).
+/// Bề mặt persistence mà các use case của application dùng. Row lock được để lộ tường minh vì các
+/// bất biến liên dòng được bảo vệ bằng transaction + row lock chứ không phải bằng trigger database
+/// hay cột version (Step 4 §18).
 /// </summary>
 public interface IAppDbContext
 {
@@ -22,15 +22,15 @@ public interface IAppDbContext
 
     Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default);
 
-    /// <summary>Takes a row lock on the order (SELECT ... FOR UPDATE). Returns false when it does not exist.</summary>
+    /// <summary>Khóa dòng đơn hàng (SELECT ... FOR UPDATE). Trả về false khi không tồn tại.</summary>
     Task<bool> LockOrderAsync(Guid orderId, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Takes row locks on the given production plans. Rows are locked in ascending id order to
-    /// reduce deadlock risk (Step 4 §18).
+    /// Khóa dòng các kế hoạch sản xuất được chỉ định. Các dòng được khóa theo thứ tự id tăng dần để
+    /// giảm rủi ro deadlock (Step 4 §18).
     /// </summary>
     Task LockProductionPlansAsync(IReadOnlyCollection<Guid> productionPlanIds, CancellationToken cancellationToken = default);
 
-    /// <summary>Takes a row lock on the plan adjustment. Returns false when it does not exist.</summary>
+    /// <summary>Khóa dòng bản ghi điều chỉnh kế hoạch. Trả về false khi không tồn tại.</summary>
     Task<bool> LockPlanAdjustmentAsync(Guid planAdjustmentId, CancellationToken cancellationToken = default);
 }

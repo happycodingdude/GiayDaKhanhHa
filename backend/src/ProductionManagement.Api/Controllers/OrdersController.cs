@@ -15,7 +15,7 @@ public sealed class OrdersController(
     AdjustmentService adjustmentService,
     StatisticsService statisticsService) : ControllerBase
 {
-    /// <summary>Creates the order together with its initial production plans, in one transaction.</summary>
+    /// <summary>Tạo đơn hàng cùng kế hoạch sản xuất ban đầu trong một transaction.</summary>
     [HttpPost]
     public async Task<ActionResult<OrderDetailDto>> Create(CreateOrderRequest request, CancellationToken ct)
     {
@@ -36,7 +36,7 @@ public sealed class OrdersController(
     public async Task<ActionResult<OrderDetailDto>> GetById(Guid orderId, CancellationToken ct)
         => Ok(await orderService.GetByIdAsync(orderId, ct));
 
-    /// <summary>The daily production view: plan, actual and derived shortage/difference combined.</summary>
+    /// <summary>Bảng sản xuất theo ngày: gộp kế hoạch, thực tế và phần thiếu/chênh lệch suy ra.</summary>
     [HttpGet("{orderId:guid}/production-plans")]
     public async Task<ActionResult<ProductionPlanListDto>> GetProductionPlans(Guid orderId, CancellationToken ct)
         => Ok(await orderService.GetProductionPlansAsync(orderId, ct));
@@ -46,7 +46,7 @@ public sealed class OrdersController(
         Guid orderId, CreateProductionRecordRequest request, CancellationToken ct)
         => Ok(await productionRecordService.CreateAsync(orderId, request, ct));
 
-    /// <summary>Replaces the recorded actual. Actual is a value, never an increment.</summary>
+    /// <summary>Thay thế thực tế đã ghi. Thực tế là một giá trị, không bao giờ là số cộng thêm.</summary>
     [HttpPut("{orderId:guid}/production-records/{productionRecordId:guid}")]
     public async Task<ActionResult<ProductionRecordDto>> UpdateProductionRecord(
         Guid orderId, Guid productionRecordId, UpdateProductionRecordRequest request, CancellationToken ct)

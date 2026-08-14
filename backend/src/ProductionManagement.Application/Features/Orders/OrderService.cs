@@ -11,7 +11,7 @@ namespace ProductionManagement.Application.Features.Orders;
 public sealed class OrderService(IAppDbContext db, IClock clock)
 {
     /// <summary>
-    /// Creates the Order and its initial production plans in a single transaction (Step 4 §19).
+    /// Tạo Order và các kế hoạch sản xuất ban đầu của nó trong một transaction duy nhất (Step 4 §19).
     /// </summary>
     public async Task<OrderDetailDto> CreateAsync(CreateOrderRequest request, CancellationToken ct = default)
     {
@@ -21,7 +21,7 @@ public sealed class OrderService(IAppDbContext db, IClock clock)
 
         var now = clock.UtcNow;
 
-        // All field and invariant validation lives in the aggregate root.
+        // Toàn bộ việc kiểm tra field và bất biến nằm trong aggregate root.
         var order = Order.Create(request.OrderCode ?? string.Empty, request.Quantity, request.StartDate, request.DueDate, plans, now);
 
         var code = order.OrderCode;
@@ -40,7 +40,7 @@ public sealed class OrderService(IAppDbContext db, IClock clock)
         }
         catch (DbUpdateException ex) when (IsUniqueViolation(ex))
         {
-            // Another request inserted the same order code between the check and the insert.
+            // Một request khác đã chèn cùng mã đơn hàng vào giữa lúc kiểm tra và lúc insert.
             await transaction.RollbackAsync(ct);
             throw new ConflictException(
                 ErrorCodes.OrderCodeAlreadyExists, $"Order code '{code}' is already in use.");
@@ -79,7 +79,7 @@ public sealed class OrderService(IAppDbContext db, IClock clock)
 
         if (!string.IsNullOrWhiteSpace(search))
         {
-            // Case-insensitive order-code search, expressed provider-agnostically.
+        // Tìm theo mã đơn hàng không phân biệt hoa thường, viết theo cách không phụ thuộc provider.
             var term = search.Trim().ToLowerInvariant();
             query = query.Where(o => o.OrderCode.ToLower().Contains(term));
         }
@@ -149,8 +149,8 @@ public sealed class OrderService(IAppDbContext db, IClock clock)
     }
 
     /// <summary>
-    /// Returns the daily production view: plan, actual and derived shortage/difference joined by
-    /// Order + ProductionDate so the frontend does not have to combine several APIs (Step 4 §6).
+    /// Trả về bảng sản xuất theo ngày: kế hoạch, thực tế và phần thiếu/chênh lệch suy ra, ghép theo
+    /// Order + ProductionDate để frontend không phải tự gộp nhiều API (Step 4 §6).
     /// </summary>
     public async Task<ProductionPlanListDto> GetProductionPlansAsync(Guid orderId, CancellationToken ct = default)
     {
@@ -170,7 +170,7 @@ public sealed class OrderService(IAppDbContext db, IClock clock)
 
         var userNames = await GetUserDisplayNamesAsync(records.Select(r => r.UpdatedBy), ct);
 
-        // A source plan may have at most one Applied adjustment at a time (Step 4 §12).
+        // Một kế hoạch nguồn tại một thời điểm chỉ có tối đa một điều chỉnh Applied (Step 4 §12).
         var planIds = plans.Select(p => p.Id).ToList();
         var activeAdjustments = await db.PlanAdjustments.AsNoTracking()
             .Where(a => planIds.Contains(a.SourceProductionPlanId) && a.Status == AdjustmentStatus.Applied)

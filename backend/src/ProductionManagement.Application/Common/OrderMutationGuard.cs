@@ -4,17 +4,15 @@ using ProductionManagement.Domain.Entities;
 namespace ProductionManagement.Application.Common;
 
 /// <summary>
-/// Once an order's due date has passed it is frozen: it can be read but no longer changed. This
-/// covers completed orders too — the deciding factor is the calendar, not the status. Every use
-/// case that writes to an existing order goes through this guard, so the rule cannot be bypassed by
-/// calling a different endpoint.
+/// Khi đơn hàng đã qua ngày hạn thì bị đóng băng: chỉ đọc được, không sửa được nữa. Điều này áp cho
+/// cả đơn đã hoàn thành — yếu tố quyết định là lịch, không phải trạng thái. Mọi use case ghi vào một
+/// đơn hàng đã tồn tại đều đi qua guard này, nên không thể lách luật bằng cách gọi endpoint khác.
 /// </summary>
 public static class OrderMutationGuard
 {
     /// <summary>
-    /// Throws when the order's due date has passed. Call this inside the same transaction that will
-    /// do the write, after the order row has been locked, so the decision cannot be made on stale
-    /// state.
+    /// Ném exception khi đơn hàng đã qua ngày hạn. Gọi bên trong đúng transaction sẽ thực hiện ghi,
+    /// sau khi đã khóa dòng đơn hàng, để quyết định không dựa trên trạng thái cũ.
     /// </summary>
     public static void EnsureEditable(Order order, DateOnly today)
     {

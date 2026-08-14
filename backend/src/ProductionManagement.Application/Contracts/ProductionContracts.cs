@@ -1,8 +1,8 @@
 namespace ProductionManagement.Application.Contracts;
 
 /// <summary>
-/// One production day, combining the plan, the actual record and the derived values so the
-/// frontend never has to join several APIs to build the daily view (Step 4 §6).
+/// Một ngày sản xuất, gộp kế hoạch, bản ghi thực tế và các giá trị suy ra để frontend không phải
+/// ghép nhiều API mới dựng được bảng theo ngày (Step 4 §6).
 /// </summary>
 public sealed record ProductionDayDto(
     Guid Id,
@@ -11,13 +11,13 @@ public sealed record ProductionDayDto(
     int AddOnQuantity,
     int PlannedQuantity,
 
-    // Null means the actual has not been entered yet, which is distinct from 0.
+    // Null nghĩa là chưa nhập thực tế, khác hẳn với giá trị 0.
     int? ActualQuantity,
     Guid? ProductionRecordId,
     int ShortageQuantity,
     int? Difference,
 
-    // True when this day is the source of an adjustment that is currently Applied.
+    // True khi ngày này là ngày nguồn của một điều chỉnh đang ở trạng thái Applied.
     bool HasActiveAdjustment,
     Guid? ActiveAdjustmentId,
     string? ActualEnteredBy,
@@ -28,7 +28,7 @@ public sealed record ProductionPlanListDto(Guid OrderId, IReadOnlyList<Productio
 public sealed record CreateProductionRecordRequest(DateOnly ProductionDate, int ActualQuantity);
 
 /// <summary>
-/// Actual is a value, not an increment: this replaces the stored value (Step 4 §7).
+/// Thực tế là một giá trị, không phải số cộng thêm: thao tác này thay thế giá trị đã lưu (Step 4 §7).
 /// </summary>
 public sealed record UpdateProductionRecordRequest(int ActualQuantity);
 
@@ -41,8 +41,8 @@ public sealed record ProductionRecordDto(
     DateTimeOffset UpdatedAt,
 
     /// <summary>
-    /// Set when editing this actual changed the shortage the day's active adjustment was based on,
-    /// so the add-on had to be rebuilt. Always null when creating a record: a day cannot have an
-    /// adjustment before it has an actual.
+    /// Được set khi việc sửa thực tế này làm thay đổi phần thiếu mà điều chỉnh đang hiệu lực của ngày
+    /// dựa vào, khiến khoản bù phải dựng lại. Luôn null khi tạo mới bản ghi: một ngày không thể có
+    /// điều chỉnh trước khi có thực tế.
     /// </summary>
     AdjustmentRecalculationDto? AdjustmentRecalculation = null);

@@ -18,7 +18,7 @@ public sealed class PlanAdjustmentConfiguration : IEntityTypeConfiguration<PlanA
         builder.HasKey(a => a.Id);
         builder.Property(a => a.Id).HasColumnName("id").ValueGeneratedNever();
 
-        // There is intentionally no order_id: the Order is reached through the source plan (Step 3 §4.5).
+        // Chủ đích không có order_id: Order được truy ra qua kế hoạch nguồn (Step 3 §4.5).
         builder.Property(a => a.SourceProductionPlanId).HasColumnName("source_production_plan_id").IsRequired();
         builder.Property(a => a.ShortageQuantity).HasColumnName("shortage_quantity").IsRequired();
 

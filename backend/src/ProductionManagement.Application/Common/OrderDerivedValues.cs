@@ -5,7 +5,7 @@ using ProductionManagement.Domain.Services;
 
 namespace ProductionManagement.Application.Common;
 
-/// <summary>The derived order-level values. None of these are stored (Step 3 §13).</summary>
+/// <summary>Các giá trị suy ra ở mức đơn hàng. Không giá trị nào được lưu xuống (Step 3 §13).</summary>
 public sealed record OrderDerivedValues(
     int TotalActual,
     int TotalPlan,
@@ -21,10 +21,10 @@ public sealed record OrderDerivedValues(
 public static class OrderDerivedCalculator
 {
     /// <summary>
-    /// Computes every derived order value from the source data.
+    /// Tính toàn bộ giá trị suy ra của đơn hàng từ dữ liệu gốc.
     /// </summary>
-    /// <param name="plans">(ProductionDate, PlannedQuantity, InitialPlannedQuantity) for the order.</param>
-    /// <param name="records">(ProductionDate, ActualQuantity) for the order.</param>
+    /// <param name="plans">(ProductionDate, PlannedQuantity, InitialPlannedQuantity) của đơn hàng.</param>
+    /// <param name="records">(ProductionDate, ActualQuantity) của đơn hàng.</param>
     public static OrderDerivedValues Compute(
         int orderQuantity,
         OrderStatus orderStatus,
@@ -37,13 +37,13 @@ public static class OrderDerivedCalculator
         var totalPlan = plans.Sum(p => p.PlannedQuantity);
         var totalInitialPlan = plans.Sum(p => p.InitialPlannedQuantity);
 
-        // "Behind schedule" compares the cumulative plan against the cumulative actual over the
-        // production days that are already due (master summary §5). It is deliberately not an
-        // order status (order list spec §5).
+        // "Chậm tiến độ" so sánh kế hoạch lũy kế với thực tế lũy kế trên những ngày sản xuất đã tới
+        // hạn (master summary §5). Đây chủ đích không phải là một trạng thái đơn hàng
+        // (order list spec §5).
         //
-        // Today counts only once its actual has been entered: the actual is recorded at the end of
-        // the day, so an order is not late for output that is not due yet. Without this an order
-        // would read "behind" every morning, which would make the warning meaningless.
+        // Hôm nay chỉ được tính khi đã nhập thực tế: thực tế ghi vào cuối ngày, nên đơn hàng không
+        // bị coi là trễ vì sản lượng chưa tới hạn. Không có điều này thì sáng nào đơn hàng cũng hiện
+        // "chậm", làm cảnh báo mất sạch ý nghĩa.
         var recordDates = records.Select(r => r.ProductionDate).ToHashSet();
         bool IsDue(DateOnly date) => date < today || (date == today && recordDates.Contains(date));
 
@@ -70,8 +70,8 @@ public static class OrderDerivedCalculator
             BehindQuantity: behindQuantity,
             DaysRemaining: daysRemaining,
             IsOverdue: isOverdue,
-            // Not the same as IsOverdue: a completed order is not late, but its period is over and
-            // its data is frozen all the same.
+            // Không giống IsOverdue: đơn đã hoàn thành thì không trễ, nhưng kỳ sản xuất của nó vẫn
+            // kết thúc và dữ liệu vẫn bị đóng băng y như vậy.
             IsPastDueDate: Order.IsPastDueDate(dueDate, today));
     }
 }

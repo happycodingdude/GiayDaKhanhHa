@@ -12,8 +12,8 @@ export function usePlanAdjustments(orderId: string) {
 }
 
 /**
- * Preview is a mutation rather than a query: it is an explicit calculation request whose result is
- * local UI state and is never cached as server data (Step 5 §20).
+ * Preview là mutation chứ không phải query: đây là một yêu cầu tính toán tường minh, kết quả
+ * chỉ là state UI cục bộ và không bao giờ được cache như dữ liệu server (Step 5 §20).
  */
 export function usePreviewAdjustment() {
   return useMutation({

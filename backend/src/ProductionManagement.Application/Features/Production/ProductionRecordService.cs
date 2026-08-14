@@ -9,8 +9,8 @@ using ProductionManagement.Domain.Entities;
 namespace ProductionManagement.Application.Features.Production;
 
 /// <summary>
-/// Create/edit of the daily actual. Actual is a value, not an increment — there is deliberately no
-/// add/increment operation (Step 4 §7, §21).
+/// Tạo/sửa sản lượng thực tế theo ngày. Thực tế là một giá trị, không phải số cộng thêm — chủ đích
+/// không có thao tác cộng dồn nào (Step 4 §7, §21).
 /// </summary>
 public sealed class ProductionRecordService(
     IAppDbContext db,
@@ -29,8 +29,8 @@ public sealed class ProductionRecordService(
 
         await using var transaction = await db.BeginTransactionAsync(ct);
 
-        // Lock the order first so two concurrent requests cannot each read a stale total and
-        // independently pass the SUM(actual) <= Order.Quantity check (Step 3 §10).
+        // Khóa đơn hàng trước để hai request đồng thời không thể cùng đọc một tổng đã cũ rồi độc lập
+        // vượt qua kiểm tra SUM(actual) <= Order.Quantity (Step 3 §10).
         if (!await db.LockOrderAsync(orderId, ct))
         {
             throw new NotFoundException(ErrorCodes.OrderNotFound, "Order was not found.");
@@ -38,7 +38,7 @@ public sealed class ProductionRecordService(
 
         var order = await db.Orders.FirstAsync(o => o.Id == orderId, ct);
 
-        // An overdue order is read-only, so the shortage it ended with stays exactly as it was.
+        // Đơn hàng quá hạn là chỉ đọc, nên phần thiếu lúc kết thúc được giữ nguyên hệt như vậy.
         OrderMutationGuard.EnsureEditable(order, clock.Today);
 
         var plan = await db.ProductionPlans
@@ -51,7 +51,7 @@ public sealed class ProductionRecordService(
                 "There is no production plan for this date, so an actual quantity cannot be recorded.");
         }
 
-        // A day planned for 0 cannot receive an actual at all — not even an explicit 0
+        // Ngày có kế hoạch bằng 0 thì không nhập được thực tế — kể cả số 0 nhập tường minh
         // (master summary §6, actual entry spec §4.1).
         if (plan.PlannedQuantity == 0)
         {
@@ -60,9 +60,9 @@ public sealed class ProductionRecordService(
                 "This day has no production planned. Adjust the plan before recording an actual quantity.");
         }
 
-        // The actual is what was produced, so it cannot be recorded before the day happens. Today
-        // is allowed: the actual is entered at the end of the day. Checked after the plan so that
-        // "this date is not in the plan at all" stays the more specific answer.
+        // Thực tế là số đã sản xuất nên không thể ghi trước khi ngày đó diễn ra. Hôm nay thì được:
+        // thực tế nhập vào cuối ngày. Kiểm tra sau phần kế hoạch để "ngày này không có trong kế
+        // hoạch" vẫn là câu trả lời cụ thể hơn.
         if (request.ProductionDate > clock.Today)
         {
             throw new BusinessRuleException(
@@ -145,16 +145,16 @@ public sealed class ProductionRecordService(
         var now = clock.UtcNow;
         record.UpdateActual(request.ActualQuantity, currentUser.UserId, now);
 
-        // The status follows the total in both directions: an edit that drops the total below the
-        // order quantity moves a Completed order back to Incomplete (Step 1 §13).
+        // Trạng thái bám theo tổng ở cả hai chiều: một lần sửa làm tổng tụt xuống dưới số lượng đơn
+        // hàng sẽ đưa đơn Completed trở lại Incomplete (Step 1 §13).
         order.RecalculateStatus(newTotal, now);
 
-        // Saved before the recalculation because that reads the new actual back from the database.
+        // Lưu trước khi tính lại, vì bước tính lại đọc ngược sản lượng thực tế mới từ database.
         await db.SaveChangesAsync(ct);
 
-        // The shortage this day was adjusted for has just changed, so the add-on that was based on
-        // it is rebuilt from the new shortage. Still inside the same transaction, so the actual and
-        // its adjustment can never disagree.
+        // Phần thiếu mà ngày này đã được điều chỉnh vừa thay đổi, nên khoản bù dựa trên nó được dựng
+        // lại từ phần thiếu mới. Vẫn nằm trong cùng transaction, nên thực tế và điều chỉnh của nó
+        // không bao giờ mâu thuẫn nhau.
         var recalculation = await adjustmentRecalculator.RecalculateAsync(orderId, record.ProductionDate, ct);
 
         await transaction.CommitAsync(ct);

@@ -14,12 +14,12 @@ import type { AdjustmentPreviewDto, AdjustmentType } from '../types'
 type Step = 'method' | 'chooseDay' | 'preview' | 'confirm'
 
 /**
- * Every step of the flow shares one width: the step indicator is a single row that must not wrap,
- * and a dialog that resized between steps would make the indicator jump around.
+ * Mọi bước trong luồng dùng chung một bề rộng: thanh chỉ báo bước là một hàng duy nhất không
+ * được xuống dòng, và dialog đổi kích thước giữa các bước sẽ làm thanh này nhảy loạn.
  */
 const DIALOG_WIDTH = 720
 
-/** Option 1 asks which day absorbs the shortage; Option 2 has the system decide, so it has one step fewer. */
+/** Option 1 hỏi ngày nào gánh phần thiếu; Option 2 để hệ thống tự quyết nên ít hơn một bước. */
 function stepsFor(type: AdjustmentType): StepDefinition[] {
   return [
     { id: 'method', label: 'Phương thức' },
@@ -30,12 +30,12 @@ function stepsFor(type: AdjustmentType): StepDefinition[] {
 }
 
 /**
- * Shortage handling — both approved options:
- *   Option 1 (Manual)    the manager picks one day, which absorbs the whole shortage.
- *   Option 2 (Automatic) the system splits the whole shortage across every remaining day.
+ * Xử lý sản lượng thiếu — cả hai option đã duyệt:
+ *   Option 1 (Thủ công)  quản lý chọn một ngày, ngày đó gánh toàn bộ phần thiếu.
+ *   Option 2 (Tự động)   hệ thống chia toàn bộ phần thiếu cho mọi ngày còn lại.
  *
- * Neither option lets the manager type an add-on quantity, and nothing is applied until the
- * proposal has been previewed and confirmed (Option 1 spec §3.3/§6, Option 2 spec §3.4/§6).
+ * Cả hai option đều không cho quản lý tự gõ số lượng bù, và không có gì được áp dụng cho tới
+ * khi đề xuất đã được xem trước và xác nhận (Option 1 spec §3.3/§6, Option 2 spec §3.4/§6).
  */
 export function ShortageDialog({
   open,
@@ -67,14 +67,14 @@ export function ShortageDialog({
     setProposal(null)
     preview.reset()
     apply.reset()
-    // Re-initialised whenever the dialog opens for a different source day.
+    // Khởi tạo lại mỗi khi dialog mở cho một ngày nguồn khác.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, sourceDay?.id])
 
   if (!sourceDay) return null
 
   const currentDate = today()
-  // A past day's plan is never adjusted — that would rewrite history (master summary §11).
+  // Không bao giờ điều chỉnh kế hoạch của ngày đã qua — làm vậy là viết lại lịch sử (master summary §11).
   const eligibleDays = allDays.filter(
     (day) => day.productionDate > sourceDay.productionDate && day.productionDate >= currentDate,
   )
@@ -87,7 +87,7 @@ export function ShortageDialog({
           ? { adjustmentType: 'Automatic' }
           : {
               adjustmentType: 'Manual',
-              // Option 1 always transfers the whole shortage to the chosen day.
+              // Option 1 luôn chuyển toàn bộ phần thiếu sang ngày được chọn.
               targets: [{ productionPlanId: planId!, addOnQuantity: sourceDay.shortageQuantity }],
             },
     })
@@ -141,7 +141,7 @@ export function ShortageDialog({
   const previewError = preview.isError ? toUserMessage(preview.error) : null
   const applyError = apply.isError ? toUserMessage(apply.error) : null
 
-  // While the method is still being chosen the radio drives the flow; afterwards the proposal does.
+  // Khi còn đang chọn phương án thì radio dẫn luồng; sau đó đề xuất mới là thứ dẫn luồng.
   const steps = stepsFor(step === 'method' ? method : proposal?.adjustmentType ?? method)
 
   if (step === 'method') {

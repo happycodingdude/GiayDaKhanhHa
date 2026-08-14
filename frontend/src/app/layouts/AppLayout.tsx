@@ -4,11 +4,11 @@ import { useCurrentUser, useLogout } from '../../features/auth/hooks/useAuth'
 import { Button } from '../../shared/components/ui'
 
 /**
- * The authenticated shell. Phase 1 navigation is Dashboard + Đơn hàng; production plans, actuals
- * and adjustments are reached through the Order workflow (Step 5 §6).
+ * Khung ứng dụng sau khi đăng nhập. Điều hướng Phase 1 gồm Dashboard + Đơn hàng; kế hoạch sản
+ * xuất, sản lượng thực tế và điều chỉnh đều đi vào từ luồng Đơn hàng (Step 5 §6).
  *
- * The sidebar is a fixed full-height column that carries the brand, the navigation and the
- * signed-in account. Only the content column scrolls.
+ * Sidebar là cột cố định cao hết màn hình, chứa thương hiệu, điều hướng và tài khoản đang đăng
+ * nhập. Chỉ cột nội dung được cuộn.
  */
 export function AppLayout() {
   const { data: user } = useCurrentUser()

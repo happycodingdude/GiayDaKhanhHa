@@ -5,8 +5,8 @@ import { formatDifference, formatNumber, formatQuantity } from '../../../shared/
 import type { ProductionDayDto } from '../types'
 
 /**
- * The daily production table. Initial plan, add-on and current plan are shown separately so the
- * manager can see why a day's plan changed (order detail spec §3.3).
+ * Bảng sản xuất theo ngày. Kế hoạch ban đầu, phần bù và kế hoạch hiện tại được tách riêng để
+ * quản lý thấy được vì sao kế hoạch của một ngày thay đổi (order detail spec §3.3).
  */
 export function ProductionTimeline({
   days,
@@ -17,7 +17,7 @@ export function ProductionTimeline({
 }: {
   days: ProductionDayDto[]
   orderCompleted: boolean
-  /** An overdue order can only be read; every action column collapses to a dash. */
+  /** Đơn hàng quá hạn chỉ đọc được; mọi cột thao tác thu lại thành dấu gạch. */
   readOnly: boolean
   onEnterActual: (day: ProductionDayDto) => void
   onHandleShortage: (day: ProductionDayDto) => void
@@ -44,7 +44,7 @@ export function ProductionTimeline({
             {days.map((day) => {
               const isToday = day.productionDate === currentDate
               const hasActual = day.actualQuantity !== null
-              // The actual is what was produced, so a day that has not arrived yet takes no entry.
+              // Thực tế là số đã sản xuất, nên ngày chưa tới thì không nhập được.
               const isFuture = day.productionDate > currentDate
 
               return (

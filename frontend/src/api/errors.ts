@@ -1,11 +1,11 @@
-/** Field-level detail from a VALIDATION_ERROR response. */
+/** Chi tiết theo từng field trong response VALIDATION_ERROR. */
 export interface ApiValidationDetail {
   field: string
   code: string
   message: string
 }
 
-/** The backend error contract (Step 4 §4). */
+/** Hợp đồng lỗi của backend (Step 4 §4). */
 export interface ApiErrorBody {
   code: string
   message: string
@@ -26,7 +26,7 @@ export class ApiError extends Error {
   }
 }
 
-/** Raised when the request never reached the server. */
+/** Ném ra khi request không tới được server. */
 export class NetworkError extends Error {
   constructor() {
     super('Không thể kết nối tới máy chủ. Vui lòng kiểm tra kết nối mạng và thử lại.')
@@ -35,8 +35,8 @@ export class NetworkError extends Error {
 }
 
 /**
- * Business error codes mapped to the wording the manager should see. Technical exception detail is
- * never surfaced (Step 5 §12).
+ * Ánh xạ mã lỗi nghiệp vụ sang câu chữ mà quản lý cần đọc. Chi tiết exception kỹ thuật không
+ * bao giờ bị lộ ra ngoài (Step 5 §12).
  */
 const MESSAGES: Record<string, string> = {
   INVALID_CREDENTIALS: 'Tên đăng nhập hoặc mật khẩu không đúng.',
@@ -76,7 +76,7 @@ const MESSAGES: Record<string, string> = {
   INTERNAL_ERROR: 'Đã xảy ra lỗi không mong muốn. Vui lòng thử lại.',
 }
 
-/** Turns any thrown value into a message that is safe and useful to show the manager. */
+/** Chuyển mọi giá trị được ném ra thành thông báo an toàn và hữu ích cho quản lý. */
 export function toUserMessage(error: unknown): string {
   if (error instanceof ApiError) {
     return MESSAGES[error.code] ?? error.message

@@ -51,7 +51,7 @@ public class OrderDerivedCalculatorTests
             [(Day1, 100, 100), (Day2, 120, 120), (Day3, 200, 200)],
             [(Day1, 80), (Day2, 100)]);
 
-        // Days 1-2 are due: planned 220 vs actual 180.
+        // Ngày 1-2 đã tới hạn: kế hoạch 220 so với thực tế 180.
         Assert.Equal(ScheduleStatus.Behind, result.ScheduleStatus);
         Assert.Equal(40, result.BehindQuantity);
     }

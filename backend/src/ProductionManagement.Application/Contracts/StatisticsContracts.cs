@@ -26,7 +26,7 @@ public sealed record OrderStatisticsDto(
     bool IsOverdue,
     IReadOnlyList<DailyStatisticsDto> Daily);
 
-/// <summary>Today's production position for one order, used by the dashboard "today" panel.</summary>
+/// <summary>Vị thế sản xuất hôm nay của một đơn hàng, dùng cho panel "hôm nay" của dashboard.</summary>
 public sealed record DashboardTodayDto(
     int PlannedQuantity,
     int ActualQuantity,

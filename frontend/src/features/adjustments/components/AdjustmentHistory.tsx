@@ -10,8 +10,8 @@ import { usePlanAdjustments, useReverseAdjustment } from '../hooks/useAdjustment
 import type { PlanAdjustmentDto } from '../types'
 
 /**
- * Adjustment history. Applied adjustments are immutable: an entry can only be reversed, and a
- * reversed entry stays visible (Step 4 §13, Step 5 §24).
+ * Lịch sử điều chỉnh. Điều chỉnh đã áp dụng là bất biến: một bản ghi chỉ có thể bị hoàn tác,
+ * và bản ghi đã hoàn tác vẫn tiếp tục hiển thị (Step 4 §13, Step 5 §24).
  */
 export function AdjustmentHistory({ orderId, readOnly }: { orderId: string; readOnly: boolean }) {
   const { showToast } = useToast()

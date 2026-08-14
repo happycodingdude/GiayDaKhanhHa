@@ -3,8 +3,8 @@ using ProductionManagement.Application.Abstractions;
 namespace ProductionManagement.Infrastructure.Time;
 
 /// <summary>
-/// Audit timestamps are UTC. The business date ("today") is resolved in the configured business
-/// timezone, because production dates are date-only values that must not shift with UTC offsets
+/// Dấu thời gian audit theo UTC. Ngày nghiệp vụ ("hôm nay") được tính theo múi giờ nghiệp vụ đã
+/// cấu hình, vì ngày sản xuất là giá trị chỉ có ngày và không được xê dịch theo offset UTC
 /// (Step 3 §8, Step 5 §32).
 /// </summary>
 public sealed class SystemClock : IClock

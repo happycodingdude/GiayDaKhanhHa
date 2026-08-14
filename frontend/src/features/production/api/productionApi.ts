@@ -13,7 +13,7 @@ export const productionApi = {
   createActual: (orderId: string, request: CreateProductionRecordRequest) =>
     apiClient.post<ProductionRecordDto>(`/orders/${orderId}/production-records`, request),
 
-  /** Editing replaces the recorded value; actual is never accumulated. */
+  /** Sửa là thay thế giá trị đã ghi; sản lượng thực tế không bao giờ được cộng dồn. */
   updateActual: (orderId: string, productionRecordId: string, request: UpdateProductionRecordRequest) =>
     apiClient.put<ProductionRecordDto>(
       `/orders/${orderId}/production-records/${productionRecordId}`,

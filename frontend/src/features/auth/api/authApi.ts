@@ -2,7 +2,7 @@ import { apiClient } from '../../../api/client'
 import type { CurrentUserDto, LoginRequest } from '../types'
 
 export const authApi = {
-  /** The server sets the HttpOnly cookie; no token is returned to JavaScript. */
+  /** Server set cookie HttpOnly; không trả token nào về cho JavaScript. */
   login: (request: LoginRequest) => apiClient.post<CurrentUserDto>('/auth/login', request),
 
   logout: () => apiClient.post<void>('/auth/logout'),

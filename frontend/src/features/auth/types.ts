@@ -1,4 +1,4 @@
-/** Frontend types represent the API contract, not database entities (Step 5 §27). */
+/** Type ở frontend mô tả hợp đồng API, không phải entity database (Step 5 §27). */
 
 export interface CurrentUserDto {
   id: string

@@ -18,7 +18,7 @@ const PAGE_SIZES = [10, 20, 50]
 export function OrderListPage() {
   const navigate = useNavigate()
 
-  // Filters, search and pagination are local UI state (Step 5 §8).
+  // Bộ lọc, tìm kiếm và phân trang là state UI cục bộ (Step 5 §8).
   const [status, setStatus] = useState('All')
   const [searchInput, setSearchInput] = useState('')
   const [search, setSearch] = useState('')
@@ -135,8 +135,8 @@ export function OrderListPage() {
           ))}
 
         {result && result.items.length > 0 && (
-          // The table takes the leftover height and scrolls on its own, so the pagination
-          // footer below stays visible without the window ever scrolling.
+          // Bảng chiếm phần chiều cao còn lại và tự cuộn, nhờ vậy footer phân trang bên dưới
+          // luôn nhìn thấy được mà cửa sổ không phải cuộn.
           <div className="table-wrapper table-wrapper--fill">
             <table className="table">
               <thead>
@@ -153,7 +153,7 @@ export function OrderListPage() {
               </thead>
               <tbody>
                 {result.items.map((order) => (
-                  // The whole row is clickable so opening an order takes one action.
+                  // Cả dòng đều bấm được để mở đơn hàng chỉ bằng một thao tác.
                   <tr
                     key={order.id}
                     className="table__row--clickable"

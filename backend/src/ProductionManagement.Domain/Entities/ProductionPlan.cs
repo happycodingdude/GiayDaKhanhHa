@@ -1,8 +1,8 @@
 namespace ProductionManagement.Domain.Entities;
 
 /// <summary>
-/// The plan for one production day. <see cref="InitialPlannedQuantity"/> is immutable;
-/// <see cref="PlannedQuantity"/> is the current plan after add-on adjustments (Step 1 §4).
+/// Kế hoạch của một ngày sản xuất. <see cref="InitialPlannedQuantity"/> là bất biến;
+/// <see cref="PlannedQuantity"/> là kế hoạch hiện tại sau các điều chỉnh bù (Step 1 §4).
 /// </summary>
 public sealed class ProductionPlan
 {
@@ -32,8 +32,8 @@ public sealed class ProductionPlan
     }
 
     /// <summary>
-    /// Applies an add-on from a plan adjustment. Adjustments only ever increase a plan; they never
-    /// reduce another day's plan (master summary §8 Rule 3).
+    /// Áp dụng khoản bù từ một điều chỉnh kế hoạch. Điều chỉnh chỉ làm tăng kế hoạch; không bao giờ
+    /// giảm kế hoạch của ngày khác (master summary §8 Rule 3).
     /// </summary>
     public void AddOn(int quantity, DateTimeOffset now)
     {
@@ -47,7 +47,7 @@ public sealed class ProductionPlan
         UpdatedAt = now;
     }
 
-    /// <summary>Removes a previously applied add-on when its adjustment is reversed.</summary>
+    /// <summary>Gỡ khoản bù đã áp dụng trước đó khi điều chỉnh của nó bị hoàn tác.</summary>
     public void RemoveAddOn(int quantity, DateTimeOffset now)
     {
         if (quantity <= 0)
@@ -56,7 +56,7 @@ public sealed class ProductionPlan
                 ErrorCodes.InvalidAdjustmentTarget, "Add-on quantity must be greater than zero.");
         }
 
-        // planned_quantity >= 0 is a database CHECK constraint; guard before it can be violated.
+        // planned_quantity >= 0 là ràng buộc CHECK của database; chặn trước khi nó bị vi phạm.
         if (PlannedQuantity - quantity < 0)
         {
             throw new ConflictException(

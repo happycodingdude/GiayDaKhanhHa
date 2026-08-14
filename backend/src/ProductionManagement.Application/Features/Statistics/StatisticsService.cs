@@ -8,7 +8,7 @@ using ProductionManagement.Domain.Services;
 namespace ProductionManagement.Application.Features.Statistics;
 
 /// <summary>
-/// All statistics are derived from the source data. Nothing here is persisted (Step 4 §16).
+/// Mọi số liệu thống kê đều suy ra từ dữ liệu gốc. Không có gì ở đây được lưu xuống (Step 4 §16).
 /// </summary>
 public sealed class StatisticsService(IAppDbContext db, IClock clock)
 {
@@ -176,7 +176,7 @@ public sealed class StatisticsService(IAppDbContext db, IClock clock)
             TotalActualQuantity: totalActualQuantity,
             TotalRemainingQuantity: totalRemainingQuantity,
             Today: todayDto,
-            // Most severe first so the manager sees the worst problem at the top (dashboard spec §7).
+            // Nghiêm trọng nhất lên đầu để quản lý thấy vấn đề tệ nhất trước (dashboard spec §7).
             Alerts: alerts.OrderByDescending(a => a.BehindQuantity).ThenBy(a => a.DaysRemaining).ToList(),
             TrackedOrders: trackedOrders.OrderBy(o => o.ScheduleStatus == ScheduleStatus.Behind ? 0 : 1)
                 .ThenByDescending(o => o.BehindQuantity)

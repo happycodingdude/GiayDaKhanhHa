@@ -4,7 +4,7 @@ import { formatDate } from '../../../shared/lib/date'
 import { formatDifference, formatNumber, formatQuantity } from '../../../shared/lib/format'
 import { useOrderStatistics } from '../hooks/useStatistics'
 
-/** Cumulative plan vs cumulative actual — all values derived by the backend (Step 4 §16). */
+/** Kế hoạch lũy kế so với thực tế lũy kế — mọi giá trị đều do backend suy ra (Step 4 §16). */
 export function OrderStatisticsPanel({ orderId }: { orderId: string }) {
   const query = useOrderStatistics(orderId)
 

@@ -17,7 +17,7 @@ public class ProductionRecordApiTests(ApiFactory factory) : IntegrationTestBase(
         Assert.Equal(80, updated[0].ActualQuantity);
         Assert.Equal(20, updated[0].ShortageQuantity);
         Assert.Equal(-20, updated[0].Difference);
-        // The untouched day still has no record at all.
+        // Ngày không đụng tới vẫn hoàn toàn chưa có bản ghi nào.
         Assert.Null(updated[1].ActualQuantity);
         Assert.Equal(0, updated[1].ShortageQuantity);
     }
@@ -51,7 +51,7 @@ public class ProductionRecordApiTests(ApiFactory factory) : IntegrationTestBase(
         Assert.Equal(HttpStatusCode.Conflict, second.StatusCode);
         Assert.Equal("PRODUCTION_RECORD_ALREADY_EXISTS", (await second.ReadErrorAsync()).Code);
 
-        // The first value is untouched: there is no accumulation.
+        // Giá trị đầu tiên không bị đụng tới: không có chuyện cộng dồn.
         var updated = await GetDaysAsync(client, order.Id);
         Assert.Equal(40, updated[0].ActualQuantity);
     }
@@ -76,18 +76,18 @@ public class ProductionRecordApiTests(ApiFactory factory) : IntegrationTestBase(
     public async Task The_total_actual_can_never_exceed_the_order_quantity()
     {
         var client = await ClientAsync();
-        // A 500-unit order across two days, the second of which is today.
+        // Đơn hàng 500 đơn vị trải trên hai ngày, ngày thứ hai là hôm nay.
         var (order, days) = await CreateOrderFromAsync(client, Today.AddDays(-1), 250, 250);
 
         (await PostActualAsync(client, order.Id, days[0].ProductionDate, 450)).EnsureSuccessStatusCode();
 
-        // 450 + 60 would be 510 on a 500-unit order.
+        // 450 + 60 sẽ thành 510 trên một đơn hàng 500 đơn vị.
         var response = await PostActualAsync(client, order.Id, days[1].ProductionDate, 60);
 
         Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
         Assert.Equal("ACTUAL_EXCEEDS_ORDER_QUANTITY", (await response.ReadErrorAsync()).Code);
 
-        // Exactly the remaining amount is accepted.
+        // Đúng bằng phần còn lại thì được chấp nhận.
         (await PostActualAsync(client, order.Id, days[1].ProductionDate, 50)).EnsureSuccessStatusCode();
         Assert.Equal(500, (await GetOrderAsync(client, order.Id)).TotalActual);
     }
@@ -102,11 +102,11 @@ public class ProductionRecordApiTests(ApiFactory factory) : IntegrationTestBase(
         var firstRecord = await first.ReadAsync<ProductionRecordResponse>();
         (await PostActualAsync(client, order.Id, days[1].ProductionDate, 600)).EnsureSuccessStatusCode();
 
-        // 900 recorded, 100 head-room: raising day 1 from 300 to 450 would total 1050.
+        // Đã ghi 900, còn dư địa 100: nâng ngày 1 từ 300 lên 450 sẽ thành tổng 1050.
         var tooHigh = await PutActualAsync(client, order.Id, firstRecord.Id, 450);
         Assert.Equal(HttpStatusCode.UnprocessableEntity, tooHigh.StatusCode);
 
-        // NewTotal = CurrentTotal - OldActual + NewActual, so 400 is fine.
+        // NewTotal = CurrentTotal - OldActual + NewActual, nên 400 là hợp lệ.
         (await PutActualAsync(client, order.Id, firstRecord.Id, 400)).EnsureSuccessStatusCode();
         Assert.Equal(1000, (await GetOrderAsync(client, order.Id)).TotalActual);
     }
@@ -127,7 +127,7 @@ public class ProductionRecordApiTests(ApiFactory factory) : IntegrationTestBase(
     public async Task A_production_day_that_has_not_arrived_yet_cannot_receive_an_actual()
     {
         var client = await ClientAsync();
-        // Day 0 is today, day 1 is tomorrow.
+        // Ngày 0 là hôm nay, ngày 1 là ngày mai.
         var (order, days) = await CreateOrderAsync(client, 100, 100);
 
         var response = await PostActualAsync(client, order.Id, days[1].ProductionDate, 40);
@@ -135,7 +135,7 @@ public class ProductionRecordApiTests(ApiFactory factory) : IntegrationTestBase(
         Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
         Assert.Equal("FUTURE_PRODUCTION_DATE", (await response.ReadErrorAsync()).Code);
 
-        // Nothing was written.
+        // Không có gì được ghi.
         Assert.Null((await GetDaysAsync(client, order.Id))[1].ActualQuantity);
     }
 
@@ -143,7 +143,7 @@ public class ProductionRecordApiTests(ApiFactory factory) : IntegrationTestBase(
     public async Task Today_and_past_days_can_receive_an_actual()
     {
         var client = await ClientAsync();
-        // Day 0 is yesterday, day 1 is today — both are inside the window.
+        // Ngày 0 là hôm qua, ngày 1 là hôm nay — cả hai đều nằm trong khoảng cho phép.
         var (order, days) = await CreateOrderFromAsync(client, Today.AddDays(-1), 100, 100);
 
         (await PostActualAsync(client, order.Id, days[0].ProductionDate, 90)).EnsureSuccessStatusCode();

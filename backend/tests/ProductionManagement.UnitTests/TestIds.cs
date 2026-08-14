@@ -1,9 +1,9 @@
 namespace ProductionManagement.UnitTests;
 
 /// <summary>
-/// Readable stand-in ids. Ids are Guids in the domain, but these tests still reason about
-/// "plan 2" and "user 1", so a seed number maps to a stable, obviously-fake Guid. Using a
-/// fixed pattern instead of <see cref="Guid.NewGuid"/> keeps failures reproducible.
+/// Id thay thế cho dễ đọc. Trong domain id là Guid, nhưng các test này vẫn suy nghĩ theo kiểu
+/// "kế hoạch 2" và "người dùng 1", nên một số seed sẽ ánh xạ sang một Guid cố định và nhìn là biết
+/// giả. Dùng khuôn cố định thay cho <see cref="Guid.NewGuid"/> giúp lỗi tái hiện được.
 /// </summary>
 internal static class TestIds
 {

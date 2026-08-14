@@ -4,8 +4,8 @@ export interface Step {
 }
 
 /**
- * Left-to-right arrow flow showing which step of a multi-step form the manager is on. Steps that
- * are already behind them are marked done, so the indicator also reads as progress.
+ * Luồng mũi tên trái sang phải cho biết quản lý đang ở bước nào của biểu mẫu nhiều bước. Các
+ * bước đã qua được đánh dấu hoàn thành, nên thanh này cũng đọc ra được tiến độ.
  */
 export function Stepper({
   steps,

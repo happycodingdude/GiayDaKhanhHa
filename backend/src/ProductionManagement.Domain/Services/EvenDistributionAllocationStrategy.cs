@@ -1,9 +1,9 @@
 namespace ProductionManagement.Domain.Services;
 
 /// <summary>
-/// Option 2 — distributes the whole shortage evenly across every remaining production day.
-/// When the shortage does not divide evenly, the remainder is added one unit at a time starting
-/// from the nearest day (Option 2 spec §4.5).
+/// Option 2 — chia đều toàn bộ phần thiếu cho mọi ngày sản xuất còn lại.
+/// Khi phần thiếu chia không hết, phần dư được cộng mỗi lần một đơn vị, bắt đầu từ ngày gần nhất
+/// (Option 2 spec §4.5).
 /// </summary>
 public sealed class EvenDistributionAllocationStrategy : IAutomaticAllocationStrategy
 {
@@ -32,8 +32,8 @@ public sealed class EvenDistributionAllocationStrategy : IAutomaticAllocationStr
         {
             var addOn = baseShare + (i < remainder ? 1 : 0);
 
-            // add_on_quantity > 0 is a database CHECK constraint, so days that would receive
-            // nothing are simply not part of the proposal.
+            // add_on_quantity > 0 là ràng buộc CHECK của database, nên những ngày không nhận được gì
+            // đơn giản là không nằm trong đề xuất.
             if (addOn == 0)
             {
                 continue;

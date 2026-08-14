@@ -13,8 +13,7 @@ namespace ProductionManagement.Api.Controllers;
 public sealed class AuthController(AuthService authService) : ControllerBase
 {
     /// <summary>
-    /// Establishes the HttpOnly authentication cookie. No token is returned to the client
-    /// (Step 4 §2).
+    /// Thiết lập cookie xác thực HttpOnly. Không trả token nào về cho client (Step 4 §2).
     /// </summary>
     [HttpPost("login")]
     [AllowAnonymous]

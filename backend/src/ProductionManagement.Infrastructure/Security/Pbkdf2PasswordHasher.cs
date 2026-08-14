@@ -4,8 +4,8 @@ using ProductionManagement.Application.Abstractions;
 namespace ProductionManagement.Infrastructure.Security;
 
 /// <summary>
-/// PBKDF2-HMAC-SHA256 password hashing. Only the hash is ever persisted (Step 3 §2.1).
-/// Format: <c>pbkdf2$sha256$&lt;iterations&gt;$&lt;saltBase64&gt;$&lt;hashBase64&gt;</c>.
+/// Băm mật khẩu bằng PBKDF2-HMAC-SHA256. Chỉ phần hash được lưu xuống (Step 3 §2.1).
+/// Định dạng: <c>pbkdf2$sha256$&lt;iterations&gt;$&lt;saltBase64&gt;$&lt;hashBase64&gt;</c>.
 /// </summary>
 public sealed class Pbkdf2PasswordHasher : IPasswordHasher
 {

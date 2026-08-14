@@ -20,12 +20,12 @@ builder.Services
     .AddControllers()
     .AddJsonOptions(options =>
     {
-        // Business dates serialise as YYYY-MM-DD; enums travel as their names, not their ordinals.
+        // Ngày nghiệp vụ serialize theo dạng YYYY-MM-DD; enum truyền theo tên chứ không phải số thứ tự.
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
         options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.Never;
     });
 
-// HttpOnly cookie authentication — explicitly chosen over JWT for Phase 1 (Step 4 §2).
+// Xác thực bằng cookie HttpOnly — chủ đích chọn thay cho JWT ở Phase 1 (Step 4 §2).
 builder.Services
     .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
@@ -39,7 +39,7 @@ builder.Services
         options.ExpireTimeSpan = TimeSpan.FromHours(12);
         options.SlidingExpiration = true;
 
-        // This is an API: unauthenticated requests get a JSON 401/403, never an HTML redirect.
+        // Đây là API: request chưa xác thực nhận JSON 401/403, không bao giờ là redirect HTML.
         options.Events.OnRedirectToLogin = context => WriteAuthError(
             context.Response, StatusCodes.Status401Unauthorized,
             ErrorCodes.NotAuthenticated, "Authentication is required.");
@@ -49,7 +49,7 @@ builder.Services
             "FORBIDDEN", "You are not allowed to perform this action.");
     });
 
-// Every business endpoint requires authentication; only the login/logout actions opt out.
+// Mọi endpoint nghiệp vụ đều yêu cầu xác thực; chỉ action login/logout được miễn.
 builder.Services.AddAuthorization(options =>
     options.FallbackPolicy = new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build());
 
@@ -78,5 +78,5 @@ static Task WriteAuthError(HttpResponse response, int statusCode, string code, s
     return response.WriteAsync(payload);
 }
 
-/// <summary>Exposed so the integration test host can reference this entry point.</summary>
+/// <summary>Để lộ ra để host của integration test tham chiếu được entry point này.</summary>
 public partial class Program;

@@ -6,7 +6,7 @@ namespace ProductionManagement.IntegrationTests;
 
 public class AdjustmentApiTests(ApiFactory factory) : IntegrationTestBase(factory)
 {
-    /// <summary>An order with a 20-unit shortage on its first day.</summary>
+    /// <summary>Đơn hàng thiếu 20 đơn vị ở ngày đầu tiên.</summary>
     private async Task<(HttpClient Client, OrderResponse Order, IReadOnlyList<ProductionDayResponse> Days)>
         OrderWithShortageAsync(params int[] plan)
     {
@@ -50,7 +50,7 @@ public class AdjustmentApiTests(ApiFactory factory) : IntegrationTestBase(factor
         Assert.Equal(20, preview.TotalAddOnQuantity);
         Assert.Equal(days[1].PlannedQuantity + 20, preview.Items[0].PlannedQuantityAfter);
 
-        // Preview never persists: the stored plans are unchanged.
+        // Preview không bao giờ lưu xuống: các kế hoạch đã lưu không đổi.
         var after = await GetDaysAsync(client, order.Id);
         Assert.Equal(days.Select(d => d.PlannedQuantity), after.Select(d => d.PlannedQuantity));
         Assert.Empty(await (await client.GetAsync($"/api/v1/orders/{order.Id}/plan-adjustments"))
@@ -69,7 +69,7 @@ public class AdjustmentApiTests(ApiFactory factory) : IntegrationTestBase(factor
         Assert.Equal(3, preview.Items.Count);
         Assert.Equal(20, preview.TotalAddOnQuantity);
         Assert.Equal([7, 7, 6], preview.Items.Select(i => i.AddOnQuantity));
-        // The source day never receives an add-on.
+        // Ngày nguồn không bao giờ được nhận khoản bù.
         Assert.DoesNotContain(preview.Items, item => item.ProductionPlanId == days[0].Id);
     }
 
@@ -110,7 +110,7 @@ public class AdjustmentApiTests(ApiFactory factory) : IntegrationTestBase(factor
         var after = await GetDaysAsync(client, order.Id);
         Assert.Equal(days[2].PlannedQuantity + 20, after[2].PlannedQuantity);
         Assert.Equal(20, after[2].AddOnQuantity);
-        // The initial plan is immutable and no other day is reduced.
+        // Kế hoạch ban đầu là bất biến và không ngày nào khác bị giảm.
         Assert.Equal(days[2].InitialPlannedQuantity, after[2].InitialPlannedQuantity);
         Assert.Equal(days[0].PlannedQuantity, after[0].PlannedQuantity);
         Assert.Equal(days[1].PlannedQuantity, after[1].PlannedQuantity);
@@ -118,7 +118,7 @@ public class AdjustmentApiTests(ApiFactory factory) : IntegrationTestBase(factor
 
         var updatedOrder = await GetOrderAsync(client, order.Id);
         Assert.Equal(order.Quantity, updatedOrder.Quantity);
-        // The total plan may now exceed the order quantity. That is intentional.
+        // Tổng kế hoạch giờ có thể vượt số lượng đơn hàng. Đó là chủ đích.
         Assert.Equal(order.TotalPlan + 20, updatedOrder.TotalPlan);
         Assert.Equal(order.Quantity, updatedOrder.TotalInitialPlan);
     }
@@ -141,7 +141,7 @@ public class AdjustmentApiTests(ApiFactory factory) : IntegrationTestBase(factor
     {
         var (client, order, days) = await OrderWithShortageAsync();
 
-        // The manager corrects the actual, so the shortage is no longer 20.
+        // Quản lý sửa lại thực tế, nên phần thiếu không còn là 20.
         var record = days[0].ProductionRecordId!.Value;
         (await PutActualAsync(client, order.Id, record, days[0].PlannedQuantity - 10)).EnsureSuccessStatusCode();
 
@@ -156,7 +156,7 @@ public class AdjustmentApiTests(ApiFactory factory) : IntegrationTestBase(factor
     {
         var (client, _, days) = await OrderWithShortageAsync();
 
-        // The source day itself is never an eligible target.
+        // Bản thân ngày nguồn không bao giờ là ngày đích hợp lệ.
         var response = await ApplyAsync(client, days[0].Id, "Manual", 20, (days[0].Id, 20));
 
         Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
@@ -179,7 +179,7 @@ public class AdjustmentApiTests(ApiFactory factory) : IntegrationTestBase(factor
     {
         var (client, _, days) = await OrderWithShortageAsync(100, 120, 200, 250);
 
-        // A hand-made split submitted as Automatic does not match what the system would propose.
+        // Một cách chia tự đặt tay nhưng gửi lên dạng Automatic sẽ không khớp đề xuất của hệ thống.
         var response = await ApplyAsync(client, days[0].Id, "Automatic", 20, (days[1].Id, 20));
 
         Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
@@ -200,7 +200,7 @@ public class AdjustmentApiTests(ApiFactory factory) : IntegrationTestBase(factor
         var reversed = await reverse.ReadAsync<PlanAdjustmentResponse>();
         Assert.Equal("Reversed", reversed.Status);
         Assert.NotNull(reversed.ReversedBy);
-        // The historical items are preserved.
+        // Các dòng lịch sử được giữ nguyên.
         Assert.Equal(20, reversed.Items.Sum(i => i.AddOnQuantity));
 
         var after = await GetDaysAsync(client, order.Id);
@@ -240,7 +240,7 @@ public class AdjustmentApiTests(ApiFactory factory) : IntegrationTestBase(factor
         var second = await ApplyAsync(client, days[0].Id, "Manual", 20, (days[2].Id, 20));
         second.EnsureSuccessStatusCode();
 
-        // Both adjustments remain in the history; the old one is not edited.
+        // Cả hai điều chỉnh đều còn trong lịch sử; cái cũ không bị sửa.
         var history = await (await client.GetAsync($"/api/v1/orders/{order.Id}/plan-adjustments"))
             .ReadAsync<List<PlanAdjustmentResponse>>();
         Assert.Equal(2, history.Count);
@@ -273,7 +273,7 @@ public class AdjustmentApiTests(ApiFactory factory) : IntegrationTestBase(factor
 
         (await ApplyAsync(client, days[0].Id, "Manual", 20, (days[2].Id, 20))).EnsureSuccessStatusCode();
 
-        // The manager corrects the actual at the end of the day: the shortage is now 30, not 20.
+        // Quản lý sửa thực tế vào cuối ngày: phần thiếu giờ là 30 chứ không phải 20.
         var response = await PutActualAsync(
             client, order.Id, days[0].ProductionRecordId!.Value, days[0].PlannedQuantity - 30);
         response.EnsureSuccessStatusCode();
@@ -284,14 +284,14 @@ public class AdjustmentApiTests(ApiFactory factory) : IntegrationTestBase(factor
         Assert.Equal(20, recalculation.PreviousShortageQuantity);
         Assert.Equal(30, recalculation.ShortageQuantity);
 
-        // The day the manager chose still carries the add-on, now at the corrected quantity.
+        // Ngày quản lý đã chọn vẫn giữ khoản bù, giờ theo số lượng đã sửa.
         var after = await GetDaysAsync(client, order.Id);
         Assert.Equal(30, after[2].AddOnQuantity);
         Assert.Equal(days[2].PlannedQuantity + 30, after[2].PlannedQuantity);
         Assert.Equal(0, after[1].AddOnQuantity);
         Assert.True(after[0].HasActiveAdjustment);
 
-        // The outdated adjustment is reversed rather than edited, so both entries stay visible.
+        // Điều chỉnh đã cũ bị hoàn tác chứ không bị sửa, nên cả hai bản ghi đều còn hiển thị.
         var history = await HistoryAsync(client, order.Id);
         Assert.Equal(2, history.Count);
         Assert.Single(history, a => a.Status == "Applied" && a.ShortageQuantity == 30);
@@ -303,14 +303,14 @@ public class AdjustmentApiTests(ApiFactory factory) : IntegrationTestBase(factor
     {
         var (client, order, days) = await OrderWithShortageAsync(100, 120, 200, 250);
 
-        // 20 over the three remaining days is 7 / 7 / 6.
+        // Chia 20 cho ba ngày còn lại ra 7 / 7 / 6.
         (await ApplyAsync(client, days[0].Id, "Automatic", 20, (days[1].Id, 7), (days[2].Id, 7), (days[3].Id, 6)))
             .EnsureSuccessStatusCode();
 
         (await PutActualAsync(client, order.Id, days[0].ProductionRecordId!.Value, days[0].PlannedQuantity - 30))
             .EnsureSuccessStatusCode();
 
-        // 30 over the same three days is an even 10 each.
+        // Chia 30 cho đúng ba ngày đó ra chẵn 10 mỗi ngày.
         var after = await GetDaysAsync(client, order.Id);
         Assert.Equal([0, 10, 10, 10], after.Select(day => day.AddOnQuantity));
         Assert.Equal(
@@ -338,7 +338,7 @@ public class AdjustmentApiTests(ApiFactory factory) : IntegrationTestBase(factor
         Assert.Equal("Removed", recalculation.Outcome);
         Assert.Equal(0, recalculation.ShortageQuantity);
 
-        // There is no shortage left, so the target day goes back to its own plan.
+        // Không còn phần thiếu nào, nên ngày đích quay về đúng kế hoạch của nó.
         var after = await GetDaysAsync(client, order.Id);
         Assert.Equal(0, after[1].AddOnQuantity);
         Assert.Equal(days[1].PlannedQuantity, after[1].PlannedQuantity);
@@ -360,7 +360,7 @@ public class AdjustmentApiTests(ApiFactory factory) : IntegrationTestBase(factor
             client, order.Id, days[0].ProductionRecordId!.Value, days[0].ActualQuantity!.Value);
         response.EnsureSuccessStatusCode();
 
-        // The shortage did not move, so the history is not churned with a reverse + re-apply.
+        // Phần thiếu không đổi, nên lịch sử không bị làm nhiễu bằng một lượt hoàn tác + áp dụng lại.
         Assert.Null((await response.ReadAsync<ProductionRecordResponse>()).AdjustmentRecalculation);
 
         var history = await HistoryAsync(client, order.Id);
@@ -373,7 +373,7 @@ public class AdjustmentApiTests(ApiFactory factory) : IntegrationTestBase(factor
     public async Task A_shortage_on_the_final_production_day_has_nowhere_to_go()
     {
         var client = await ClientAsync();
-        // The period ends today, so the shortage lands on the last day with nothing after it.
+        // Kỳ sản xuất kết thúc hôm nay, nên phần thiếu rơi vào ngày cuối và không còn ngày nào sau đó.
         var (order, days) = await CreateOrderFromAsync(client, Today.AddDays(-1), 100, 100);
         (await PostActualAsync(client, order.Id, days[1].ProductionDate, 80)).EnsureSuccessStatusCode();
 

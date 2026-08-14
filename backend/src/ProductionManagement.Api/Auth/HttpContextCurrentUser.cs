@@ -5,17 +5,17 @@ using ProductionManagement.Domain;
 namespace ProductionManagement.Api.Auth;
 
 /// <summary>
-/// The current user always comes from the authentication context; the client never supplies
-/// audit user ids (Step 4 §3).
+/// Người dùng hiện tại luôn lấy từ ngữ cảnh xác thực; client không bao giờ tự gửi lên id người
+/// dùng phục vụ audit (Step 4 §3).
 /// </summary>
 public sealed class HttpContextCurrentUser(IHttpContextAccessor httpContextAccessor) : ICurrentUser
 {
     public bool IsAuthenticated => TryGetUserId(out _);
 
     /// <summary>
-    /// A principal the cookie middleware accepted can still carry an id this application cannot
-    /// use — a cookie issued while ids were still numeric, for instance. That is a stale
-    /// credential, not a server fault, so it has to surface as 401 rather than 500.
+    /// Một principal đã được cookie middleware chấp nhận vẫn có thể mang id mà ứng dụng này không
+    /// dùng được — ví dụ cookie phát hành hồi id còn là kiểu số. Đó là credential cũ chứ không phải
+    /// lỗi server, nên phải trả về 401 thay vì 500.
     /// </summary>
     public Guid UserId => TryGetUserId(out var userId)
         ? userId

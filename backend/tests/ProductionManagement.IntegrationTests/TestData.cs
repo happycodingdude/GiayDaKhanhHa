@@ -2,7 +2,7 @@ using System.Net.Http.Json;
 
 namespace ProductionManagement.IntegrationTests;
 
-/// <summary>Shapes of the API responses the tests assert on.</summary>
+/// <summary>Khuôn của các response API mà test dùng để assert.</summary>
 public sealed record ApiErrorResponse(string Code, string Message);
 
 public sealed record OrderResponse(

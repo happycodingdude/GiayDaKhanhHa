@@ -1,7 +1,7 @@
 import { Badge } from './ui'
 import { formatNumber } from '../lib/format'
 
-/** Order status has exactly two values and is never set by the manager. */
+/** Trạng thái đơn hàng chỉ có đúng hai giá trị và không bao giờ do quản lý đặt. */
 export function OrderStatusBadge({ status }: { status: string }) {
   return status === 'Completed' ? (
     <Badge tone="success">Hoàn thành</Badge>
@@ -11,8 +11,8 @@ export function OrderStatusBadge({ status }: { status: string }) {
 }
 
 /**
- * Progress condition, kept separate from the order status: "chậm" is never an order status
- * (order list spec §5).
+ * Tình trạng tiến độ, tách riêng khỏi trạng thái đơn hàng: "chậm" không bao giờ là một trạng
+ * thái của đơn hàng (order list spec §5).
  */
 export function ScheduleStatusBadge({
   scheduleStatus,
@@ -30,7 +30,7 @@ export function ScheduleStatusBadge({
   return <Badge tone="success">🟢 Đúng tiến độ</Badge>
 }
 
-/** Per-day production condition shown in the production timeline. */
+/** Tình trạng sản xuất theo từng ngày, hiển thị trong bảng tiến độ sản xuất. */
 export function DayStatusBadge({
   actualQuantity,
   shortageQuantity,
@@ -47,9 +47,9 @@ export function DayStatusBadge({
   if (plannedQuantity === 0) return <Badge tone="neutral">Không sản xuất</Badge>
 
   if (actualQuantity === null) {
-    // A future day simply has not happened yet. Once the day has arrived the actual is expected,
-    // so the missing entry is reported as such — softly for today, which is entered at its end,
-    // and as a warning for a day that has already gone by without a number.
+    // Ngày tương lai đơn giản là chưa diễn ra. Khi ngày đã tới thì phải có sản lượng thực tế,
+    // nên việc thiếu số liệu được báo lại — nhẹ nhàng với hôm nay vì cuối ngày mới nhập,
+    // và thành cảnh báo với ngày đã trôi qua mà vẫn chưa có số.
     if (dayPosition === 'future') return <Badge tone="neutral">Chờ sản xuất</Badge>
     return <Badge tone={dayPosition === 'today' ? 'neutral' : 'warning'}>Chưa nhập</Badge>
   }

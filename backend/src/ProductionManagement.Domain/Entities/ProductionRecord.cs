@@ -1,9 +1,9 @@
 namespace ProductionManagement.Domain.Entities;
 
 /// <summary>
-/// The actual quantity produced on one day. Exactly one record per Order + ProductionDate.
-/// Actual is a value, not an increment: corrections edit this record (Step 1 §5).
-/// The absence of a record means "not entered yet" and is distinct from an actual of 0.
+/// Sản lượng thực tế sản xuất trong một ngày. Đúng một bản ghi cho mỗi Order + ProductionDate.
+/// Thực tế là một giá trị, không phải số cộng thêm: sửa sai là sửa chính bản ghi này (Step 1 §5).
+/// Không có bản ghi nghĩa là "chưa nhập", khác hẳn với thực tế bằng 0.
 /// </summary>
 public sealed class ProductionRecord
 {
@@ -37,7 +37,7 @@ public sealed class ProductionRecord
         };
     }
 
-    /// <summary>Replaces the actual value. The old value is not accumulated.</summary>
+    /// <summary>Thay thế giá trị thực tế. Giá trị cũ không được cộng dồn.</summary>
     public void UpdateActual(int actualQuantity, Guid userId, DateTimeOffset now)
     {
         GuardQuantity(actualQuantity);
@@ -49,7 +49,7 @@ public sealed class ProductionRecord
 
     private static void GuardQuantity(int actualQuantity)
     {
-        // An explicit 0 is valid; negatives are not.
+        // Số 0 nhập tường minh là hợp lệ; số âm thì không.
         if (actualQuantity < 0)
         {
             throw new ValidationException(

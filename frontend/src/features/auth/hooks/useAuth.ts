@@ -4,13 +4,13 @@ import { queryKeys } from '../../../app/config/queryKeys'
 import { authApi } from '../api/authApi'
 import type { LoginRequest } from '../types'
 
-/** The current user is server state owned by TanStack Query (Step 5 §10). */
+/** Người dùng hiện tại là server state do TanStack Query quản lý (Step 5 §10). */
 export function useCurrentUser() {
   return useQuery({
     queryKey: queryKeys.currentUser,
     queryFn: ({ signal }) => authApi.me(signal),
     retry: (failureCount, error) => {
-      // Not being logged in is an expected answer, not a failure worth retrying.
+      // Chưa đăng nhập là một câu trả lời hợp lệ, không phải lỗi đáng retry.
       if (error instanceof ApiError && (error.status === 401 || error.status === 403)) return false
       return failureCount < 2
     },
@@ -35,7 +35,7 @@ export function useLogout() {
   return useMutation({
     mutationFn: () => authApi.logout(),
     onSuccess: () => {
-      // Everything cached belongs to the session that just ended.
+      // Mọi thứ đang nằm trong cache đều thuộc về phiên vừa kết thúc.
       queryClient.clear()
     },
   })

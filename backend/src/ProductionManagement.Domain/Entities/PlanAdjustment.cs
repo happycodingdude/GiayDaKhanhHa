@@ -1,9 +1,9 @@
 namespace ProductionManagement.Domain.Entities;
 
 /// <summary>
-/// An applied shortage add-on. There is intentionally no OrderId — the Order is reached through
-/// SourceProductionPlan (Step 3 §4.5). Only Apply persists an adjustment; Preview never does.
-/// An Applied adjustment is immutable history: correcting it means Reverse + create a new one.
+/// Một khoản bù phần thiếu đã áp dụng. Chủ đích không có OrderId — Order được truy ra qua
+/// SourceProductionPlan (Step 3 §4.5). Chỉ Apply mới lưu điều chỉnh xuống; Preview thì không.
+/// Điều chỉnh Applied là lịch sử bất biến: muốn sửa thì Reverse rồi tạo cái mới.
 /// </summary>
 public sealed class PlanAdjustment
 {
@@ -27,8 +27,8 @@ public sealed class PlanAdjustment
     public IReadOnlyCollection<PlanAdjustmentItem> Items => _items;
 
     /// <summary>
-    /// Creates an adjustment already in the <see cref="AdjustmentStatus.Applied"/> state — the only
-    /// state an adjustment is ever persisted in (Step 3 §4.5).
+    /// Tạo điều chỉnh ở sẵn trạng thái <see cref="AdjustmentStatus.Applied"/> — trạng thái duy nhất
+    /// mà một điều chỉnh được lưu xuống (Step 3 §4.5).
     /// </summary>
     public static PlanAdjustment Apply(
         Guid sourceProductionPlanId,
@@ -59,7 +59,7 @@ public sealed class PlanAdjustment
                     ErrorCodes.InvalidAdjustmentTarget, "Each add-on quantity must be greater than zero.");
             }
 
-            // UNIQUE(plan_adjustment_id, production_plan_id) — no duplicate target in one adjustment.
+            // UNIQUE(plan_adjustment_id, production_plan_id) — không trùng ngày đích trong một điều chỉnh.
             if (!seen.Add(planId))
             {
                 throw new BusinessRuleException(
@@ -99,7 +99,7 @@ public sealed class PlanAdjustment
     }
 
     /// <summary>
-    /// Applied → Reversed. History is never rewritten and an adjustment cannot be reversed twice.
+    /// Applied → Reversed. Lịch sử không bao giờ bị viết lại và một điều chỉnh không thể hoàn tác hai lần.
     /// </summary>
     public void Reverse(Guid userId, DateTimeOffset now)
     {

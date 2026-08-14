@@ -25,8 +25,8 @@ interface OrderInfo {
 }
 
 /**
- * One continuous flow: order information → daily plan → review → create. An order is never
- * created without its production plan (create-order spec §1, §17).
+ * Một luồng liền mạch: thông tin đơn hàng → kế hoạch theo ngày → xem lại → tạo. Không bao giờ
+ * tạo đơn hàng mà thiếu kế hoạch sản xuất của nó (create-order spec §1, §17).
  */
 export function CreateOrderPage() {
   const navigate = useNavigate()
@@ -39,7 +39,7 @@ export function CreateOrderPage() {
 
   const goToPlan = (values: OrderInfo) => {
     setInfo(values)
-    // Prefill one row per production day; the manager decides each day's quantity themselves.
+    // Điền sẵn mỗi ngày sản xuất một dòng; số lượng từng ngày do quản lý tự quyết.
     setPlan((current) => {
       const next: Record<IsoDate, string> = {}
       for (const date of dateRange(values.startDate, values.dueDate)) {
@@ -65,7 +65,7 @@ export function CreateOrderPage() {
     })
 
     showToast(`Tạo đơn hàng ${order.orderCode} thành công.`)
-    // The manager usually wants to check the order they just created (create-order spec §9).
+    // Quản lý thường muốn xem lại đơn hàng vừa tạo (create-order spec §9).
     await navigate({ to: '/orders/$orderId', params: { orderId: String(order.id) } })
   }
 
@@ -122,7 +122,7 @@ function OrderInfoStep({ initial, onNext }: { initial: OrderInfo | null; onNext:
 
     if (!orderCode.trim()) next.orderCode = 'Vui lòng nhập mã đơn hàng.'
 
-    // Integers only: no decimals, no negatives, greater than zero.
+    // Chỉ nhận số nguyên: không thập phân, không âm, phải lớn hơn 0.
     if (!/^\d+$/.test(quantity.trim())) {
       next.quantity = 'Tổng số lượng phải là số nguyên dương.'
     } else if (Number(quantity) <= 0) {
@@ -223,14 +223,14 @@ function PlanStep({
   const lastDate = dates[dates.length - 1]
   const lastDayIsZero = Number(plan[lastDate] || 0) === 0
 
-  // The total must match the order quantity exactly (create-order spec §6).
+  // Tổng phải khớp chính xác với số lượng đơn hàng (create-order spec §6).
   const totalMatches = difference === 0
   const canContinue = totalMatches && (!lastDayIsZero || zeroLastDayConfirmed)
 
   /**
-   * Spreads the order quantity across every day so the manager does not have to type each one.
-   * When it does not divide evenly the remainder goes one unit at a time to the earliest days,
-   * the same way the server splits a shortage, so the two never disagree by a unit.
+   * Rải số lượng đơn hàng cho mọi ngày để quản lý không phải gõ từng ngày một.
+   * Khi chia không hết, phần dư được cộng mỗi lần một đơn vị cho các ngày sớm nhất, đúng cách
+   * server chia phần thiếu, nên hai bên không bao giờ lệch nhau một đơn vị.
    */
   const distributeEvenly = () => {
     if (dates.length === 0) return
@@ -306,7 +306,7 @@ function PlanStep({
       </div>
 
       {totalMatches && lastDayIsZero && (
-        // A zero on the due date is valid business-wise, so this is a confirmation, not an error.
+        // Số 0 vào đúng ngày hạn vẫn hợp lệ về nghiệp vụ, nên đây là xác nhận chứ không phải lỗi.
         <label className="confirm-check">
           <input
             type="checkbox"

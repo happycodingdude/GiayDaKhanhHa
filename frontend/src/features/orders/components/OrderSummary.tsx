@@ -4,7 +4,7 @@ import { formatDate } from '../../../shared/lib/date'
 import { formatNumber, formatPercent } from '../../../shared/lib/format'
 import type { OrderDetailDto } from '../types'
 
-/** Derived order figures. Progress = total actual / order quantity (order detail spec §4.3). */
+/** Các số liệu suy ra của đơn hàng. Tiến độ = tổng thực tế / số lượng đơn (order detail spec §4.3). */
 export function OrderSummary({ order }: { order: OrderDetailDto }) {
   return (
     <Card title="Tổng quan đơn hàng">

@@ -6,15 +6,15 @@ using Xunit;
 namespace ProductionManagement.IntegrationTests;
 
 /// <summary>
-/// An order whose due date has passed is read-only, whatever its status. Every endpoint that
-/// writes to an existing order must refuse it, and every read must keep working.
+/// Đơn hàng đã qua ngày hạn là chỉ đọc, bất kể trạng thái nào. Mọi endpoint ghi vào một đơn hàng
+/// đã tồn tại đều phải từ chối, và mọi thao tác đọc vẫn phải chạy được.
 /// </summary>
 public class OverdueOrderTests(ApiFactory factory) : IntegrationTestBase(factory)
 {
     /// <summary>
-    /// Moves an order's whole production period into the past. Time cannot be advanced from a test
-    /// and no endpoint can change an order's dates, so the order is aged directly in the throwaway
-    /// database. Both dates move so the ck_orders_date_range check still holds.
+    /// Đẩy toàn bộ kỳ sản xuất của đơn hàng về quá khứ. Test không tua được thời gian và không
+    /// endpoint nào đổi được ngày của đơn hàng, nên đơn được làm "già" thẳng trong database dùng
+    /// một lần. Cả hai mốc ngày đều dịch để ràng buộc ck_orders_date_range vẫn đúng.
     /// </summary>
     private async Task MakeOverdueAsync(Guid orderId)
     {
@@ -30,7 +30,7 @@ public class OverdueOrderTests(ApiFactory factory) : IntegrationTestBase(factory
         Assert.Equal(1, await command.ExecuteNonQueryAsync());
     }
 
-    /// <summary>An order with a 20-unit shortage on its first day, aged past its due date.</summary>
+    /// <summary>Đơn hàng thiếu 20 đơn vị ở ngày đầu, đã được đẩy qua ngày hạn.</summary>
     private async Task<(HttpClient Client, OrderResponse Order, IReadOnlyList<ProductionDayResponse> Days)>
         OverdueOrderWithShortageAsync()
     {
@@ -69,7 +69,7 @@ public class OverdueOrderTests(ApiFactory factory) : IntegrationTestBase(factory
         await AssertOverdueRejectionAsync(
             await PostActualAsync(client, order.Id, days[1].ProductionDate, 50));
 
-        // Nothing was written: the second day still has no record at all.
+        // Không có gì được ghi: ngày thứ hai vẫn hoàn toàn chưa có bản ghi nào.
         Assert.Null((await GetDaysAsync(client, order.Id))[1].ActualQuantity);
     }
 
@@ -112,14 +112,14 @@ public class OverdueOrderTests(ApiFactory factory) : IntegrationTestBase(factory
 
         await AssertOverdueRejectionAsync(response);
 
-        // No add-on reached the target day.
+        // Không khoản bù nào tới được ngày đích.
         Assert.Equal(days[1].PlannedQuantity, (await GetDaysAsync(client, order.Id))[1].PlannedQuantity);
     }
 
     [Fact]
     public async Task Reversing_an_adjustment_is_rejected_once_the_order_is_overdue()
     {
-        // The adjustment is applied while the order is still on time, then the due date passes.
+        // Điều chỉnh được áp dụng khi đơn hàng còn trong hạn, sau đó ngày hạn mới trôi qua.
         var client = await ClientAsync();
         var (order, days) = await CreateOrderAsync(client, 100, 120);
 
@@ -142,7 +142,7 @@ public class OverdueOrderTests(ApiFactory factory) : IntegrationTestBase(factory
         await AssertOverdueRejectionAsync(
             await client.PostAsync($"/api/v1/plan-adjustments/{adjustment.Id}/reverse", null));
 
-        // The add-on stays on the plan and the entry stays Applied.
+        // Khoản bù vẫn nằm trên kế hoạch và bản ghi vẫn ở trạng thái Applied.
         Assert.Equal(days[1].PlannedQuantity + 20, (await GetDaysAsync(client, order.Id))[1].PlannedQuantity);
 
         var history = await (await client.GetAsync($"/api/v1/orders/{order.Id}/plan-adjustments"))
@@ -182,7 +182,7 @@ public class OverdueOrderTests(ApiFactory factory) : IntegrationTestBase(factory
 
         var completed = await GetOrderAsync(client, order.Id);
         Assert.Equal("Completed", completed.Status);
-        // Delivered in full, so it is not reported as late — but the period is over.
+        // Đã giao đủ nên không bị báo là trễ — nhưng kỳ sản xuất thì đã kết thúc.
         Assert.False(completed.IsOverdue);
         Assert.True(completed.IsPastDueDate);
 
@@ -195,7 +195,7 @@ public class OverdueOrderTests(ApiFactory factory) : IntegrationTestBase(factory
     public async Task An_order_is_still_editable_on_its_due_date()
     {
         var client = await ClientAsync();
-        // The production period ends today, so today is the due date and still inside the period.
+        // Kỳ sản xuất kết thúc hôm nay, nên hôm nay là ngày hạn và vẫn nằm trong kỳ.
         var (order, days) = await CreateOrderAsync(client, 100);
 
         var detail = await GetOrderAsync(client, order.Id);

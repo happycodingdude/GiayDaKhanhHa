@@ -11,8 +11,8 @@ using Xunit;
 namespace ProductionManagement.IntegrationTests;
 
 /// <summary>
-/// Boots the real API against a throwaway PostgreSQL database so transactions, row locking and the
-/// database constraints are all exercised for real.
+/// Khởi động API thật trên một database PostgreSQL dùng một lần, để transaction, row lock và các
+/// ràng buộc database đều được chạy thật.
 /// </summary>
 public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {
@@ -38,12 +38,12 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
     private string ConnectionString => $"{ServerConnectionString};Database={_databaseName}";
 
     /// <summary>
-    /// The throwaway test database. Exposed so a test can set up state that no endpoint can
-    /// produce — ageing an order past its due date, for instance.
+    /// Database test dùng một lần. Để lộ ra để test dựng được trạng thái mà không endpoint nào tạo
+    /// ra được — ví dụ đẩy một đơn hàng qua ngày hạn.
     /// </summary>
     public string TestConnectionString => ConnectionString;
 
-    /// <summary>The business date the API sees, so date-dependent rules are deterministic.</summary>
+    /// <summary>Ngày nghiệp vụ mà API nhìn thấy, để các luật phụ thuộc ngày là tất định.</summary>
     public DateOnly Today { get; private set; }
 
     public async Task InitializeAsync()
@@ -55,7 +55,7 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
             await command.ExecuteNonQueryAsync();
         }
 
-        // Building the client triggers migration + bootstrap-user creation.
+        // Việc dựng client sẽ kích hoạt migration + tạo tài khoản khởi tạo.
         using var _ = CreateClient();
         Today = Services.GetRequiredService<IClock>().Today;
     }
@@ -82,7 +82,7 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         builder.UseSetting("Business:TimeZone", "UTC");
     }
 
-    /// <summary>An authenticated client. The auth cookie is carried by the client's cookie container.</summary>
+    /// <summary>Client đã đăng nhập. Cookie xác thực do cookie container của client mang theo.</summary>
     public async Task<HttpClient> CreateAuthenticatedClientAsync()
     {
         var client = CreateClient();

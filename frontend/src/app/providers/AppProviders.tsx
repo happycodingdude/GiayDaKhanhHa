@@ -9,7 +9,7 @@ function createQueryClient() {
   return new QueryClient({
     defaultOptions: {
       queries: {
-        // An authentication or business error will not resolve by retrying.
+        // Lỗi xác thực hoặc lỗi nghiệp vụ có retry cũng không hết.
         retry: (failureCount, error) => {
           if (error instanceof ApiError && error.status < 500) return false
           return failureCount < 2

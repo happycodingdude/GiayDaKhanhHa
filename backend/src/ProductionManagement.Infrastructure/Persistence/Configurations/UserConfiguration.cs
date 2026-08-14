@@ -19,7 +19,7 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(u => u.PasswordHash).HasColumnName("password_hash").HasMaxLength(255).IsRequired();
         builder.Property(u => u.DisplayName).HasColumnName("display_name").HasMaxLength(100).IsRequired();
 
-        // varchar + CHECK instead of a PostgreSQL native enum (Step 3 §5).
+        // Dùng varchar + CHECK thay cho enum gốc của PostgreSQL (Step 3 §5).
         builder.Property(u => u.Status)
             .HasColumnName("status")
             .HasMaxLength(20)

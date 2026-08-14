@@ -36,7 +36,7 @@ public class ProductionRecordTests
 
         Assert.Equal(75, record.ActualQuantity);
         Assert.Equal(TestIds.Of(2), record.UpdatedBy);
-        // The creator is preserved; only the editor changes.
+        // Người tạo được giữ nguyên; chỉ người sửa thay đổi.
         Assert.Equal(TestIds.Of(1), record.CreatedBy);
     }
 }
@@ -56,7 +56,7 @@ public class ShortageCalculationTests
     [Fact]
     public void A_day_with_no_actual_recorded_has_no_shortage()
     {
-        // No record means "not entered yet", which is not the same as an actual of 0.
+        // Không có bản ghi nghĩa là "chưa nhập", khác hẳn với thực tế bằng 0.
         Assert.Equal(0, ProductionCalculations.Shortage(100, null));
         Assert.Null(ProductionCalculations.Difference(100, null));
     }

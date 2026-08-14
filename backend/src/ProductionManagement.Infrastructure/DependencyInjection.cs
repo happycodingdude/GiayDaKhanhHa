@@ -27,8 +27,8 @@ public static class DependencyInjection
         services.AddSingleton<IPasswordHasher, Pbkdf2PasswordHasher>();
         services.AddSingleton<IClock>(_ => new SystemClock(configuration["Business:TimeZone"]));
 
-        // Option 2's allocation rule is registered separately so it can change without touching
-        // the adjustment workflow.
+        // Luật phân bổ của Option 2 được đăng ký riêng để có thể thay đổi mà không đụng vào luồng
+        // điều chỉnh.
         services.AddSingleton<IAutomaticAllocationStrategy, EvenDistributionAllocationStrategy>();
 
         services.AddScoped<AuthService>();

@@ -5,8 +5,8 @@ using Xunit;
 namespace ProductionManagement.IntegrationTests;
 
 /// <summary>
-/// The cross-row invariants are protected by transaction + row locking rather than by database
-/// triggers or a version column (Step 4 §18). These tests drive the real concurrent paths.
+/// Các bất biến liên dòng được bảo vệ bằng transaction + row lock chứ không phải bằng trigger
+/// database hay cột version (Step 4 §18). Các test này chạy thật những đường đi đồng thời.
 /// </summary>
 public class ConcurrencyTests(ApiFactory factory) : IntegrationTestBase(factory)
 {
@@ -14,7 +14,7 @@ public class ConcurrencyTests(ApiFactory factory) : IntegrationTestBase(factory)
     public async Task Concurrent_actual_entries_can_never_push_the_total_past_the_order_quantity()
     {
         var client = await ClientAsync();
-        // Two days of 60 each on a 100-unit order: either entry alone fits, together they do not.
+        // Hai ngày mỗi ngày 60 trên đơn hàng 100 đơn vị: nhập riêng lẻ thì vừa, cộng lại thì không.
         var (order, days) = await CreateOrderFromAsync(client, Today.AddDays(-1), 50, 50);
 
         var first = PostActualAsync(client, order.Id, days[0].ProductionDate, 60);
@@ -47,7 +47,7 @@ public class ConcurrencyTests(ApiFactory factory) : IntegrationTestBase(factory)
 
         var updated = await GetDaysAsync(client, order.Id);
         Assert.NotNull(updated[0].ProductionRecordId);
-        // Whichever request won, the value is that request's value — never the sum.
+        // Request nào thắng thì giá trị là của request đó — không bao giờ là tổng hai bên.
         Assert.Contains(updated[0].ActualQuantity, new int?[] { 30, 40 });
     }
 
@@ -75,7 +75,7 @@ public class ConcurrencyTests(ApiFactory factory) : IntegrationTestBase(factory)
             .ReadAsync<List<PlanAdjustmentResponse>>();
         Assert.Single(history);
 
-        // Exactly one target day received the add-on.
+        // Đúng một ngày đích nhận được khoản bù.
         var after = await GetDaysAsync(client, order.Id);
         Assert.Equal(20, after.Sum(day => day.AddOnQuantity));
     }

@@ -35,7 +35,7 @@ async function request<T>(
   try {
     response = await fetch(buildUrl(path, options?.query), {
       method,
-      // The authentication cookie is HttpOnly and first-party; nothing is read from storage.
+      // Cookie xác thực là HttpOnly và first-party; không đọc gì từ storage.
       credentials: 'same-origin',
       headers: body === undefined ? undefined : { 'Content-Type': 'application/json' },
       body: body === undefined ? undefined : JSON.stringify(body),
@@ -66,8 +66,8 @@ async function request<T>(
 }
 
 /**
- * The single HTTP entry point. Components never call fetch directly; they go through a feature
- * hook and a feature API module (Step 5 §11).
+ * Điểm vào HTTP duy nhất. Component không bao giờ gọi fetch trực tiếp; luôn đi qua hook của
+ * feature và module API của feature (Step 5 §11).
  */
 export const apiClient = {
   get: <T>(path: string, options?: RequestOptions) => request<T>('GET', path, undefined, options),

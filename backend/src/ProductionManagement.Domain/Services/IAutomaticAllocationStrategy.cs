@@ -1,14 +1,14 @@
 namespace ProductionManagement.Domain.Services;
 
-/// <summary>One proposed add-on for a target production plan.</summary>
+/// <summary>Một khoản bù được đề xuất cho một kế hoạch sản xuất đích.</summary>
 public readonly record struct AllocationResult(Guid ProductionPlanId, DateOnly ProductionDate, int AddOnQuantity);
 
-/// <summary>A production plan that is eligible to receive an add-on, ordered by date.</summary>
+/// <summary>Một kế hoạch sản xuất đủ điều kiện nhận khoản bù, sắp xếp theo ngày.</summary>
 public readonly record struct AllocationCandidate(Guid ProductionPlanId, DateOnly ProductionDate, int CurrentPlannedQuantity);
 
 /// <summary>
-/// Automatic (Option 2) allocation. Kept behind an interface so the allocation rule can evolve
-/// without touching the adjustment workflow (implementation prompt §9).
+/// Phân bổ tự động (Option 2). Đặt sau một interface để luật phân bổ có thể thay đổi mà không phải
+/// đụng vào luồng điều chỉnh (implementation prompt §9).
 /// </summary>
 public interface IAutomaticAllocationStrategy
 {

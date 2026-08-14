@@ -1,13 +1,13 @@
 import type { OrderListFilters } from '../../features/orders/types'
 
 /**
- * Central query-key definitions so mutations invalidate exactly the keys the approved frontend
- * architecture specifies (Step 5 §25).
+ * Định nghĩa query key tập trung, để mutation invalidate đúng những key mà kiến trúc frontend
+ * đã duyệt quy định (Step 5 §25).
  */
 export const queryKeys = {
   currentUser: ['auth', 'me'] as const,
 
-  /** Prefix for every order-list query, regardless of filters. */
+  /** Prefix cho mọi query danh sách đơn hàng, bất kể bộ lọc nào. */
   ordersList: ['orders', 'list'] as const,
   ordersListFiltered: (filters: OrderListFilters) => ['orders', 'list', filters] as const,
 

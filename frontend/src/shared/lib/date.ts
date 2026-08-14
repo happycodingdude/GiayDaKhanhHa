@@ -1,7 +1,7 @@
 /**
- * Business dates (ProductionDate, StartDate, DueDate) are date-only strings in YYYY-MM-DD form.
- * They are never routed through a JavaScript Date, because a timezone conversion could shift the
- * calendar day (Step 5 §32).
+ * Ngày nghiệp vụ (ProductionDate, StartDate, DueDate) là chuỗi chỉ có ngày, dạng YYYY-MM-DD.
+ * Chúng không bao giờ đi qua Date của JavaScript, vì việc quy đổi múi giờ có thể làm lệch ngày
+ * trên lịch (Step 5 §32).
  */
 export type IsoDate = string
 
@@ -21,11 +21,11 @@ export function formatShortDate(date: IsoDate): string {
 export function formatWeekday(date: IsoDate): string {
   const names = ['Chủ nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy']
   const [year, month, day] = date.split('-').map(Number)
-  // Constructed in UTC and read in UTC so the weekday cannot drift with the browser timezone.
+  // Tạo theo UTC và đọc theo UTC để thứ trong tuần không lệch theo múi giờ của trình duyệt.
   return names[new Date(Date.UTC(year, month - 1, day)).getUTCDay()]
 }
 
-/** Today as a date-only string in the browser's local calendar. */
+/** Hôm nay dưới dạng chuỗi chỉ có ngày, theo lịch cục bộ của trình duyệt. */
 export function today(): IsoDate {
   const now = new Date()
   const month = String(now.getMonth() + 1).padStart(2, '0')
@@ -33,7 +33,7 @@ export function today(): IsoDate {
   return `${now.getFullYear()}-${month}-${day}`
 }
 
-/** Every date from start to end inclusive. Pure string arithmetic in UTC. */
+/** Mọi ngày từ đầu tới cuối, tính cả hai đầu. Thuần tính toán chuỗi theo UTC. */
 export function dateRange(start: IsoDate, end: IsoDate): IsoDate[] {
   if (!start || !end || start > end) return []
 
@@ -41,7 +41,7 @@ export function dateRange(start: IsoDate, end: IsoDate): IsoDate[] {
   const [sy, sm, sd] = start.split('-').map(Number)
   const cursor = new Date(Date.UTC(sy, sm - 1, sd))
 
-  // Guard against an accidental huge range from a mistyped year.
+  // Chặn trường hợp khoảng ngày khổng lồ do gõ nhầm năm.
   for (let i = 0; i < 400; i++) {
     const value = cursor.toISOString().slice(0, 10)
     if (value > end) break
@@ -52,13 +52,13 @@ export function dateRange(start: IsoDate, end: IsoDate): IsoDate[] {
   return dates
 }
 
-/** Inclusive day count: 11/08 -> 15/08 is 5 production days. */
+/** Đếm số ngày tính cả hai đầu: 11/08 -> 15/08 là 5 ngày sản xuất. */
 export function countDays(start: IsoDate, end: IsoDate): number {
   return dateRange(start, end).length
 }
 
 /**
- * Audit timestamps are UTC and are converted only for display (Step 5 §33).
+ * Dấu thời gian audit lưu theo UTC và chỉ quy đổi khi hiển thị (Step 5 §33).
  * "2026-08-13T04:49:45+00:00" -> "13/08/2026 11:49"
  */
 export function formatTimestamp(timestamp: string): string {

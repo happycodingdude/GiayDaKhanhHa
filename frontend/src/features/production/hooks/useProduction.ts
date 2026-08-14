@@ -12,8 +12,8 @@ export function useProductionPlans(orderId: string) {
 }
 
 /**
- * Submit → loading → server transaction → success → refetch. Deliberately not optimistic: the
- * total-actual invariant is enforced server-side (Step 5 §31).
+ * Submit → loading → transaction ở server → thành công → refetch. Cố ý không dùng optimistic
+ * update: ràng buộc tổng sản lượng thực tế do server đảm bảo (Step 5 §31).
  */
 export function useCreateActual(orderId: string) {
   const { invalidateAfterActualChange } = useInvalidateOrder()

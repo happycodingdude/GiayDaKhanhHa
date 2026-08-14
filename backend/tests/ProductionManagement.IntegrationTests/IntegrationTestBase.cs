@@ -8,7 +8,7 @@ public abstract class IntegrationTestBase(ApiFactory factory)
 {
     protected ApiFactory Factory { get; } = factory;
 
-    /// <summary>The API's business date. Adjustment eligibility depends on it.</summary>
+    /// <summary>Ngày nghiệp vụ của API. Điều kiện hợp lệ của điều chỉnh phụ thuộc vào nó.</summary>
     protected DateOnly Today => Factory.Today;
 
     protected Task<HttpClient> ClientAsync() => Factory.CreateAuthenticatedClientAsync();
@@ -18,17 +18,17 @@ public abstract class IntegrationTestBase(ApiFactory factory)
     protected static string NextOrderCode() => $"ORD-{Interlocked.Increment(ref _sequence):D5}-{Guid.NewGuid():N}"[..20];
 
     /// <summary>
-    /// Creates an order whose production period starts today, so every later day is a valid
-    /// adjustment target. Only the first day can receive an actual — the rest are in the future.
+    /// Tạo đơn hàng có kỳ sản xuất bắt đầu từ hôm nay, nên mọi ngày sau đó đều là ngày đích hợp lệ
+    /// để điều chỉnh. Chỉ ngày đầu tiên nhập được thực tế — các ngày còn lại nằm ở tương lai.
     /// </summary>
     protected Task<(OrderResponse Order, IReadOnlyList<ProductionDayResponse> Days)> CreateOrderAsync(
         HttpClient client, params int[] dailyPlan)
         => CreateOrderFromAsync(client, Today, dailyPlan);
 
     /// <summary>
-    /// Creates an order whose production period starts on <paramref name="startDate"/>. Use a start
-    /// date in the past when a test needs to record an actual on more than one day: an actual can
-    /// only be recorded up to today.
+    /// Tạo đơn hàng có kỳ sản xuất bắt đầu vào <paramref name="startDate"/>. Dùng ngày bắt đầu
+    /// trong quá khứ khi test cần ghi thực tế cho nhiều hơn một ngày: thực tế chỉ ghi được tới hôm
+    /// nay.
     /// </summary>
     protected async Task<(OrderResponse Order, IReadOnlyList<ProductionDayResponse> Days)> CreateOrderFromAsync(
         HttpClient client, DateOnly startDate, params int[] dailyPlan)

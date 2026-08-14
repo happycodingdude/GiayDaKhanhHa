@@ -18,7 +18,7 @@ public sealed class PlanAdjustmentItemConfiguration : IEntityTypeConfiguration<P
         builder.Property(i => i.ProductionPlanId).HasColumnName("production_plan_id").IsRequired();
         builder.Property(i => i.AddOnQuantity).HasColumnName("add_on_quantity").IsRequired();
 
-        // The same target plan cannot appear twice in one adjustment.
+        // Cùng một kế hoạch đích không được xuất hiện hai lần trong một điều chỉnh.
         builder.HasIndex(i => new { i.PlanAdjustmentId, i.ProductionPlanId })
             .IsUnique()
             .HasDatabaseName("uq_plan_adjustment_items_adjustment_plan");

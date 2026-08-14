@@ -11,7 +11,7 @@ import type { AdjustmentRecalculationDto } from '../../adjustments/types'
 import { useCreateActual, useUpdateActual } from '../hooks/useProduction'
 import type { ProductionDayDto } from '../types'
 
-/** Tells the manager what happened to an add-on that was based on the shortage they just changed. */
+/** Cho quản lý biết khoản bù dựa trên phần thiếu vừa bị thay đổi giờ ra sao. */
 function recalculationMessage(recalculation: AdjustmentRecalculationDto | null): string {
   if (!recalculation) return ''
 
@@ -33,8 +33,9 @@ const STEPS: Step[] = [
 ]
 
 /**
- * Records the actual for one day. The actual is a value, not an increment: there is no "+quantity"
- * interaction here (Step 5 §17). An explicit 0 is a valid value and is distinct from "not entered".
+ * Ghi nhận sản lượng thực tế của một ngày. Thực tế là một giá trị, không phải số cộng thêm: ở
+ * đây không có thao tác "+số lượng" (Step 5 §17). Số 0 nhập tường minh là giá trị hợp lệ và
+ * khác hẳn với "chưa nhập".
  */
 export function ActualInputDialog({
   open,
@@ -69,13 +70,13 @@ export function ActualInputDialog({
     setConfirming(false)
     createActual.reset()
     updateActual.reset()
-    // The dialog is re-initialised whenever it opens for a different day.
+    // Dialog được khởi tạo lại mỗi khi mở cho một ngày khác.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, day?.id])
 
   if (!day) return null
 
-  // Everything already recorded on other days, used for the "how much is left" hints.
+  // Toàn bộ số đã ghi nhận ở các ngày khác, dùng cho các gợi ý "còn lại bao nhiêu".
   const totalOtherDays = totalActual - (day.actualQuantity ?? 0)
   const maximum = Math.max(orderQuantity - totalOtherDays, 0)
 
@@ -116,15 +117,15 @@ export function ActualInputDialog({
     )
     onClose()
 
-    // Handling the shortage is only ever a suggestion — never forced (actual entry spec §7, §8).
-    // A day that already had an add-on applied has just had it recalculated from the new shortage,
-    // so there is nothing left for the manager to decide.
+    // Xử lý phần thiếu luôn chỉ là gợi ý — không bao giờ ép buộc (actual entry spec §7, §8).
+    // Ngày đã áp dụng khoản bù thì khoản bù đó vừa được tính lại theo phần thiếu mới,
+    // nên không còn gì để quản lý phải quyết định nữa.
     if (shortage > 0 && !day.hasActiveAdjustment) {
       onShortageRecorded({ ...day, actualQuantity: parsed, shortageQuantity: shortage, difference })
     }
   }
 
-  // A day planned for 0 cannot receive an actual at all, not even 0 (master summary §6).
+  // Ngày có kế hoạch bằng 0 thì không nhập được thực tế, kể cả số 0 (master summary §6).
   if (day.plannedQuantity === 0) {
     return (
       <Modal

@@ -7,9 +7,9 @@ using ProductionManagement.Infrastructure.Persistence;
 namespace ProductionManagement.Api.Setup;
 
 /// <summary>
-/// Applies migrations and creates the first manager account.
-/// No password is ever hard-coded in a migration (Step 3 §15): the password comes from
-/// configuration, and when none is configured a random one is generated and logged once.
+/// Chạy migration và tạo tài khoản quản lý đầu tiên.
+/// Không bao giờ hard-code mật khẩu trong migration (Step 3 §15): mật khẩu lấy từ cấu hình, và khi
+/// không cấu hình gì thì sinh ngẫu nhiên rồi ghi log đúng một lần.
 /// </summary>
 public static class DatabaseInitializer
 {

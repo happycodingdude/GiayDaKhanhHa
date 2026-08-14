@@ -15,7 +15,7 @@ import { OrderStatisticsPanel } from '../../statistics/components/OrderStatistic
 import { OrderSummary } from '../components/OrderSummary'
 import { useOrder } from '../hooks/useOrders'
 
-/** The central production-management screen (Step 5 §15). */
+/** Màn hình trung tâm của quản lý sản xuất (Step 5 §15). */
 export function OrderDetailPage() {
   const { orderId } = useParams({ from: '/authenticated/orders/$orderId' })
 
@@ -61,13 +61,13 @@ export function OrderDetailPage() {
   const days = plansQuery.data.items
   const currentDate = today()
 
-  // An order whose due date has passed is frozen: the screen shows the final state and nothing
-  // else. Completed orders are included — the deciding factor is the calendar, not the status.
-  // The server enforces the same rule (ORDER_OVERDUE), this only keeps dead actions off the screen.
+  // Đơn hàng đã qua ngày hạn thì bị đóng băng: màn hình chỉ hiển thị trạng thái cuối, không gì
+  // khác. Bao gồm cả đơn đã hoàn thành — yếu tố quyết định là lịch, không phải trạng thái.
+  // Server cũng áp đúng luật này (ORDER_OVERDUE), phần này chỉ để ẩn các thao tác đã vô nghĩa.
   const readOnly = order.isPastDueDate
 
-  // The most useful day to open from the header: today, otherwise the first day still missing an
-  // actual. Never a future day — that day has not happened yet, so it takes no entry.
+  // Ngày hữu ích nhất để mở từ header: hôm nay, nếu không thì ngày đầu tiên còn thiếu sản lượng
+  // thực tế. Không bao giờ là ngày tương lai — ngày đó chưa diễn ra nên không nhập được.
   const suggestedDay =
     days.find((day) => day.productionDate === currentDate && day.plannedQuantity > 0) ??
     days.find(
@@ -133,7 +133,7 @@ export function OrderDetailPage() {
         orderQuantity={order.quantity}
         totalActual={order.totalActual}
         onClose={() => setActualDay(null)}
-        // Handling a shortage is offered, never forced (actual entry spec §7).
+        // Xử lý phần thiếu là gợi ý, không bao giờ ép buộc (actual entry spec §7).
         onShortageRecorded={setShortageDay}
       />
 
