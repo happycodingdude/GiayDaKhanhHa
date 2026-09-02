@@ -46,15 +46,26 @@ export interface DashboardAlertDto {
   dueDate: IsoDate
 }
 
+/** Một ngày CÓ kế hoạch của đơn hàng. Ngày không sản xuất không xuất hiện trong danh sách. */
+export interface DashboardOrderDayDto {
+  productionDate: IsoDate
+  plannedQuantity: number
+  /** null nghĩa là chưa nhập thực tế — tuyệt đối không coi là 0. */
+  actualQuantity: number | null
+}
+
 export interface DashboardOrderDto {
   orderId: string
   orderCode: string
+  startDate: IsoDate
+  dueDate: IsoDate
   progressPercentage: number
   todayDifference: number | null
   todayHasPlan: boolean
   remaining: number
   scheduleStatus: ScheduleStatus
   behindQuantity: number
+  days: DashboardOrderDayDto[]
 }
 
 export interface DashboardStatisticsDto {

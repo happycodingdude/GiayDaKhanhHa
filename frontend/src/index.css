@@ -601,6 +601,280 @@ ol {
   align-items: center;
 }
 
+/* ---------- Timeline sản xuất theo tháng (dashboard) ---------- */
+
+.gantt-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.gantt-toolbar__month {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 3px;
+}
+
+.gantt-toolbar__month-label {
+  font-weight: 700;
+  padding: 0 8px;
+  white-space: nowrap;
+}
+
+.gantt-toolbar__month .btn {
+  padding: 2px 9px;
+  border-color: transparent;
+}
+
+.gantt-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.gantt-legend li {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.gantt-scroll {
+  /* Mốc để tính vị trí cuộn tới cột hôm nay. */
+  position: relative;
+  /* Timeline chỉ cuộn ngang. `.table-wrapper` đặt overflow-x: auto, mà overflow-y: visible đi kèm
+     một trục cuộn thì bị tính thành auto — chỉ cần thanh cuộn ngang chiếm chỗ là sinh thêm thanh
+     cuộn dọc thừa. Khoá trục dọc lại; bảng không bị giới hạn chiều cao nên không mất nội dung. */
+  overflow-y: hidden;
+}
+
+.gantt {
+  /* Rộng theo số ngày trong tháng chứ không co lại vừa khung — phần thừa thì cuộn ngang. */
+  width: max-content;
+  min-width: 100%;
+}
+
+.gantt__code,
+.gantt__progress,
+.gantt__status {
+  position: sticky;
+  z-index: 2;
+  background: var(--surface);
+}
+
+.gantt__code {
+  left: 0;
+}
+
+.gantt__code-text {
+  display: block;
+  width: 108px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Neo đúng bằng bề rộng cột mã đơn: 108px nội dung + 12px padding mỗi bên. */
+.gantt__progress {
+  left: 132px;
+  font-weight: 600;
+  box-shadow: 1px 0 0 var(--border);
+}
+
+.gantt__status {
+  right: 0;
+  box-shadow: -1px 0 0 var(--border);
+}
+
+/* Bắt buộc thêm tiền tố `.gantt`: `.table th, .table td` có specificity cao hơn một class đơn,
+   nên `.gantt__day` trần sẽ bị padding 10px 12px của bảng đè, và bề rộng cột hoá thành
+   "padding + bề rộng chữ số" — cột ngày một chữ số hẹp hơn cột hai chữ số, cả lưới lệch nhau. */
+.gantt .gantt__day {
+  position: relative;
+  width: 46px;
+  min-width: 46px;
+  padding: 0;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.gantt thead .gantt__day {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.gantt thead .gantt__day--sunday {
+  color: var(--danger);
+}
+
+/* Chừa hàng trên của phần đầu bảng cho nhãn "HÔM NAY": nhãn đó được định vị tuyệt đối nên tự
+   nó không tạo ra chiều cao. */
+.gantt thead .gantt__day {
+  padding-top: 26px;
+  /* Bằng padding của ô tiêu đề thường, để căn đáy cho hai bên cùng một đường cơ sở. */
+  padding-bottom: 10px;
+}
+
+/* Căn đáy để "Mã đơn", "Tiến độ", "Tình trạng" nằm cùng đường cơ sở với dãy số ngày, thay vì
+   trôi lên giữa khoảng trống dành cho nhãn "HÔM NAY". */
+.gantt thead th {
+  vertical-align: bottom;
+}
+
+/* Nhãn rộng hơn ô ngày nên nó tràn sang ô bên cạnh. Mọi ô ngày đều là phần tử được định vị, nên
+   ô đứng sau vẽ đè lên phần tràn của ô trước — nâng ô hôm nay lên trên, nhưng vẫn dưới các cột
+   sticky (z-index 2) để chúng che nhãn khi cuộn. */
+.gantt thead .gantt__day--today {
+  z-index: 1;
+}
+
+.gantt__today-label {
+  position: absolute;
+  left: 50%;
+  top: 3px;
+  transform: translateX(-50%);
+  color: var(--primary);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* Mũi tên chỉ xuống đúng cột hôm nay — nhãn rộng hơn cột nên tự nó không chỉ rõ vào đâu. */
+.gantt__today-label::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  transform: translateX(-50%);
+  border: 3px solid transparent;
+  border-top-color: var(--primary);
+}
+
+/* Khối chứa số ngày, dùng chung cho mọi ô ngày ở đầu bảng. Kích thước cố định để hàng tiêu đề
+   cao như nhau ở mọi tháng — nếu chỉ ngày hôm nay mới có khối 24px thì tháng chứa hôm nay có
+   hàng tiêu đề cao hơn, và cả bảng nhảy chỗ khi đổi qua lại giữa các tháng. */
+.gantt__day-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+}
+
+.gantt__today-badge {
+  position: relative;
+  border-radius: 8px;
+  background: var(--primary);
+  color: #fff;
+  font-weight: 700;
+}
+
+/* Nối badge xuống vạch dọc ở thân bảng, xuyên qua phần đệm dưới của ô đầu bảng. */
+.gantt__today-badge::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  width: 1px;
+  height: 12px;
+  transform: translateX(-50%);
+  background: var(--primary);
+}
+
+/* Vạch dọc "hôm nay" chạy suốt các hàng, canh giữa cột cho thẳng với badge. Là phần tử riêng nên
+   nền hover của hàng không nuốt mất vạch. Chỉ vẽ ở thân bảng: phần đầu bảng đã có badge. */
+.gantt tbody .gantt__day--today::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  transform: translateX(-50%);
+  background: var(--primary);
+}
+
+/* Cột đệm giữ mọi cột ngày đúng bề rộng đã đặt: nó nhận hết phần dư khi bảng hẹp hơn khung. */
+.gantt .gantt__spacer {
+  width: 100%;
+  padding: 0;
+}
+
+.gantt__track {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 4px;
+  margin-top: -2px;
+  background: #dbe1ea;
+}
+
+.gantt__track--start {
+  left: 6px;
+  border-top-left-radius: 999px;
+  border-bottom-left-radius: 999px;
+}
+
+.gantt__track--end {
+  right: 6px;
+  border-top-right-radius: 999px;
+  border-bottom-right-radius: 999px;
+}
+
+.gantt__dot {
+  display: inline-block;
+  width: 11px;
+  height: 11px;
+  border-radius: 999px;
+}
+
+/* Trong ô ngày thì chấm nằm đè lên thanh nền; ở chú giải thì nó chỉ là một icon inline. */
+.gantt__day .gantt__dot {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  /* Nằm trên vạch "hôm nay" khi ngày hôm nay đã có sản lượng. */
+  z-index: 1;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.92);
+}
+
+.gantt__dot--met {
+  background: var(--success);
+}
+
+.gantt__dot--short {
+  background: var(--danger);
+}
+
+.gantt__dot--missing {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  background: #d9932a;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.gantt-hint {
+  margin-top: 8px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
 /* ---------- Badge / số liệu ---------- */
 
 .badge {

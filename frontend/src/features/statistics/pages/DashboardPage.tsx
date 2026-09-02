@@ -1,9 +1,9 @@
 import { Link, useNavigate } from '@tanstack/react-router'
-import { Badge, Button, Card, ProgressBar, StatTile } from '../../../shared/components/ui'
-import { ScheduleStatusBadge } from '../../../shared/components/StatusBadges'
+import { Button, Card, ProgressBar, StatTile } from '../../../shared/components/ui'
 import { EmptyState, ErrorState, LoadingState } from '../../../shared/feedback/QueryState'
 import { formatDate } from '../../../shared/lib/date'
 import { formatDifference, formatNumber, formatPercent } from '../../../shared/lib/format'
+import { TrackedOrders } from '../components/TrackedOrders'
 import { useDashboardStatistics } from '../hooks/useStatistics'
 
 /**
@@ -106,55 +106,7 @@ export function DashboardPage() {
             )}
           </Card>
 
-          <Card title="Đơn hàng đang theo dõi">
-            {data.trackedOrders.length === 0 ? (
-              <EmptyState icon="✓" title="Tất cả đơn hàng đã hoàn thành" />
-            ) : (
-              <div className="table-wrapper">
-                <table className="table">
-                  <thead>
-                    <tr>
-                      <th>Mã đơn</th>
-                      <th>Tiến độ</th>
-                      <th className="num">Hôm nay</th>
-                      <th className="num">Còn lại</th>
-                      <th>Tình trạng</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.trackedOrders.map((order) => (
-                      <tr
-                        key={order.orderId}
-                        className="table__row--clickable"
-                        onClick={() => openOrder(order.orderId)}
-                        tabIndex={0}
-                        onKeyDown={(event) => event.key === 'Enter' && openOrder(order.orderId)}
-                      >
-                        <td className="table__strong">{order.orderCode}</td>
-                        <td className="table__progress">
-                          <span>{formatPercent(order.progressPercentage)}</span>
-                          <ProgressBar
-                            value={order.progressPercentage}
-                            tone={order.scheduleStatus === 'Behind' ? 'danger' : 'info'}
-                          />
-                        </td>
-                        <td className={`num ${(order.todayDifference ?? 0) < 0 ? 'danger' : ''}`}>
-                          {order.todayHasPlan ? formatDifference(order.todayDifference) : <Badge tone="neutral">Không SX</Badge>}
-                        </td>
-                        <td className="num">{formatNumber(order.remaining)}</td>
-                        <td>
-                          <ScheduleStatusBadge
-                            scheduleStatus={order.scheduleStatus}
-                            behindQuantity={order.behindQuantity}
-                          />
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </Card>
+          <TrackedOrders orders={data.trackedOrders} today={data.date} onOpenOrder={openOrder} />
 
           {data.alerts.length > 0 && (
             <Card title="⚠ Cần xử lý">

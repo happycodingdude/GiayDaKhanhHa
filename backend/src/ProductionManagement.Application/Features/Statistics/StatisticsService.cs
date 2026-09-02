@@ -145,9 +145,23 @@ public sealed class StatisticsService(IAppDbContext db, IClock clock)
 
             if (order.Status == OrderStatus.Incomplete)
             {
+                // Timeline của dashboard chấm điểm từng ngày, nên phải kèm cả chuỗi ngày sản xuất
+                // chứ không chỉ vị thế của hôm nay. Bản ghi thực tế luôn gắn với một ngày có kế
+                // hoạch (ProductionRecordService), nên duyệt theo kế hoạch là đã đủ.
+                var actualByDate = orderRecords.ToDictionary(r => r.ProductionDate, r => r.ActualQuantity);
+                var days = orderPlans
+                    .OrderBy(p => p.ProductionDate)
+                    .Select(p => new DashboardOrderDayDto(
+                        p.ProductionDate,
+                        p.PlannedQuantity,
+                        actualByDate.TryGetValue(p.ProductionDate, out var actual) ? actual : null))
+                    .ToList();
+
                 trackedOrders.Add(new DashboardOrderDto(
                     order.Id,
                     order.OrderCode,
+                    order.StartDate,
+                    order.DueDate,
                     derived.ProgressPercentage,
                     todayPlan is null
                         ? null
@@ -155,7 +169,8 @@ public sealed class StatisticsService(IAppDbContext db, IClock clock)
                     todayPlan is not null,
                     derived.Remaining,
                     derived.ScheduleStatus,
-                    derived.BehindQuantity));
+                    derived.BehindQuantity,
+                    days));
             }
         }
 

@@ -42,15 +42,27 @@ public sealed record DashboardAlertDto(
     bool IsOverdue,
     DateOnly DueDate);
 
+/// <summary>
+/// Một ngày sản xuất của đơn hàng, rút gọn cho timeline của dashboard: chỉ đủ để biết ngày đó
+/// có kế hoạch không và đã đạt kế hoạch chưa. Ngày không có kế hoạch không xuất hiện ở đây.
+/// </summary>
+public sealed record DashboardOrderDayDto(
+    DateOnly ProductionDate,
+    int PlannedQuantity,
+    int? ActualQuantity);
+
 public sealed record DashboardOrderDto(
     Guid OrderId,
     string OrderCode,
+    DateOnly StartDate,
+    DateOnly DueDate,
     decimal ProgressPercentage,
     int? TodayDifference,
     bool TodayHasPlan,
     int Remaining,
     ScheduleStatus ScheduleStatus,
-    int BehindQuantity);
+    int BehindQuantity,
+    IReadOnlyList<DashboardOrderDayDto> Days);
 
 public sealed record DashboardStatisticsDto(
     DateOnly Date,
