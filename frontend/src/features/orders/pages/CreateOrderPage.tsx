@@ -223,6 +223,10 @@ function PlanStep({
   const lastDate = dates[dates.length - 1]
   const lastDayIsZero = Number(plan[lastDate] || 0) === 0
 
+  // Ngày kế hoạch 0 không ghi nhận được sản lượng, kể cả số 0 — cần nói rõ ngay lúc lập kế hoạch
+  // thay vì để quản lý phát hiện khi đứng ở màn hình nhập (CR-01 §8, MH3).
+  const zeroDays = dates.filter((date) => Number(plan[date] || 0) === 0)
+
   // Tổng phải khớp chính xác với số lượng đơn hàng (create-order spec §6).
   const totalMatches = difference === 0
   const canContinue = totalMatches && (!lastDayIsZero || zeroLastDayConfirmed)
@@ -304,6 +308,16 @@ function PlanStep({
           <span>Tổng kế hoạch vượt quá số lượng đơn hàng {formatNumber(difference)} đôi.</span>
         )}
       </div>
+
+      {zeroDays.length > 0 && (
+        <p className="notice notice--warning">
+          {zeroDays.length === dates.length
+            ? 'Chưa ngày nào được phân bổ kế hoạch.'
+            : `${zeroDays.length} ngày đang có kế hoạch 0 đôi.`}{' '}
+          Ngày có kế hoạch 0 sẽ <strong>không nhập được sản lượng</strong> và cũng không xuất hàng
+          được. Nếu muốn sản xuất vào những ngày đó, hãy phân bổ kế hoạch cho chúng.
+        </p>
+      )}
 
       {totalMatches && lastDayIsZero && (
         // Số 0 vào đúng ngày hạn vẫn hợp lệ về nghiệp vụ, nên đây là xác nhận chứ không phải lỗi.

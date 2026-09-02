@@ -121,7 +121,8 @@ public class OrderApiTests(ApiFactory factory) : IntegrationTestBase(factory)
         var client = await ClientAsync();
         var (order, days) = await CreateOrderAsync(client, 10);
 
-        (await PostActualAsync(client, order.Id, days[0].ProductionDate, 10)).EnsureSuccessStatusCode();
+        // Trạng thái đơn hàng chỉ được đánh giá tại thời điểm Xuất hàng (CR-01 OV-4).
+        await RecordAndCloseAsync(client, order.Id, days[0].ProductionDate, 10);
 
         var completed = await client.GetAsync("/api/v1/orders?status=Completed&pageSize=200");
         completed.EnsureSuccessStatusCode();

@@ -27,7 +27,7 @@ export function ErrorState({
       <p className="state__title">{title}</p>
       <p className="state__text">{toUserMessage(error)}</p>
       {onRetry && (
-        <Button variant="secondary" onClick={onRetry}>
+        <Button variant="primary" onClick={onRetry}>
           Thử lại
         </Button>
       )}

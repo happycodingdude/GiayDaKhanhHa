@@ -84,7 +84,7 @@ public class EvenDistributionAllocationStrategyTests
     {
         var exception = Assert.Throws<BusinessRuleException>(() => _strategy.Allocate(10, []));
 
-        Assert.Equal(ErrorCodes.NoEligibleTargetPlans, exception.Code);
+        Assert.Equal(ErrorCodes.NoEligibleTargetDay, exception.Code);
     }
 
     [Fact]

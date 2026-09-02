@@ -1,4 +1,5 @@
 import type { IsoDate } from '../../shared/lib/date'
+import type { DayStatus } from '../production/types'
 
 export type OrderStatus = 'Incomplete' | 'Completed'
 export type ScheduleStatus = 'OnSchedule' | 'Behind' | 'Completed'
@@ -18,6 +19,12 @@ export interface OrderListItemDto {
   behindQuantity: number
   daysRemaining: number
   isOverdue: boolean
+  /** Vị thế của hôm nay. null khi hôm nay không có kế hoạch cho đơn này (CR-01 §8, MH1). */
+  todayPlannedQuantity: number | null
+  todayActualQuantity: number | null
+  todayStatus: DayStatus | null
+  /** Có ngày đã qua chưa Xuất hàng — việc bị treo (CR-01 §14.5). */
+  hasUnclosedPastDay: boolean
 }
 
 export interface OrderDetailDto extends Omit<OrderListItemDto, 'id'> {

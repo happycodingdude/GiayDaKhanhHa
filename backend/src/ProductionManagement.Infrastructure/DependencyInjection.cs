@@ -6,6 +6,7 @@ using ProductionManagement.Application.Features.Adjustments;
 using ProductionManagement.Application.Features.Auth;
 using ProductionManagement.Application.Features.Orders;
 using ProductionManagement.Application.Features.Production;
+using ProductionManagement.Application.Features.Settings;
 using ProductionManagement.Application.Features.Statistics;
 using ProductionManagement.Domain.Services;
 using ProductionManagement.Infrastructure.Persistence;
@@ -33,9 +34,9 @@ public static class DependencyInjection
 
         services.AddScoped<AuthService>();
         services.AddScoped<OrderService>();
-        services.AddScoped<ProductionRecordService>();
+        services.AddScoped<ProductionDayService>();
         services.AddScoped<AdjustmentService>();
-        services.AddScoped<ActiveAdjustmentRecalculator>();
+        services.AddScoped<SettingsService>();
         services.AddScoped<StatisticsService>();
 
         return services;

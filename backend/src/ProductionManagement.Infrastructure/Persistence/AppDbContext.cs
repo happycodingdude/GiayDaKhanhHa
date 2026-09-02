@@ -10,7 +10,10 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<User> Users => Set<User>();
     public DbSet<Order> Orders => Set<Order>();
     public DbSet<ProductionPlan> ProductionPlans => Set<ProductionPlan>();
-    public DbSet<ProductionRecord> ProductionRecords => Set<ProductionRecord>();
+    public DbSet<ProductionDay> ProductionDays => Set<ProductionDay>();
+    public DbSet<ProductionEntry> ProductionEntries => Set<ProductionEntry>();
+    public DbSet<ProductionEntryLog> ProductionEntryLogs => Set<ProductionEntryLog>();
+    public DbSet<SystemSettings> SystemSettings => Set<SystemSettings>();
     public DbSet<PlanAdjustment> PlanAdjustments => Set<PlanAdjustment>();
     public DbSet<PlanAdjustmentItem> PlanAdjustmentItems => Set<PlanAdjustmentItem>();
 
@@ -29,6 +32,13 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             .ToListAsync(cancellationToken);
 
         return locked.Count > 0;
+    }
+
+    public async Task LockProductionDayAsync(Guid productionDayId, CancellationToken cancellationToken = default)
+    {
+        await Database
+            .SqlQuery<Guid>($"SELECT id AS \"Value\" FROM production_days WHERE id = {productionDayId} FOR UPDATE")
+            .ToListAsync(cancellationToken);
     }
 
     public async Task LockProductionPlansAsync(

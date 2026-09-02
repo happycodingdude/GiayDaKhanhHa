@@ -16,18 +16,20 @@ public static class ErrorCodes
     // Đơn hàng
     public const string OrderNotFound = "ORDER_NOT_FOUND";
     public const string OrderCodeAlreadyExists = "ORDER_CODE_ALREADY_EXISTS";
-    public const string OrderCompleted = "ORDER_COMPLETED";
     public const string OrderOverdue = "ORDER_OVERDUE";
     public const string InitialPlanTotalMismatch = "INITIAL_PLAN_TOTAL_MISMATCH";
 
-    // Kế hoạch / bản ghi sản xuất
+    // Kế hoạch sản xuất
     public const string ProductionPlanNotFound = "PRODUCTION_PLAN_NOT_FOUND";
-    public const string ProductionRecordNotFound = "PRODUCTION_RECORD_NOT_FOUND";
-    public const string ProductionRecordAlreadyExists = "PRODUCTION_RECORD_ALREADY_EXISTS";
-    public const string NoProductionPlanForDate = "NO_PRODUCTION_PLAN_FOR_DATE";
-    public const string PlanQuantityIsZero = "PLAN_QUANTITY_IS_ZERO";
-    public const string FutureProductionDate = "FUTURE_PRODUCTION_DATE";
+
+    // Ngày sản xuất & các lần ghi nhận (CR-01 §6.4, §6.6)
+    public const string ProductionEntryNotFound = "PRODUCTION_ENTRY_NOT_FOUND";
+    public const string DayHasNoPlan = "DAY_HAS_NO_PLAN";
+    public const string DayAlreadyClosed = "DAY_ALREADY_CLOSED";
+    public const string FutureDateNotAllowed = "FUTURE_DATE_NOT_ALLOWED";
+    public const string EntryExceedsDailyPlan = "ENTRY_EXCEEDS_DAILY_PLAN";
     public const string ActualExceedsOrderQuantity = "ACTUAL_EXCEEDS_ORDER_QUANTITY";
+    public const string OrderAlreadyCompleted = "ORDER_ALREADY_COMPLETED";
 
     // Điều chỉnh
     public const string AdjustmentNotFound = "ADJUSTMENT_NOT_FOUND";
@@ -38,5 +40,8 @@ public static class ErrorCodes
     public const string InvalidAdjustmentTarget = "INVALID_ADJUSTMENT_TARGET";
     public const string DuplicateAdjustmentTarget = "DUPLICATE_ADJUSTMENT_TARGET";
     public const string AdjustmentTotalMismatch = "ADJUSTMENT_TOTAL_MISMATCH";
-    public const string NoEligibleTargetPlans = "NO_ELIGIBLE_TARGET_PLANS";
+    public const string NoEligibleTargetDay = "NO_ELIGIBLE_TARGET_DAY";
+    public const string SourceDayNotClosed = "SOURCE_DAY_NOT_CLOSED";
+    public const string TargetDayClosed = "TARGET_DAY_CLOSED";
+    public const string TargetDateInPast = "TARGET_DATE_IN_PAST";
 }

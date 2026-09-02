@@ -453,6 +453,30 @@ ol {
   border-radius: var(--radius-sm);
 }
 
+/* Ô tick là một lựa chọn bình thường chứ không phải cảnh báo, nên nó không mượn màu vàng. */
+.confirm-check--plain {
+  color: var(--text);
+  background: transparent;
+  border: 1px solid var(--border);
+  margin-bottom: 16px;
+}
+
+.confirm-check--plain .option__hint {
+  display: block;
+  margin-top: 2px;
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+/* Hàng trạng thái ngay dưới tiêu đề modal: badge trạng thái + mốc thời gian gần nhất. */
+.modal__status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 0 0 16px;
+}
+
 /* ---------- Thanh công cụ / bộ lọc ---------- */
 
 .toolbar {
@@ -855,6 +879,12 @@ ol {
   background: var(--danger);
 }
 
+/* Xanh dương, tách hẳn khỏi xanh lá "đạt" và đỏ "thiếu": ngày đang sản xuất chưa phải là một
+   kết quả, nó chỉ là việc đang chạy. */
+.gantt__dot--progress {
+  background: var(--primary);
+}
+
 .gantt__dot--missing {
   display: inline-flex;
   align-items: center;
@@ -866,6 +896,49 @@ ol {
   font-size: 10px;
   font-weight: 800;
   line-height: 1;
+}
+
+/* Hiện tức thì khi hover (không có transition-delay) và đủ lớn để đọc lướt: thay cho tooltip
+   gốc của trình duyệt, thứ luôn trễ khoảng một giây và có cỡ chữ cố định quá nhỏ. */
+.gantt-tooltip {
+  position: fixed;
+  z-index: 60;
+  transform: translate(-50%, calc(-100% - 8px));
+  max-width: 320px;
+  padding: 9px 13px;
+  border-radius: var(--radius-sm);
+  background: #101828;
+  color: #fff;
+  font-size: 14px;
+  line-height: 1.45;
+  font-weight: 500;
+  text-align: center;
+  white-space: normal;
+  box-shadow: 0 8px 20px rgba(16, 24, 40, 0.28);
+  /* Con trỏ phải đi xuyên qua, nếu không tooltip tự che ô và kích hoạt mouseleave liên tục. */
+  pointer-events: none;
+}
+
+/* Mũi nhọn trỏ xuống đúng ô ngày đang hover. */
+.gantt-tooltip::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: #101828;
+}
+
+.gantt-tooltip--below {
+  transform: translate(-50%, 8px);
+}
+
+.gantt-tooltip--below::after {
+  top: auto;
+  bottom: 100%;
+  border-top-color: transparent;
+  border-bottom-color: #101828;
 }
 
 .gantt-hint {
@@ -1273,6 +1346,363 @@ ol {
 }
 
 /* ---------- Hộp thoại ---------- */
+
+/* ---------- Modal nhập sản lượng ---------- */
+
+.modal__status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 0;
+}
+
+.modal__status-time {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-muted);
+}
+
+/* Ba ô tổng quan của ngày. */
+.day-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.day-stat {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+.day-stat__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+}
+
+.day-stat__icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.day-stat__icon--blue {
+  background: var(--info-bg);
+  color: var(--primary);
+}
+
+.day-stat__icon--amber {
+  background: var(--warning-bg);
+  color: var(--warning);
+}
+
+.day-stat__icon--green {
+  background: var(--success-bg);
+  color: var(--success);
+}
+
+.day-stat__icon--red {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+
+.day-stat__body {
+  min-width: 0;
+}
+
+.day-stat__label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.day-stat__value {
+  margin-top: 4px;
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.day-stat__hint {
+  margin-top: 4px;
+  color: var(--text-muted);
+}
+
+/* Hai cột: ghi nhận thêm | lịch sử trong ngày. */
+.day-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+/* Danh sách rỗng vẫn giữ một khoảng cao tối thiểu, để modal không co giật khi ghi nhận lần đầu. */
+.day-panel__body--flush .state {
+  min-height: 200px;
+}
+
+.day-grid--single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.day-panel {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.day-panel__header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--border);
+}
+
+.day-panel__title {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.day-panel__body {
+  padding: 18px;
+}
+
+/* Bảng lịch sử tự có viền riêng nên phần thân không cần padding. */
+.day-panel__body--flush {
+  padding: 0;
+}
+
+/* Form ghi nhận nhanh. */
+.entry-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.entry-form__fields {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: 14px;
+}
+
+.entry-form__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.entry-form__hints {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  color: var(--text-muted);
+}
+
+/* Nút đẩy xuống đáy panel để hai cột có cùng chiều cao thị giác. */
+.entry-form__actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+
+/* Ô nhập kèm đơn vị dính liền. */
+.input-group {
+  display: flex;
+  align-items: stretch;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.input-group:focus-within {
+  outline: 2px solid rgba(31, 111, 235, 0.35);
+  outline-offset: 1px;
+  border-color: var(--primary);
+}
+
+.input-group--invalid {
+  border-color: var(--danger);
+}
+
+.input-group__input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: none;
+  outline: none;
+  padding: 9px 12px;
+  font: inherit;
+  background: transparent;
+  color: var(--text);
+}
+
+.input-group__suffix {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 12px;
+  border-left: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+/* Bảng lịch sử trong modal: viền ngoài đã do panel lo, nên bỏ viền của table-wrapper.
+   Chiều cao cố định + cuộn dọc: một ngày có thể có rất nhiều lần ghi nhận, và danh sách dài
+   không được phép kéo dài cả modal. */
+.entry-history {
+  border: none;
+  border-radius: 0;
+  max-height: 296px;
+  overflow-y: auto;
+}
+
+/* Hàng tiêu đề dính lại khi cuộn, nếu không thì cuộn vài dòng là mất luôn tên cột. */
+.entry-history thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.entry-history__note {
+  font-style: italic;
+}
+
+/* Ô giữ nguyên là table-cell — flex nằm ở lớp bọc bên trong, nếu không ô sẽ rơi khỏi lưới bảng
+   và đường kẻ ngang của hàng bị đứt đoạn. */
+.entry-history__actions {
+  width: 1%;
+  white-space: nowrap;
+}
+
+.entry-history__buttons {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+/* Nút biểu tượng cho hàng thao tác lặp lại nhiều lần: chữ sẽ làm bảng ồn. */
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.icon-btn--edit {
+  border-color: color-mix(in srgb, var(--primary) 28%, #fff);
+  background: var(--info-bg);
+  color: var(--primary);
+}
+
+.icon-btn--edit:hover {
+  background: color-mix(in srgb, var(--primary) 16%, #fff);
+}
+
+.icon-btn--delete {
+  border-color: color-mix(in srgb, var(--danger) 28%, #fff);
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+
+.icon-btn--delete:hover {
+  background: color-mix(in srgb, var(--danger) 16%, #fff);
+}
+
+/* Quy tắc nhập sản lượng + thời điểm ghi nhận tiếp theo. */
+.day-rules {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+}
+
+.day-rules__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  background: var(--info-bg);
+  color: var(--primary);
+  font-weight: 700;
+  font-style: italic;
+}
+
+.day-rules__text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.day-rules__title {
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+
+.day-rules__next {
+  flex: 0 0 auto;
+  text-align: right;
+}
+
+.day-rules__next-label {
+  color: var(--text-muted);
+}
+
+.day-rules__next-time {
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--primary);
+}
+
+.day-rules__next-hint {
+  color: var(--text-muted);
+}
+
+@media (max-width: 900px) {
+  .day-stats,
+  .day-grid,
+  .entry-form__fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .day-rules {
+    flex-wrap: wrap;
+  }
+
+  .day-rules__next {
+    text-align: left;
+  }
+}
 
 .modal-backdrop {
   position: fixed;

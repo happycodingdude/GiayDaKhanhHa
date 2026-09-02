@@ -7,23 +7,35 @@ public static class ProductionCalculations
 {
     /// <summary>
     /// Phần thiếu của một ngày = max(PlannedQuantity - ActualQuantity, 0).
-    /// Ngày chưa có bản ghi sản xuất là chưa nhập, không phải là thiếu.
+    ///
+    /// Phần thiếu CHỈ tồn tại khi ngày đã Xuất hàng: ngày còn mở trả về null, không phải 0 (CR-01
+    /// OV-5, N-07). Nhầm null thành 0 sẽ khiến dashboard báo "đạt kế hoạch" cho ngày đang sản xuất.
     /// </summary>
-    public static int Shortage(int plannedQuantity, int? actualQuantity)
+    public static int? Shortage(int plannedQuantity, int? closedActualQuantity)
     {
-        if (actualQuantity is null)
+        if (closedActualQuantity is null)
         {
-            return 0;
+            return null;
         }
 
-        return Math.Max(plannedQuantity - actualQuantity.Value, 0);
+        return Math.Max(plannedQuantity - closedActualQuantity.Value, 0);
     }
 
-    /// <summary>Chênh lệch ngày = Thực tế - Kế hoạch hiện tại. Null khi chưa nhập thực tế.</summary>
-    public static int? Difference(int plannedQuantity, int? actualQuantity)
+    /// <summary>
+    /// Chênh lệch ngày = Thực tế - Kế hoạch hiện tại, chỉ tính cho ngày đã Xuất hàng. Vì tổng ghi
+    /// nhận trong ngày không được vượt kế hoạch (CR-01 OV-3), giá trị này luôn &lt;= 0.
+    /// </summary>
+    public static int? Difference(int plannedQuantity, int? closedActualQuantity)
     {
-        return actualQuantity is null ? null : actualQuantity.Value - plannedQuantity;
+        return closedActualQuantity is null ? null : closedActualQuantity.Value - plannedQuantity;
     }
+
+    /// <summary>
+    /// Số còn được ghi nhận cho một ngày = MIN(trần kế hoạch ngày, trần số lượng đơn hàng),
+    /// không bao giờ âm (CR-01 N-03).
+    /// </summary>
+    public static int RemainingAllowance(int plannedQuantity, int dayActual, int orderQuantity, int totalActual)
+        => Math.Max(Math.Min(plannedQuantity - dayActual, orderQuantity - totalActual), 0);
 
     /// <summary>Còn lại = Order.Quantity - TotalActual, không bao giờ âm.</summary>
     public static int Remaining(int orderQuantity, int totalActual) => Math.Max(orderQuantity - totalActual, 0);

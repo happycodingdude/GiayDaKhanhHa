@@ -1,13 +1,19 @@
-import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from 'react'
+import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode, Ref } from 'react'
 import { formatPercent } from '../lib/format'
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  /**
+   * Mọi nút hành động đều là 'primary' — nền xanh, chữ trắng — nên đó là mặc định. Một nút mới
+   * thêm sau này tự đồng bộ theo, thay vì trông chờ mỗi call site nhớ truyền variant.
+   */
   variant?: 'primary' | 'secondary' | 'danger' | 'ghost'
   loading?: boolean
+  /** React 19 truyền ref như một prop thường; khai báo ở đây để bên gọi lấy được nút thật. */
+  ref?: Ref<HTMLButtonElement>
 }
 
 export function Button({
-  variant = 'secondary',
+  variant = 'primary',
   loading = false,
   disabled,
   children,

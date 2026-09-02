@@ -1,3 +1,5 @@
+using ProductionManagement.Domain;
+
 namespace ProductionManagement.Application.Contracts;
 
 public sealed record CreateProductionPlanRequest(DateOnly ProductionDate, int PlannedQuantity);
@@ -27,7 +29,18 @@ public sealed record OrderListItemDto(
     ScheduleStatus ScheduleStatus,
     int BehindQuantity,
     int DaysRemaining,
-    bool IsOverdue);
+    bool IsOverdue,
+
+    /// <summary>
+    /// Vị thế của hôm nay, để danh sách đơn trả lời được "hôm nay đơn nào đang chạy tới đâu" mà
+    /// không phải mở từng đơn (CR-01 §8, MH1). Null khi hôm nay không có kế hoạch cho đơn này.
+    /// </summary>
+    int? TodayPlannedQuantity,
+    int? TodayActualQuantity,
+    ProductionDayDisplayStatus? TodayStatus,
+
+    /// <summary>Có ngày đã qua chưa Xuất hàng — chỉ báo việc bị treo (CR-01 §14.5).</summary>
+    bool HasUnclosedPastDay);
 
 public sealed record OrderDetailDto(
     Guid Id,

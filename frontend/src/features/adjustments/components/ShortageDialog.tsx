@@ -71,13 +71,33 @@ export function ShortageDialog({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, sourceDay?.id])
 
-  if (!sourceDay) return null
+  // Phần thiếu chỉ tồn tại ở ngày đã Xuất hàng, nên dialog này chỉ mở được cho ngày đã đóng
+  // (CR-01 OV-5). Ngày còn mở chưa có con số chính thức nào để bù.
+  if (!sourceDay || sourceDay.shortageQuantity === null || sourceDay.shortageQuantity <= 0) {
+    return null
+  }
 
+  const shortageQuantity = sourceDay.shortageQuantity
   const currentDate = today()
-  // Không bao giờ điều chỉnh kế hoạch của ngày đã qua — làm vậy là viết lại lịch sử (master summary §11).
-  const eligibleDays = allDays.filter(
-    (day) => day.productionDate > sourceDay.productionDate && day.productionDate >= currentDate,
-  )
+
+  /**
+   * Vì sao một ngày không nhận được phần bù. Ngày đích phải nằm sau ngày thiếu, không thuộc quá khứ,
+   * và CHƯA Xuất hàng — bù vào ngày đã chốt sổ là viết lại lịch sử của ngày đó
+   * (master summary §11, CR-01 §6.7).
+   */
+  const rejectionFor = (day: ProductionDayDto): string | null => {
+    if (day.productionDate <= sourceDay.productionDate) return 'Không nằm sau ngày thiếu'
+    if (day.dayStatus === 'Closed') return 'Đã xuất hàng'
+    if (day.productionDate < currentDate) return 'Ngày đã qua'
+    if (day.plannedQuantity === 0 && day.addOnQuantity === 0) return null
+    return null
+  }
+
+  const laterDays = allDays.filter((day) => day.productionDate > sourceDay.productionDate)
+  const eligibleDays = laterDays.filter((day) => rejectionFor(day) === null)
+  const rejectedDays = laterDays
+    .map((day) => ({ day, reason: rejectionFor(day) }))
+    .filter((entry): entry is { day: ProductionDayDto; reason: string } => entry.reason !== null)
 
   const runPreview = async (type: AdjustmentType, planId: string | null) => {
     const result = await preview.mutateAsync({
@@ -88,7 +108,7 @@ export function ShortageDialog({
           : {
               adjustmentType: 'Manual',
               // Option 1 luôn chuyển toàn bộ phần thiếu sang ngày được chọn.
-              targets: [{ productionPlanId: planId!, addOnQuantity: sourceDay.shortageQuantity }],
+              targets: [{ productionPlanId: planId!, addOnQuantity: shortageQuantity }],
             },
     })
 
@@ -133,7 +153,7 @@ export function ShortageDialog({
       </div>
       <div>
         <dt>Số lượng cần bù</dt>
-        <dd className="danger strong">{formatNumber(sourceDay.shortageQuantity)} đôi</dd>
+        <dd className="danger strong">{formatNumber(shortageQuantity)} đôi</dd>
       </div>
     </dl>
   )
@@ -186,8 +206,8 @@ export function ShortageDialog({
             <span>
               <strong>Chọn ngày để bù</strong>
               <span className="option__hint">
-                Bạn chọn một ngày sản xuất, toàn bộ {formatNumber(sourceDay.shortageQuantity)} đôi thiếu
-                sẽ được bù vào ngày đó.
+                Bạn chọn một ngày sản xuất, toàn bộ {formatNumber(shortageQuantity)} đôi thiếu sẽ
+                được bù vào ngày đó.
               </span>
             </span>
           </label>
@@ -209,10 +229,21 @@ export function ShortageDialog({
           </label>
         </div>
 
+        {/* Trường hợp biên mới do CR-01 tạo ra: ngày cuối bị thiếu, hoặc mọi ngày sau đó đều đã
+            Xuất hàng nên không còn chỗ nào nhận được phần bù (CR-01 §6.7, AC-15). */}
         {eligibleDays.length === 0 && (
-          <p className="notice notice--warning">
-            Không còn ngày sản xuất nào có thể nhận phần bù.
-          </p>
+          <div className="notice notice--warning">
+            <p>Không còn ngày sản xuất nào có thể nhận phần bù.</p>
+            {rejectedDays.length > 0 && (
+              <ul className="plain-list">
+                {rejectedDays.map(({ day, reason }) => (
+                  <li key={day.id}>
+                    {formatDate(day.productionDate)}: {reason}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         )}
 
         {previewError && <InlineError message={previewError} />}
@@ -225,7 +256,7 @@ export function ShortageDialog({
       <Modal
         open={open}
         title="Chọn ngày muốn bù"
-        description={`Bù toàn bộ ${formatNumber(sourceDay.shortageQuantity)} đôi thiếu vào một ngày sản xuất.`}
+        description={`Bù toàn bộ ${formatNumber(shortageQuantity)} đôi thiếu vào một ngày sản xuất.`}
         onClose={onClose}
         width={DIALOG_WIDTH}
         footer={
@@ -265,6 +296,21 @@ export function ShortageDialog({
             </label>
           ))}
         </div>
+
+        {/* Ngày bị loại vẫn hiện, kèm lý do: quản lý cần biết vì sao một ngày không chọn được thay
+            vì thấy nó biến mất không giải thích (CR-01 §8). */}
+        {rejectedDays.length > 0 && (
+          <>
+            <p className="field__label">Ngày không thể nhận bù</p>
+            <ul className="plain-list muted">
+              {rejectedDays.map(({ day, reason }) => (
+                <li key={day.id}>
+                  {formatDate(day.productionDate)}: {reason}
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
 
         {previewError && <InlineError message={previewError} />}
       </Modal>

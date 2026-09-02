@@ -7,22 +7,28 @@ import { formatDate, today } from '../../../shared/lib/date'
 import { formatNumber } from '../../../shared/lib/format'
 import { AdjustmentHistory } from '../../adjustments/components/AdjustmentHistory'
 import { ShortageDialog } from '../../adjustments/components/ShortageDialog'
-import { ActualInputDialog } from '../../production/components/ActualInputDialog'
+import { CloseDayDialog } from '../../production/components/CloseDayDialog'
+import { ProductionDayDialog } from '../../production/components/ProductionDayDialog'
 import { ProductionTimeline } from '../../production/components/ProductionTimeline'
-import { useProductionPlans } from '../../production/hooks/useProduction'
+import { useProductionPlans } from '../../production/hooks/useProductionPlans'
 import type { ProductionDayDto } from '../../production/types'
 import { OrderStatisticsPanel } from '../../statistics/components/OrderStatisticsPanel'
 import { OrderSummary } from '../components/OrderSummary'
+import { useToast } from '../../../shared/feedback/ToastProvider'
 import { useOrder } from '../hooks/useOrders'
 
 /** Màn hình trung tâm của quản lý sản xuất (Step 5 §15). */
 export function OrderDetailPage() {
   const { orderId } = useParams({ from: '/authenticated/orders/$orderId' })
 
+  const { showToast } = useToast()
   const orderQuery = useOrder(orderId)
   const plansQuery = useProductionPlans(orderId)
 
-  const [actualDay, setActualDay] = useState<ProductionDayDto | null>(null)
+  // Ba modal của luồng sản xuất, mở từ đúng một hàng thao tác trên bảng tiến độ.
+  const [recordingDay, setRecordingDay] = useState<ProductionDayDto | null>(null)
+  const [closingDay, setClosingDay] = useState<ProductionDayDto | null>(null)
+  const [viewingDay, setViewingDay] = useState<ProductionDayDto | null>(null)
   const [shortageDay, setShortageDay] = useState<ProductionDayDto | null>(null)
 
   if (orderQuery.isPending || plansQuery.isPending) {
@@ -66,14 +72,16 @@ export function OrderDetailPage() {
   // Server cũng áp đúng luật này (ORDER_OVERDUE), phần này chỉ để ẩn các thao tác đã vô nghĩa.
   const readOnly = order.isPastDueDate
 
-  // Ngày hữu ích nhất để mở từ header: hôm nay, nếu không thì ngày đầu tiên còn thiếu sản lượng
-  // thực tế. Không bao giờ là ngày tương lai — ngày đó chưa diễn ra nên không nhập được.
+  // Ngày hữu ích nhất để mở từ header: hôm nay nếu còn đang sản xuất, nếu không thì ngày đã qua
+  // đầu tiên chưa Xuất hàng. Không bao giờ là ngày tương lai hay ngày đã chốt sổ.
+  // Ngày đã qua mà chưa Xuất hàng là việc bị treo: số liệu của chúng vẫn chỉ là tạm tính (CR-01 N-09).
+  const unclosedPastDays = days.filter(
+    (day) => day.dayStatus === 'InProduction' && day.productionDate < currentDate,
+  )
+
   const suggestedDay =
-    days.find((day) => day.productionDate === currentDate && day.plannedQuantity > 0) ??
-    days.find(
-      (day) =>
-        day.actualQuantity === null && day.plannedQuantity > 0 && day.productionDate < currentDate,
-    ) ??
+    days.find((day) => day.productionDate === currentDate && day.dayStatus === 'InProduction') ??
+    days.find((day) => day.dayStatus === 'InProduction' && day.productionDate < currentDate) ??
     null
 
   return (
@@ -98,7 +106,7 @@ export function OrderDetailPage() {
         </div>
 
         {suggestedDay && order.status !== 'Completed' && !readOnly && (
-          <Button variant="primary" onClick={() => setActualDay(suggestedDay)}>
+          <Button variant="primary" onClick={() => setRecordingDay(suggestedDay)}>
             Nhập sản lượng
           </Button>
         )}
@@ -111,13 +119,24 @@ export function OrderDetailPage() {
         </p>
       )}
 
+      {unclosedPastDays.length > 0 && !readOnly && (
+        <p className="notice notice--warning">
+          ⚠ {unclosedPastDays.length} ngày đã qua chưa xuất hàng (
+          {unclosedPastDays.slice(0, 3).map((day) => formatDate(day.productionDate)).join(', ')}
+          {unclosedPastDays.length > 3 && ` và ${unclosedPastDays.length - 3} ngày khác`}). Sản
+          lượng của các ngày này chưa được chốt sổ nên vẫn là số tạm tính.
+        </p>
+      )}
+
       <OrderSummary order={order} />
 
       <ProductionTimeline
         days={days}
         orderCompleted={order.status === 'Completed'}
         readOnly={readOnly}
-        onEnterActual={setActualDay}
+        onRecord={setRecordingDay}
+        onCloseDay={setClosingDay}
+        onViewDay={setViewingDay}
         onHandleShortage={setShortageDay}
       />
 
@@ -125,17 +144,44 @@ export function OrderDetailPage() {
 
       <OrderStatisticsPanel orderId={orderId} />
 
-      <ActualInputDialog
-        open={actualDay !== null}
-        day={actualDay}
-        orderId={orderId}
-        orderCode={order.orderCode}
-        orderQuantity={order.quantity}
-        totalActual={order.totalActual}
-        onClose={() => setActualDay(null)}
-        // Xử lý phần thiếu là gợi ý, không bao giờ ép buộc (actual entry spec §7).
-        onShortageRecorded={setShortageDay}
-      />
+      {/* Nhập sản lượng: modal, không rời khỏi màn hình chi tiết đơn hàng. */}
+      {recordingDay && (
+        <ProductionDayDialog
+          open
+          orderId={orderId}
+          productionDate={recordingDay.productionDate}
+          onClose={() => setRecordingDay(null)}
+        />
+      )}
+
+      {/* Xem chi tiết ngày đã chốt sổ: chỉ hiển thị thông tin, không kèm lối vào Xử lý thiếu. */}
+      {viewingDay && (
+        <ProductionDayDialog
+          open
+          orderId={orderId}
+          productionDate={viewingDay.productionDate}
+          readOnly
+          onClose={() => setViewingDay(null)}
+        />
+      )}
+
+      {closingDay && (
+        <CloseDayDialog
+          open
+          orderId={orderId}
+          productionDate={closingDay.productionDate}
+          onClose={() => setClosingDay(null)}
+          onClosed={(result) => {
+            const closedDate = closingDay.productionDate
+            setClosingDay(null)
+            showToast(
+              `Đã xuất hàng ngày ${formatDate(closedDate)}: ${formatNumber(result.actualQuantity)} đôi.` +
+                (result.orderCompleted ? ' Đơn hàng đã hoàn thành.' : ''),
+              result.hasShortage ? 'info' : 'success',
+            )
+          }}
+        />
+      )}
 
       <ShortageDialog
         open={shortageDay !== null}

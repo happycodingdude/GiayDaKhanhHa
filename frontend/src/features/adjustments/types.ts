@@ -48,23 +48,6 @@ export interface PlanAdjustmentItemDto {
   addOnQuantity: number
 }
 
-export type AdjustmentRecalculationOutcome = 'Recalculated' | 'Removed' | 'Unhandled'
-
-/**
- * Được báo về khi việc sửa sản lượng thực tế của một ngày làm thay đổi phần thiếu mà khoản bù
- * đã áp dụng dựa vào. Điều chỉnh cũ bị hoàn tác và thay thế ở phía server, nên lịch sử không
- * bị viết lại.
- */
-export interface AdjustmentRecalculationDto {
-  outcome: AdjustmentRecalculationOutcome
-  reversedAdjustmentId: string
-  previousShortageQuantity: number
-  shortageQuantity: number
-  adjustmentType: AdjustmentType
-  adjustmentId: string | null
-  items: PlanAdjustmentItemDto[]
-}
-
 export interface PlanAdjustmentDto {
   id: string
   sourceProductionPlanId: string

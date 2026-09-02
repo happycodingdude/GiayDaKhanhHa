@@ -15,6 +15,10 @@ export const queryKeys = {
   orderProductionPlans: (orderId: string) => ['orders', orderId, 'production-plans'] as const,
   orderStatistics: (orderId: string) => ['orders', orderId, 'statistics'] as const,
   orderPlanAdjustments: (orderId: string) => ['orders', orderId, 'plan-adjustments'] as const,
+  orderProductionDay: (orderId: string, productionDate: string) =>
+    ['orders', orderId, 'production-days', productionDate] as const,
+
+  settings: ['settings'] as const,
 
   dashboard: ['statistics', 'dashboard'] as const,
 }

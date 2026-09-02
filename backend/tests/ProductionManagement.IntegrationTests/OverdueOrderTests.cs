@@ -30,14 +30,14 @@ public class OverdueOrderTests(ApiFactory factory) : IntegrationTestBase(factory
         Assert.Equal(1, await command.ExecuteNonQueryAsync());
     }
 
-    /// <summary>Đơn hàng thiếu 20 đơn vị ở ngày đầu, đã được đẩy qua ngày hạn.</summary>
+    /// <summary>Đơn hàng thiếu 20 đơn vị ở ngày đầu đã Xuất hàng, sau đó bị đẩy qua ngày hạn.</summary>
     private async Task<(HttpClient Client, OrderResponse Order, IReadOnlyList<ProductionDayResponse> Days)>
         OverdueOrderWithShortageAsync()
     {
         var client = await ClientAsync();
         var (order, days) = await CreateOrderAsync(client, 100, 120);
 
-        (await PostActualAsync(client, order.Id, days[0].ProductionDate, 80)).EnsureSuccessStatusCode();
+        await RecordAndCloseAsync(client, order.Id, days[0].ProductionDate, 80);
 
         var current = await GetDaysAsync(client, order.Id);
         await MakeOverdueAsync(order.Id);
@@ -62,26 +62,23 @@ public class OverdueOrderTests(ApiFactory factory) : IntegrationTestBase(factory
     }
 
     [Fact]
-    public async Task Recording_an_actual_is_rejected_on_an_overdue_order()
+    public async Task Recording_an_entry_is_rejected_on_an_overdue_order()
     {
         var (client, order, days) = await OverdueOrderWithShortageAsync();
 
         await AssertOverdueRejectionAsync(
-            await PostActualAsync(client, order.Id, days[1].ProductionDate, 50));
+            await PostEntryAsync(client, order.Id, days[1].ProductionDate, 50));
 
-        // Không có gì được ghi: ngày thứ hai vẫn hoàn toàn chưa có bản ghi nào.
+        // Không có gì được ghi: ngày thứ hai vẫn hoàn toàn chưa có lần ghi nhận nào.
         Assert.Null((await GetDaysAsync(client, order.Id))[1].ActualQuantity);
     }
 
     [Fact]
-    public async Task Editing_an_existing_actual_is_rejected_on_an_overdue_order()
+    public async Task Closing_a_day_is_rejected_on_an_overdue_order()
     {
         var (client, order, days) = await OverdueOrderWithShortageAsync();
-        var recordId = days[0].ProductionRecordId!.Value;
 
-        await AssertOverdueRejectionAsync(await PutActualAsync(client, order.Id, recordId, 95));
-
-        Assert.Equal(80, (await GetDaysAsync(client, order.Id))[0].ActualQuantity);
+        await AssertOverdueRejectionAsync(await CloseDayAsync(client, order.Id, days[1].ProductionDate));
     }
 
     [Fact]
@@ -123,7 +120,7 @@ public class OverdueOrderTests(ApiFactory factory) : IntegrationTestBase(factory
         var client = await ClientAsync();
         var (order, days) = await CreateOrderAsync(client, 100, 120);
 
-        (await PostActualAsync(client, order.Id, days[0].ProductionDate, 80)).EnsureSuccessStatusCode();
+        await RecordAndCloseAsync(client, order.Id, days[0].ProductionDate, 80);
 
         var applyResponse = await client.PostAsJsonAsync(
             $"/api/v1/production-plans/{days[0].Id}/adjustments",
@@ -174,10 +171,10 @@ public class OverdueOrderTests(ApiFactory factory) : IntegrationTestBase(factory
         var client = await ClientAsync();
         var (order, days) = await CreateOrderFromAsync(client, Today.AddDays(-1), 100, 100);
 
-        (await PostActualAsync(client, order.Id, days[0].ProductionDate, 100)).EnsureSuccessStatusCode();
-        (await PostActualAsync(client, order.Id, days[1].ProductionDate, 100)).EnsureSuccessStatusCode();
+        await RecordAndCloseAsync(client, order.Id, days[0].ProductionDate, 100);
+        (await PostEntryAsync(client, order.Id, days[1].ProductionDate, 100)).EnsureSuccessStatusCode();
+        await RecordAndCloseAsync(client, order.Id, days[1].ProductionDate, 0);
 
-        var recordId = (await GetDaysAsync(client, order.Id))[1].ProductionRecordId!.Value;
         await MakeOverdueAsync(order.Id);
 
         var completed = await GetOrderAsync(client, order.Id);
@@ -186,7 +183,8 @@ public class OverdueOrderTests(ApiFactory factory) : IntegrationTestBase(factory
         Assert.False(completed.IsOverdue);
         Assert.True(completed.IsPastDueDate);
 
-        await AssertOverdueRejectionAsync(await PutActualAsync(client, order.Id, recordId, 90));
+        await AssertOverdueRejectionAsync(
+            await PostEntryAsync(client, order.Id, days[1].ProductionDate, 5));
 
         Assert.Equal(100, (await GetDaysAsync(client, order.Id))[1].ActualQuantity);
     }
@@ -201,6 +199,6 @@ public class OverdueOrderTests(ApiFactory factory) : IntegrationTestBase(factory
         var detail = await GetOrderAsync(client, order.Id);
         Assert.False(detail.IsPastDueDate);
 
-        (await PostActualAsync(client, order.Id, days[0].ProductionDate, 60)).EnsureSuccessStatusCode();
+        (await PostEntryAsync(client, order.Id, days[0].ProductionDate, 60)).EnsureSuccessStatusCode();
     }
 }

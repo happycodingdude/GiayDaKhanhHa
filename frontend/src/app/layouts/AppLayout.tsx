@@ -35,6 +35,9 @@ export function AppLayout() {
           <Link to="/orders" className="shell__link" activeProps={{ className: 'shell__link shell__link--active' }}>
             <span aria-hidden="true">📦</span> Đơn hàng
           </Link>
+          <Link to="/settings" className="shell__link" activeProps={{ className: 'shell__link shell__link--active' }}>
+            <span aria-hidden="true">⚙️</span> Cấu hình
+          </Link>
         </nav>
 
         <div className="shell__account">
@@ -49,7 +52,7 @@ export function AppLayout() {
               </span>
             </span>
           </div>
-          <Button variant="ghost" onClick={onLogout} loading={logout.isPending} className="shell__logout">
+          <Button variant="primary" onClick={onLogout} loading={logout.isPending} className="shell__logout">
             <span aria-hidden="true">⇥</span> Đăng xuất
           </Button>
         </div>

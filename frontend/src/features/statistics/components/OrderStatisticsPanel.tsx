@@ -1,12 +1,14 @@
 import { Card } from '../../../shared/components/ui'
 import { ErrorState, LoadingState } from '../../../shared/feedback/QueryState'
-import { formatDate } from '../../../shared/lib/date'
+import { DayStatusBadge } from '../../production/components/DayStatusBadge'
+import { formatDate, today } from '../../../shared/lib/date'
 import { formatDifference, formatNumber, formatQuantity } from '../../../shared/lib/format'
 import { useOrderStatistics } from '../hooks/useStatistics'
 
 /** Kế hoạch lũy kế so với thực tế lũy kế — mọi giá trị đều do backend suy ra (Step 4 §16). */
 export function OrderStatisticsPanel({ orderId }: { orderId: string }) {
   const query = useOrderStatistics(orderId)
+  const currentDate = today()
 
   return (
     <Card title="Thống kê lũy kế">
@@ -24,6 +26,7 @@ export function OrderStatisticsPanel({ orderId }: { orderId: string }) {
                 <th className="num">Kế hoạch</th>
                 <th className="num">Thực tế</th>
                 <th className="num">Chênh lệch</th>
+                <th>Tình trạng</th>
                 <th className="num">KH lũy kế</th>
                 <th className="num">TT lũy kế</th>
               </tr>
@@ -33,9 +36,16 @@ export function OrderStatisticsPanel({ orderId }: { orderId: string }) {
                 <tr key={day.productionDate}>
                   <td>{formatDate(day.productionDate)}</td>
                   <td className="num">{formatNumber(day.plannedQuantity)}</td>
-                  <td className="num">{formatQuantity(day.actualQuantity)}</td>
-                  <td className={`num ${(day.difference ?? 0) < 0 ? 'danger' : (day.difference ?? 0) > 0 ? 'positive' : ''}`}>
+                  <td className="num">
+                    {formatQuantity(day.actualQuantity)}
+                    {day.isProvisional && <span className="table__sub">Tạm tính</span>}
+                  </td>
+                  {/* Ngày chưa Xuất hàng để trống ô này: chưa có con số chính thức nào để so. */}
+                  <td className={`num ${(day.difference ?? 0) < 0 ? 'danger' : ''}`}>
                     {formatDifference(day.difference)}
+                  </td>
+                  <td>
+                    <DayStatusBadge status={day.dayStatus} isPastDay={day.productionDate < currentDate} />
                   </td>
                   <td className="num muted">{formatNumber(day.cumulativePlan)}</td>
                   <td className="num muted">{formatNumber(day.cumulativeActual)}</td>

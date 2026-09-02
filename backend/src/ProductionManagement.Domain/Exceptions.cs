@@ -25,7 +25,18 @@ public sealed class BusinessRuleException : Exception
 {
     public string Code { get; }
 
-    public BusinessRuleException(string code, string message) : base(message) => Code = code;
+    /// <summary>
+    /// Chi tiết theo field, dùng khi UI cần chính con số mà server áp đặt — ví dụ trần còn được nhập
+    /// của một ngày (CR-01 §6.4). Rỗng với các lỗi nghiệp vụ chỉ cần một câu thông báo.
+    /// </summary>
+    public IReadOnlyList<ValidationFailure> Details { get; }
+
+    public BusinessRuleException(string code, string message, IReadOnlyList<ValidationFailure>? details = null)
+        : base(message)
+    {
+        Code = code;
+        Details = details ?? [];
+    }
 }
 
 /// <summary>Ánh xạ sang HTTP 409 — thao tác xung đột với trạng thái hiện tại của server.</summary>

@@ -38,7 +38,7 @@ public sealed class OrderConfiguration : IEntityTypeConfiguration<Order>
 
         builder.Metadata.FindNavigation(nameof(Order.ProductionPlans))!
             .SetPropertyAccessMode(PropertyAccessMode.Field);
-        builder.Metadata.FindNavigation(nameof(Order.ProductionRecords))!
+        builder.Metadata.FindNavigation(nameof(Order.ProductionDays))!
             .SetPropertyAccessMode(PropertyAccessMode.Field);
     }
 }

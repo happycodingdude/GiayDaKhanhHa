@@ -1,14 +1,15 @@
 import { Link, useNavigate } from '@tanstack/react-router'
-import { Button, Card, ProgressBar, StatTile } from '../../../shared/components/ui'
+import { Button, Card, StatTile } from '../../../shared/components/ui'
 import { EmptyState, ErrorState, LoadingState } from '../../../shared/feedback/QueryState'
 import { formatDate } from '../../../shared/lib/date'
-import { formatDifference, formatNumber, formatPercent } from '../../../shared/lib/format'
+import { formatNumber } from '../../../shared/lib/format'
 import { TrackedOrders } from '../components/TrackedOrders'
 import { useDashboardStatistics } from '../hooks/useStatistics'
 
 /**
- * "Nhìn → hiểu → hành động": số tổng và số liệu hôm nay trước, rồi tới các đơn hàng đang theo
- * dõi, và khép lại trang là những cảnh báo cần xử lý.
+ * Dashboard gồm đúng hai khối: số tổng toàn hệ thống, rồi timeline các đơn hàng đang theo dõi.
+ * Mọi thao tác lên một ngày sản xuất đều nằm ở màn hình chi tiết đơn hàng, nên dashboard chỉ để
+ * nhìn — không phải nơi bắt đầu một hành động.
  */
 export function DashboardPage() {
   const navigate = useNavigate()
@@ -25,7 +26,11 @@ export function DashboardPage() {
   if (query.isError) {
     return (
       <div className="page">
-        <ErrorState error={query.error} onRetry={() => void query.refetch()} title="Không tải được dashboard" />
+        <ErrorState
+          error={query.error}
+          onRetry={() => void query.refetch()}
+          title="Không tải được dashboard"
+        />
       </div>
     )
   }
@@ -60,6 +65,7 @@ export function DashboardPage() {
         </Card>
       ) : (
         <>
+          {/* Tổng quan */}
           <div className="stats">
             <StatTile label="Đơn đang chạy" value={formatNumber(data.incompleteOrders)} />
             <StatTile
@@ -68,70 +74,16 @@ export function DashboardPage() {
               tone={data.behindOrders > 0 ? 'danger' : 'neutral'}
             />
             <StatTile label="Hoàn thành" value={formatNumber(data.completedOrders)} tone="success" />
-            <StatTile label="Đã hoàn thành" value={`${formatNumber(data.totalActualQuantity)} đôi`} />
+            <StatTile
+              label="Đã hoàn thành"
+              value={`${formatNumber(data.totalActualQuantity)} đôi`}
+              hint="Gồm cả sản lượng tạm tính của ngày chưa xuất hàng"
+            />
             <StatTile label="Còn lại" value={`${formatNumber(data.totalRemainingQuantity)} đôi`} />
           </div>
 
-          <Card title="Hôm nay">
-            {data.today.plannedQuantity === 0 ? (
-              <p className="muted">Hôm nay không có kế hoạch sản xuất.</p>
-            ) : (
-              <>
-                <div className="stats">
-                  <StatTile label="Cần sản xuất" value={`${formatNumber(data.today.plannedQuantity)} đôi`} />
-                  <StatTile
-                    label="Đã hoàn thành"
-                    value={
-                      data.today.hasAnyActualEntered ? `${formatNumber(data.today.actualQuantity)} đôi` : 'Chưa nhập'
-                    }
-                    tone={data.today.hasAnyActualEntered ? 'success' : 'neutral'}
-                  />
-                  <StatTile
-                    label="Chênh lệch"
-                    value={data.today.hasAnyActualEntered ? formatDifference(data.today.difference) : '—'}
-                    tone={data.today.hasAnyActualEntered && data.today.difference < 0 ? 'danger' : 'neutral'}
-                  />
-                </div>
-
-                <div className="summary-progress">
-                  <ProgressBar
-                    value={data.today.completionPercentage}
-                    tone={data.today.difference < 0 ? 'warning' : 'success'}
-                  />
-                  <p className="summary-progress__caption">
-                    {formatPercent(data.today.completionPercentage)} kế hoạch hôm nay
-                  </p>
-                </div>
-              </>
-            )}
-          </Card>
-
+          {/* Timeline đơn hàng */}
           <TrackedOrders orders={data.trackedOrders} today={data.date} onOpenOrder={openOrder} />
-
-          {data.alerts.length > 0 && (
-            <Card title="⚠ Cần xử lý">
-              <ul className="alerts">
-                {data.alerts.map((alert) => (
-                  <li key={alert.orderId} className="alert">
-                    <div>
-                      <p className="alert__title">🔴 {alert.orderCode}</p>
-                      <p className="alert__text">
-                        Thiếu {formatNumber(alert.behindQuantity)} đôi so với kế hoạch
-                      </p>
-                      <p className="alert__meta">
-                        {alert.isOverdue
-                          ? `Đã quá hạn (${formatDate(alert.dueDate)})`
-                          : `Còn ${alert.daysRemaining} ngày đến hạn`}
-                      </p>
-                    </div>
-                    <Button variant="primary" onClick={() => openOrder(alert.orderId)}>
-                      Xử lý thiếu
-                    </Button>
-                  </li>
-                ))}
-              </ul>
-            </Card>
-          )}
         </>
       )}
     </div>

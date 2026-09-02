@@ -16,26 +16,48 @@ import { formatDifference, formatNumber, formatPercent } from '../../../shared/l
 import type { DashboardOrderDayDto, DashboardOrderDto } from '../types'
 
 /**
- * Tình trạng sản xuất của một ngày, đọc bằng đúng một chấm trên timeline. Ngày không có gì để
- * đánh giá (ngày nghỉ, ngày chưa tới) không có chấm — timeline chỉ nói về quá khứ.
+ * Tình trạng sản xuất của một ngày, đọc bằng đúng một chấm trên timeline.
+ *
+ *   met       đã Xuất hàng và đạt kế hoạch
+ *   short     đã Xuất hàng nhưng thiếu
+ *   progress  đang sản xuất và đã ghi nhận được sản lượng — số tạm tính, chưa chốt sổ
+ *   missing   ngày đã qua mà vẫn chưa Xuất hàng
+ *
+ * Ngày nghỉ, ngày chưa tới, và ngày hôm nay chưa ghi nhận gì thì không có chấm.
  */
-type DayMark = 'met' | 'short' | 'missing'
+type DayMark = 'met' | 'short' | 'progress' | 'missing'
+
+/** Ô nằm cao hơn mốc này thì tooltip không còn chỗ ở phía trên và phải lật xuống dưới. */
+const TOOLTIP_FLIP_THRESHOLD = 90
 
 function dayMark(day: DashboardOrderDayDto, isPast: boolean): DayMark | null {
-  if (day.plannedQuantity === 0) return null
+  if (day.dayStatus === 'NoPlan' || day.dayStatus === 'NotStarted') return null
 
-  if (day.actualQuantity === null) {
-    // Sản lượng thực tế nhập vào cuối ngày, nên hôm nay chưa có số là bình thường; ngày đã trôi
-    // qua mà vẫn trống thì mới là thứ quản lý cần thấy.
-    return isPast ? 'missing' : null
+  if (day.dayStatus === 'Closed') {
+    return (day.actualQuantity ?? 0) >= day.plannedQuantity ? 'met' : 'short'
   }
 
-  return day.actualQuantity >= day.plannedQuantity ? 'met' : 'short'
+  // Ngày đã trôi qua mà chưa chốt sổ là việc bị treo, cần thấy trước mọi thứ khác.
+  if (isPast) return 'missing'
+
+  // Ngày đang sản xuất mà đã có sản lượng phải hiện lên: chỉ chấm điểm ngày đã Xuất hàng thì
+  // công của cả ngày hôm nay biến mất khỏi timeline (CR-01 OV-5 nói về phần thiếu, không phải
+  // về việc giấu sản lượng).
+  return (day.actualQuantity ?? 0) > 0 ? 'progress' : null
 }
 
 function dayTitle(day: DashboardOrderDayDto, mark: DayMark): string {
   const head = `${formatDate(day.productionDate)} · KH ${formatNumber(day.plannedQuantity)}`
-  if (mark === 'missing') return `${head} · chưa nhập thực tế`
+
+  if (mark === 'missing') {
+    return day.actualQuantity === null || day.actualQuantity === 0
+      ? `${head} · chưa xuất hàng, chưa ghi nhận gì`
+      : `${head} · chưa xuất hàng, tạm tính ${formatNumber(day.actualQuantity)}`
+  }
+
+  if (mark === 'progress') {
+    return `${head} · đang sản xuất, tạm tính ${formatNumber(day.actualQuantity ?? 0)}`
+  }
 
   const difference = (day.actualQuantity ?? 0) - day.plannedQuantity
   return `${head} · TT ${formatNumber(day.actualQuantity ?? 0)} (${formatDifference(difference)})`
@@ -79,10 +101,12 @@ export function TrackedOrders({
           <div className="gantt-toolbar">
             <div className="gantt-toolbar__month">
               <span className="gantt-toolbar__month-label">📅 {formatMonth(month)}</span>
-              <Button aria-label="Tháng trước" onClick={() => setMonth(addMonths(month, -1))}>
+              {/* Hai nút điều hướng tháng giữ style trung tính: chúng chỉ đổi khung nhìn, không
+                  phải thao tác nghiệp vụ như các nút hành động khác. */}
+              <Button variant="secondary" aria-label="Tháng trước" onClick={() => setMonth(addMonths(month, -1))}>
                 ‹
               </Button>
-              <Button aria-label="Tháng sau" onClick={() => setMonth(addMonths(month, 1))}>
+              <Button variant="secondary" aria-label="Tháng sau" onClick={() => setMonth(addMonths(month, 1))}>
                 ›
               </Button>
             </div>
@@ -101,6 +125,9 @@ export function TrackedOrders({
               </li>
               <li>
                 <span className="gantt__dot gantt__dot--short" /> Thiếu
+              </li>
+              <li>
+                <span className="gantt__dot gantt__dot--progress" /> Đang sản xuất
               </li>
               <li>
                 <span className="gantt__dot gantt__dot--missing">!</span> Chưa nhập
@@ -140,6 +167,15 @@ function TrackedOrdersTimeline({
   const days = daysOfMonth(month)
   const scrollRef = useRef<HTMLDivElement>(null)
 
+  /**
+   * Tooltip tự vẽ thay cho thuộc tính `title` gốc: trình duyệt luôn trễ khoảng một giây trước khi
+   * hiện title, và cỡ chữ của nó không chỉnh được. Toạ độ là `position: fixed` vì bảng nằm trong
+   * một khung cuộn ngang — tooltip định vị tuyệt đối bên trong sẽ bị khung đó cắt mất.
+   */
+  const [tooltip, setTooltip] = useState<
+    { text: string; x: number; y: number; below: boolean } | null
+  >(null)
+
   // Tháng có tới 31 cột nên gần như luôn phải cuộn ngang; đưa cột hôm nay vào giữa tầm nhìn để
   // không phải tự đi tìm nó sau mỗi lần đổi tháng hay bấm nút "Hôm nay".
   useEffect(() => {
@@ -162,7 +198,12 @@ function TrackedOrdersTimeline({
 
   return (
     <>
-      <div className="table-wrapper gantt-scroll" ref={scrollRef}>
+      <div
+        className="table-wrapper gantt-scroll"
+        ref={scrollRef}
+        // Tooltip dùng toạ độ tuyệt đối của màn hình; cuộn ngang làm nó lệch khỏi ô nên tắt luôn.
+        onScroll={() => setTooltip(null)}
+      >
         <table className="table gantt">
           <thead>
             <tr>
@@ -233,7 +274,24 @@ function TrackedOrdersTimeline({
                           }`}
                         />
                         {day && mark && (
-                          <span className={`gantt__dot gantt__dot--${mark}`} title={dayTitle(day, mark)}>
+                          // Tooltip chỉ bám vào đúng chấm tròn, không phải cả ô ngày: hover vào
+                          // khoảng trống của một ngày không có gì để nói thì không hiện gì cả.
+                          <span
+                            className={`gantt__dot gantt__dot--${mark}`}
+                            onMouseEnter={(event) => {
+                              const rect = event.currentTarget.getBoundingClientRect()
+                              // Chấm sát mép trên màn hình thì tooltip vẽ phía trên sẽ bị tràn ra
+                              // ngoài, nên nó lật xuống dưới.
+                              const below = rect.top < TOOLTIP_FLIP_THRESHOLD
+                              setTooltip({
+                                text: dayTitle(day, mark),
+                                x: rect.left + rect.width / 2,
+                                y: below ? rect.bottom : rect.top,
+                                below,
+                              })
+                            }}
+                            onMouseLeave={() => setTooltip(null)}
+                          >
                             {mark === 'missing' ? '!' : ''}
                           </span>
                         )}
@@ -255,6 +313,16 @@ function TrackedOrdersTimeline({
         </table>
       </div>
       <p className="gantt-hint">← Kéo ngang để xem thêm →</p>
+
+      {tooltip && (
+        <div
+          className={`gantt-tooltip ${tooltip.below ? 'gantt-tooltip--below' : ''}`}
+          style={{ left: tooltip.x, top: tooltip.y }}
+          role="tooltip"
+        >
+          {tooltip.text}
+        </div>
+      )}
     </>
   )
 }
@@ -296,11 +364,18 @@ function TrackedOrdersList({
                   tone={order.scheduleStatus === 'Behind' ? 'danger' : 'info'}
                 />
               </td>
+              {/* Ngày đã Xuất hàng hiện chênh lệch; ngày còn mở hiện sản lượng tạm tính, vì
+                  chênh lệch của một ngày chưa chốt sổ là con số chưa tồn tại (CR-01 N-07). */}
               <td className={`num ${(order.todayDifference ?? 0) < 0 ? 'danger' : ''}`}>
-                {order.todayHasPlan ? (
+                {!order.todayHasPlan ? (
+                  <Badge tone="neutral">Không SX</Badge>
+                ) : order.todayStatus === 'Closed' ? (
                   formatDifference(order.todayDifference)
                 ) : (
-                  <Badge tone="neutral">Không SX</Badge>
+                  <>
+                    {formatNumber(order.todayActualQuantity)} / {formatNumber(order.todayPlannedQuantity)}
+                    <span className="table__sub">Tạm tính</span>
+                  </>
                 )}
               </td>
               <td className="num">{formatNumber(order.remaining)}</td>

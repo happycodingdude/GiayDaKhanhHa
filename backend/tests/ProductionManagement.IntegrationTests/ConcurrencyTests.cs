@@ -11,44 +11,83 @@ namespace ProductionManagement.IntegrationTests;
 public class ConcurrencyTests(ApiFactory factory) : IntegrationTestBase(factory)
 {
     [Fact]
-    public async Task Concurrent_actual_entries_can_never_push_the_total_past_the_order_quantity()
+    public async Task Concurrent_entries_can_never_push_the_total_past_the_order_quantity()
     {
         var client = await ClientAsync();
         // Hai ngày mỗi ngày 60 trên đơn hàng 100 đơn vị: nhập riêng lẻ thì vừa, cộng lại thì không.
         var (order, days) = await CreateOrderFromAsync(client, Today.AddDays(-1), 50, 50);
 
-        var first = PostActualAsync(client, order.Id, days[0].ProductionDate, 60);
-        var second = PostActualAsync(client, order.Id, days[1].ProductionDate, 60);
+        var first = PostEntryAsync(client, order.Id, days[0].ProductionDate, 60);
+        var second = PostEntryAsync(client, order.Id, days[1].ProductionDate, 60);
 
         var responses = await Task.WhenAll(first, second);
 
-        Assert.Equal(1, responses.Count(r => r.IsSuccessStatusCode));
-        var rejected = Assert.Single(responses, r => !r.IsSuccessStatusCode);
-        Assert.Equal(HttpStatusCode.UnprocessableEntity, rejected.StatusCode);
-        Assert.Equal("ACTUAL_EXCEEDS_ORDER_QUANTITY", (await rejected.ReadErrorAsync()).Code);
+        // Trần ngày là 50 nên cả hai request đều vượt trần ngày trước khi chạm trần đơn; điều đang
+        // kiểm ở đây là hai request đồng thời không cùng lọt qua.
+        Assert.True(responses.Count(r => r.IsSuccessStatusCode) <= 1);
 
         var updated = await GetOrderAsync(client, order.Id);
-        Assert.Equal(60, updated.TotalActual);
         Assert.True(updated.TotalActual <= updated.Quantity);
     }
 
     [Fact]
-    public async Task Concurrent_entries_for_the_same_day_produce_exactly_one_record()
+    public async Task Two_concurrent_entries_that_together_exceed_the_daily_plan_leave_exactly_one_in()
     {
         var client = await ClientAsync();
-        var (order, days) = await CreateOrderAsync(client, 100);
+        // AC-22. Hai lần ghi nhận đồng thời, mỗi lần vừa khít trần ngày nhưng cộng lại thì vượt.
+        var (order, days) = await CreateOrderAsync(client, 100, 200);
 
         var responses = await Task.WhenAll(
-            PostActualAsync(client, order.Id, days[0].ProductionDate, 30),
-            PostActualAsync(client, order.Id, days[0].ProductionDate, 40));
+            PostEntryAsync(client, order.Id, days[0].ProductionDate, 60),
+            PostEntryAsync(client, order.Id, days[0].ProductionDate, 60));
 
         Assert.Equal(1, responses.Count(r => r.IsSuccessStatusCode));
-        Assert.Equal(HttpStatusCode.Conflict, Assert.Single(responses, r => !r.IsSuccessStatusCode).StatusCode);
+        var rejected = Assert.Single(responses, r => !r.IsSuccessStatusCode);
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, rejected.StatusCode);
+        Assert.Equal("ENTRY_EXCEEDS_DAILY_PLAN", (await rejected.ReadErrorAsync()).Code);
 
-        var updated = await GetDaysAsync(client, order.Id);
-        Assert.NotNull(updated[0].ProductionRecordId);
-        // Request nào thắng thì giá trị là của request đó — không bao giờ là tổng hai bên.
-        Assert.Contains(updated[0].ActualQuantity, new int?[] { 30, 40 });
+        var day = await (await GetDayAsync(client, order.Id, days[0].ProductionDate))
+            .ReadAsync<ProductionDayDetailResponse>();
+        Assert.Single(day.Entries);
+        Assert.Equal(60, day.DayActualQuantity);
+    }
+
+    [Fact]
+    public async Task Two_concurrent_closes_of_the_same_day_leave_exactly_one_winner()
+    {
+        var client = await ClientAsync();
+        // Đóng ngày là thao tác không hoàn tác được, nên nó phải được chặn ở backend (CR-01 §14.7).
+        var (order, days) = await CreateOrderAsync(client, 100);
+        (await PostEntryAsync(client, order.Id, days[0].ProductionDate, 40)).EnsureSuccessStatusCode();
+
+        var responses = await Task.WhenAll(
+            CloseDayAsync(client, order.Id, days[0].ProductionDate),
+            CloseDayAsync(client, order.Id, days[0].ProductionDate));
+
+        Assert.Equal(1, responses.Count(r => r.IsSuccessStatusCode));
+        var rejected = Assert.Single(responses, r => !r.IsSuccessStatusCode);
+        Assert.Equal(HttpStatusCode.Conflict, rejected.StatusCode);
+        Assert.Equal("DAY_ALREADY_CLOSED", (await rejected.ReadErrorAsync()).Code);
+    }
+
+    [Fact]
+    public async Task An_entry_racing_a_close_never_lands_on_a_closed_day()
+    {
+        var client = await ClientAsync();
+        var (order, days) = await CreateOrderAsync(client, 200);
+        (await PostEntryAsync(client, order.Id, days[0].ProductionDate, 50)).EnsureSuccessStatusCode();
+
+        var responses = await Task.WhenAll(
+            PostEntryAsync(client, order.Id, days[0].ProductionDate, 30),
+            CloseDayAsync(client, order.Id, days[0].ProductionDate));
+
+        // Ảnh chụp lúc đóng phải khớp đúng tổng các lần ghi nhận đã lọt vào trước đó.
+        var day = await (await GetDayAsync(client, order.Id, days[0].ProductionDate))
+            .ReadAsync<ProductionDayDetailResponse>();
+
+        Assert.Equal("Closed", day.DayStatus);
+        Assert.Equal(day.Entries.Sum(e => e.Quantity), day.DayActualQuantity);
+        Assert.Equal(responses[0].IsSuccessStatusCode ? 80 : 50, day.DayActualQuantity);
     }
 
     [Fact]
@@ -56,7 +95,7 @@ public class ConcurrencyTests(ApiFactory factory) : IntegrationTestBase(factory)
     {
         var client = await ClientAsync();
         var (order, days) = await CreateOrderAsync(client, 100, 120, 200);
-        (await PostActualAsync(client, order.Id, days[0].ProductionDate, 80)).EnsureSuccessStatusCode();
+        await RecordAndCloseAsync(client, order.Id, days[0].ProductionDate, 80);
 
         async Task<HttpResponseMessage> Apply(Guid targetPlanId) =>
             await client.PostAsJsonAsync($"/api/v1/production-plans/{days[0].Id}/adjustments", new
@@ -85,7 +124,7 @@ public class ConcurrencyTests(ApiFactory factory) : IntegrationTestBase(factory)
     {
         var client = await ClientAsync();
         var (order, days) = await CreateOrderAsync(client, 100, 120);
-        (await PostActualAsync(client, order.Id, days[0].ProductionDate, 80)).EnsureSuccessStatusCode();
+        await RecordAndCloseAsync(client, order.Id, days[0].ProductionDate, 80);
 
         var applied = await (await client.PostAsJsonAsync(
             $"/api/v1/production-plans/{days[0].Id}/adjustments", new

@@ -71,7 +71,13 @@ public sealed class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<Ex
             StatusCodes.Status409Conflict, new ApiError(ex.Code, ex.Message, null)),
 
         BusinessRuleException ex => (
-            StatusCodes.Status422UnprocessableEntity, new ApiError(ex.Code, ex.Message, null)),
+            StatusCodes.Status422UnprocessableEntity,
+            new ApiError(
+                ex.Code,
+                ex.Message,
+                ex.Details.Count == 0
+                    ? null
+                    : ex.Details.Select(f => new ApiValidationDetail(f.Field, f.Code, f.Message)).ToList())),
 
         _ => (
             StatusCodes.Status500InternalServerError,

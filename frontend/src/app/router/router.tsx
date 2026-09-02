@@ -12,6 +12,7 @@ import { LoginPage } from '../../features/auth/pages/LoginPage'
 import { CreateOrderPage } from '../../features/orders/pages/CreateOrderPage'
 import { OrderDetailPage } from '../../features/orders/pages/OrderDetailPage'
 import { OrderListPage } from '../../features/orders/pages/OrderListPage'
+import { SettingsPage } from '../../features/settings/pages/SettingsPage'
 import { DashboardPage } from '../../features/statistics/pages/DashboardPage'
 import { AppLayout } from '../layouts/AppLayout'
 import { queryKeys } from '../config/queryKeys'
@@ -85,6 +86,12 @@ const orderDetailRoute = createRoute({
   component: OrderDetailPage,
 })
 
+const settingsRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/settings',
+  component: SettingsPage,
+})
+
 const routeTree = rootRoute.addChildren([
   loginRoute,
   authenticatedRoute.addChildren([
@@ -93,6 +100,7 @@ const routeTree = rootRoute.addChildren([
     ordersRoute,
     createOrderRoute,
     orderDetailRoute,
+    settingsRoute,
   ]),
 ])
 

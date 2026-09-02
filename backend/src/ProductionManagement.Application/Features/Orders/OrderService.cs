@@ -100,24 +100,35 @@ public sealed class OrderService(IAppDbContext db, IClock clock)
             .Select(p => new { p.OrderId, p.ProductionDate, p.PlannedQuantity, p.InitialPlannedQuantity })
             .ToListAsync(ct);
 
-        var records = await db.ProductionRecords.AsNoTracking()
-            .Where(r => orderIds.Contains(r.OrderId))
-            .Select(r => new { r.OrderId, r.ProductionDate, r.ActualQuantity })
-            .ToListAsync(ct);
+        var days = await db.SnapshotsForOrdersAsync(orderIds, ct);
 
         var today = clock.Today;
         var plansByOrder = plans.ToLookup(p => p.OrderId);
-        var recordsByOrder = records.ToLookup(r => r.OrderId);
+        var daysByOrder = days.ToLookup(d => d.OrderId);
 
         var items = orders.Select(order =>
         {
+            var orderPlans = plansByOrder[order.Id].ToList();
+            var orderDays = daysByOrder[order.Id].ToDictionary(d => d.ProductionDate);
+
             var derived = OrderDerivedCalculator.Compute(
                 order.Quantity,
                 order.Status,
                 order.DueDate,
-                plansByOrder[order.Id].Select(p => (p.ProductionDate, p.PlannedQuantity, p.InitialPlannedQuantity)).ToList(),
-                recordsByOrder[order.Id].Select(r => (r.ProductionDate, r.ActualQuantity)).ToList(),
+                orderPlans.Select(p => (p.ProductionDate, p.PlannedQuantity, p.InitialPlannedQuantity)).ToList(),
+                orderDays.Values.Select(d => (d.ProductionDate, d.ActualQuantity, d.IsClosed)).ToList(),
                 today);
+
+            var todayPlan = orderPlans.FirstOrDefault(p => p.ProductionDate == today && p.PlannedQuantity > 0);
+            orderDays.TryGetValue(today, out var todayDay);
+
+            // Chỉ đơn chưa hoàn thành mới cần cảnh báo ngày treo: đơn đã xong thì phần thiếu còn
+            // lại không cần xử lý nữa (CR-01 §14.6).
+            var hasUnclosedPastDay = order.Status == OrderStatus.Incomplete
+                && orderPlans.Any(p =>
+                    p.PlannedQuantity > 0
+                    && p.ProductionDate < today
+                    && !(orderDays.TryGetValue(p.ProductionDate, out var day) && day.IsClosed));
 
             return new OrderListItemDto(
                 order.Id,
@@ -133,7 +144,14 @@ public sealed class OrderService(IAppDbContext db, IClock clock)
                 derived.ScheduleStatus,
                 derived.BehindQuantity,
                 derived.DaysRemaining,
-                derived.IsOverdue);
+                derived.IsOverdue,
+                todayPlan?.PlannedQuantity,
+                todayPlan is null ? null : todayDay?.ActualQuantity ?? 0,
+                todayPlan is null
+                    ? null
+                    : ProductionDayQueries.DisplayStatusOf(
+                        todayPlan.PlannedQuantity, today, todayDay?.IsClosed == true, today),
+                hasUnclosedPastDay);
         }).ToList();
 
         return new PagedResult<OrderListItemDto>(items, page, pageSize, totalCount);
@@ -164,11 +182,10 @@ public sealed class OrderService(IAppDbContext db, IClock clock)
             .OrderBy(p => p.ProductionDate)
             .ToListAsync(ct);
 
-        var records = await db.ProductionRecords.AsNoTracking()
-            .Where(r => r.OrderId == orderId)
-            .ToListAsync(ct);
+        var days = await db.SnapshotsForOrderAsync(orderId, ct);
 
-        var userNames = await GetUserDisplayNamesAsync(records.Select(r => r.UpdatedBy), ct);
+        var userNames = await GetUserDisplayNamesAsync(
+            days.Where(d => d.LastRecordedBy.HasValue).Select(d => d.LastRecordedBy!.Value), ct);
 
         // Một kế hoạch nguồn tại một thời điểm chỉ có tối đa một điều chỉnh Applied (Step 4 §12).
         var planIds = plans.Select(p => p.Id).ToList();
@@ -178,12 +195,16 @@ public sealed class OrderService(IAppDbContext db, IClock clock)
             .ToListAsync(ct);
 
         var activeBySourcePlan = activeAdjustments.ToDictionary(a => a.SourceProductionPlanId, a => a.Id);
-        var recordsByDate = records.ToDictionary(r => r.ProductionDate);
+        var daysByDate = days.ToDictionary(d => d.ProductionDate);
+        var today = clock.Today;
 
         var items = plans.Select(plan =>
         {
-            recordsByDate.TryGetValue(plan.ProductionDate, out var record);
-            int? actual = record?.ActualQuantity;
+            daysByDate.TryGetValue(plan.ProductionDate, out var day);
+
+            // Chưa ghi nhận lần nào thì để null, không bao giờ là 0. Ngày còn mở có sản lượng tạm
+            // tính nhưng KHÔNG có phần thiếu và không có chênh lệch (CR-01 OV-5, N-07).
+            int? actual = day is null ? null : day.ActualQuantity;
 
             return new ProductionDayDto(
                 Id: plan.Id,
@@ -191,14 +212,17 @@ public sealed class OrderService(IAppDbContext db, IClock clock)
                 InitialPlannedQuantity: plan.InitialPlannedQuantity,
                 AddOnQuantity: plan.PlannedQuantity - plan.InitialPlannedQuantity,
                 PlannedQuantity: plan.PlannedQuantity,
+                DayStatus: ProductionDayQueries.DisplayStatusOf(plan.PlannedQuantity, plan.ProductionDate, day?.IsClosed == true, today),
                 ActualQuantity: actual,
-                ProductionRecordId: record?.Id,
-                ShortageQuantity: ProductionCalculations.Shortage(plan.PlannedQuantity, actual),
-                Difference: ProductionCalculations.Difference(plan.PlannedQuantity, actual),
+                IsProvisional: day is not null && !day.IsClosed,
+                ProductionDayId: day?.Id,
+                ShortageQuantity: ProductionCalculations.Shortage(plan.PlannedQuantity, day?.ClosedActualQuantity),
+                Difference: ProductionCalculations.Difference(plan.PlannedQuantity, day?.ClosedActualQuantity),
+                ClosedAt: day?.ClosedAt,
                 HasActiveAdjustment: activeBySourcePlan.ContainsKey(plan.Id),
                 ActiveAdjustmentId: activeBySourcePlan.TryGetValue(plan.Id, out var adjustmentId) ? adjustmentId : null,
-                ActualEnteredBy: record is null ? null : userNames.GetValueOrDefault(record.UpdatedBy),
-                ActualUpdatedAt: record?.UpdatedAt);
+                LastRecordedBy: day?.LastRecordedBy is null ? null : userNames.GetValueOrDefault(day.LastRecordedBy.Value),
+                LastRecordedAt: day?.LastRecordedAt);
         }).ToList();
 
         return new ProductionPlanListDto(orderId, items);
@@ -211,17 +235,14 @@ public sealed class OrderService(IAppDbContext db, IClock clock)
             .Select(p => new { p.ProductionDate, p.PlannedQuantity, p.InitialPlannedQuantity })
             .ToListAsync(ct);
 
-        var records = await db.ProductionRecords.AsNoTracking()
-            .Where(r => r.OrderId == order.Id)
-            .Select(r => new { r.ProductionDate, r.ActualQuantity })
-            .ToListAsync(ct);
+        var days = await db.SnapshotsForOrderAsync(order.Id, ct);
 
         return OrderDerivedCalculator.Compute(
             order.Quantity,
             order.Status,
             order.DueDate,
             plans.Select(p => (p.ProductionDate, p.PlannedQuantity, p.InitialPlannedQuantity)).ToList(),
-            records.Select(r => (r.ProductionDate, r.ActualQuantity)).ToList(),
+            days.Select(d => (d.ProductionDate, d.ActualQuantity, d.IsClosed)).ToList(),
             clock.Today);
     }
 

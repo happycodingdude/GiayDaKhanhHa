@@ -70,16 +70,40 @@ public abstract class IntegrationTestBase(ApiFactory factory)
         return await response.ReadAsync<OrderResponse>();
     }
 
-    protected static Task<HttpResponseMessage> PostActualAsync(
-        HttpClient client, Guid orderId, DateOnly date, int actualQuantity)
-        => client.PostAsJsonAsync($"/api/v1/orders/{orderId}/production-records", new
-        {
-            productionDate = date.ToString("yyyy-MM-dd"),
-            actualQuantity,
-        });
+    protected static Task<HttpResponseMessage> GetDayAsync(HttpClient client, Guid orderId, DateOnly date)
+        => client.GetAsync($"/api/v1/orders/{orderId}/production-days/{date:yyyy-MM-dd}");
 
-    protected static Task<HttpResponseMessage> PutActualAsync(
-        HttpClient client, Guid orderId, Guid recordId, int actualQuantity)
-        => client.PutAsJsonAsync(
-            $"/api/v1/orders/{orderId}/production-records/{recordId}", new { actualQuantity });
+    protected static Task<HttpResponseMessage> PostEntryAsync(
+        HttpClient client, Guid orderId, DateOnly date, int quantity, string? note = null)
+        => client.PostAsJsonAsync(
+            $"/api/v1/orders/{orderId}/production-days/{date:yyyy-MM-dd}/entries", new { quantity, note });
+
+    protected static Task<HttpResponseMessage> PutEntryAsync(
+        HttpClient client, Guid entryId, int quantity, string? note = null)
+        => client.PutAsJsonAsync($"/api/v1/production-entries/{entryId}", new { quantity, note });
+
+    protected static Task<HttpResponseMessage> DeleteEntryAsync(HttpClient client, Guid entryId)
+        => client.DeleteAsync($"/api/v1/production-entries/{entryId}");
+
+    protected static Task<HttpResponseMessage> CloseDayAsync(HttpClient client, Guid orderId, DateOnly date)
+        => client.PostAsync($"/api/v1/orders/{orderId}/production-days/{date:yyyy-MM-dd}/close", null);
+
+    /// <summary>
+    /// Ghi nhận rồi chốt sổ ngay — cách nhanh nhất để dựng một ngày đã Xuất hàng, thứ mà mọi test về
+    /// phần thiếu và điều chỉnh đều cần làm trước.
+    /// </summary>
+    protected static async Task<ProductionDayDetailResponse> RecordAndCloseAsync(
+        HttpClient client, Guid orderId, DateOnly date, int quantity)
+    {
+        if (quantity > 0)
+        {
+            (await PostEntryAsync(client, orderId, date, quantity)).EnsureSuccessStatusCode();
+        }
+
+        var response = await CloseDayAsync(client, orderId, date);
+        response.EnsureSuccessStatusCode();
+
+        var day = await GetDayAsync(client, orderId, date);
+        return await day.ReadAsync<ProductionDayDetailResponse>();
+    }
 }

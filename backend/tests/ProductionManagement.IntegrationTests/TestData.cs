@@ -3,7 +3,10 @@ using System.Net.Http.Json;
 namespace ProductionManagement.IntegrationTests;
 
 /// <summary>Khuôn của các response API mà test dùng để assert.</summary>
-public sealed record ApiErrorResponse(string Code, string Message);
+public sealed record ApiErrorDetail(string Field, string Code, string Message);
+
+public sealed record ApiErrorResponse(
+    string Code, string Message, IReadOnlyList<ApiErrorDetail>? Details);
 
 public sealed record OrderResponse(
     Guid Id,
@@ -24,29 +27,52 @@ public sealed record ProductionDayResponse(
     int InitialPlannedQuantity,
     int AddOnQuantity,
     int PlannedQuantity,
+    string DayStatus,
     int? ActualQuantity,
-    Guid? ProductionRecordId,
-    int ShortageQuantity,
+    bool IsProvisional,
+    Guid? ProductionDayId,
+    int? ShortageQuantity,
     int? Difference,
+    DateTimeOffset? ClosedAt,
     bool HasActiveAdjustment,
     Guid? ActiveAdjustmentId);
 
 public sealed record ProductionPlanListResponse(Guid OrderId, IReadOnlyList<ProductionDayResponse> Items);
 
-public sealed record ProductionRecordResponse(
-    Guid Id,
-    DateOnly ProductionDate,
-    int ActualQuantity,
-    AdjustmentRecalculationResponse? AdjustmentRecalculation);
+public sealed record ProductionEntryResponse(
+    Guid Id, int Quantity, DateTimeOffset RecordedAt, string? Note, int RunningTotal, bool IsEdited);
 
-public sealed record AdjustmentRecalculationResponse(
-    string Outcome,
-    Guid ReversedAdjustmentId,
-    int PreviousShortageQuantity,
+public sealed record ProductionDayDetailResponse(
+    Guid OrderId,
+    DateOnly ProductionDate,
+    string DayStatus,
+    int PlannedQuantity,
+    int AddOnQuantity,
+    int DayActualQuantity,
+    bool IsProvisional,
+    int RemainingAllowance,
+    string RemainingAllowanceReason,
+    int OrderRemainingQuantity,
+    string OrderStatus,
+    DateTimeOffset? LastRecordedAt,
+    DateTimeOffset? ClosedAt,
+    int? ShortageQuantity,
+    int? Difference,
+    IReadOnlyList<ProductionEntryResponse> Entries);
+
+public sealed record CloseProductionDayResponse(
+    DateOnly ProductionDate,
+    string DayStatus,
+    int PlannedQuantity,
+    int ActualQuantity,
     int ShortageQuantity,
-    string AdjustmentType,
-    Guid? AdjustmentId,
-    IReadOnlyList<PlanAdjustmentItemResponse> Items);
+    int Difference,
+    DateTimeOffset ClosedAt,
+    string OrderStatus,
+    bool OrderCompleted,
+    bool HasShortage);
+
+public sealed record SystemSettingsResponse(int RecordingIntervalMinutes, bool RemindBeforeDue);
 
 public sealed record AdjustmentPreviewItemResponse(
     Guid ProductionPlanId, DateOnly ProductionDate, int CurrentPlannedQuantity, int AddOnQuantity, int PlannedQuantityAfter);

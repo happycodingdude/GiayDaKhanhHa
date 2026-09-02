@@ -18,7 +18,7 @@ public sealed class EvenDistributionAllocationStrategy : IAutomaticAllocationStr
         if (candidates.Count == 0)
         {
             throw new BusinessRuleException(
-                ErrorCodes.NoEligibleTargetPlans,
+                ErrorCodes.NoEligibleTargetDay,
                 "There is no remaining production day that can receive the shortage.");
         }
 

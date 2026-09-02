@@ -1,3 +1,5 @@
+using ProductionManagement.Domain;
+
 namespace ProductionManagement.Application.Contracts;
 
 public sealed record DailyStatisticsDto(
@@ -6,8 +8,15 @@ public sealed record DailyStatisticsDto(
     int AddOnQuantity,
     int PlannedQuantity,
     int? ActualQuantity,
+    ProductionDayDisplayStatus DayStatus,
+
+    /// <summary>Ngày còn mở: sản lượng là số tạm tính và còn tăng tiếp (CR-01 §6.9).</summary>
+    bool IsProvisional,
+    DateTimeOffset? ClosedAt,
+
+    /// <summary>Null cho ngày chưa Xuất hàng — KHÔNG phải 0 (CR-01 N-07, §14.8).</summary>
     int? Difference,
-    int ShortageQuantity,
+    int? ShortageQuantity,
     int CumulativePlan,
     int CumulativeActual);
 
@@ -26,7 +35,10 @@ public sealed record OrderStatisticsDto(
     bool IsOverdue,
     IReadOnlyList<DailyStatisticsDto> Daily);
 
-/// <summary>Vị thế sản xuất hôm nay của một đơn hàng, dùng cho panel "hôm nay" của dashboard.</summary>
+/// <summary>
+/// Vị thế sản xuất hôm nay của toàn hệ thống. Sản lượng ở đây bao gồm cả số tạm tính của những ngày
+/// còn đang mở, nên frontend phải gắn nhãn phù hợp (CR-01 §6.9).
+/// </summary>
 public sealed record DashboardTodayDto(
     int PlannedQuantity,
     int ActualQuantity,
@@ -49,7 +61,8 @@ public sealed record DashboardAlertDto(
 public sealed record DashboardOrderDayDto(
     DateOnly ProductionDate,
     int PlannedQuantity,
-    int? ActualQuantity);
+    int? ActualQuantity,
+    ProductionDayDisplayStatus DayStatus);
 
 public sealed record DashboardOrderDto(
     Guid OrderId,
@@ -57,12 +70,51 @@ public sealed record DashboardOrderDto(
     DateOnly StartDate,
     DateOnly DueDate,
     decimal ProgressPercentage,
+
+    /// <summary>Chỉ có giá trị khi ngày hôm nay đã Xuất hàng — ngày còn mở chưa có số chính thức.</summary>
     int? TodayDifference,
     bool TodayHasPlan,
+
+    /// <summary>
+    /// Sản lượng hôm nay kèm trạng thái, để dashboard hiển thị được cả ngày đang sản xuất chứ không
+    /// chỉ ngày đã chốt sổ. Ngày còn mở thì đây là số tạm tính (CR-01 §6.9).
+    /// </summary>
+    int TodayPlannedQuantity,
+    int TodayActualQuantity,
+    ProductionDayDisplayStatus? TodayStatus,
     int Remaining,
     ScheduleStatus ScheduleStatus,
     int BehindQuantity,
     IReadOnlyList<DashboardOrderDayDto> Days);
+
+/// <summary>Một đơn hàng đang sản xuất hôm nay, cho khối "Đang sản xuất hôm nay" (CR-01 §6.9).</summary>
+public sealed record DashboardTodayProductionDto(
+    Guid OrderId,
+    string OrderCode,
+    DateOnly ProductionDate,
+    int PlannedQuantity,
+    int DayActualQuantity,
+    DateTimeOffset? LastRecordedAt);
+
+/// <summary>
+/// Ngày đã qua mà chưa Xuất hàng. Nguồn dữ liệu là <c>production_plans</c>, không phải
+/// <c>production_days</c>: ngày quá khứ có kế hoạch mà hoàn toàn chưa nhập gì thì chưa có dòng
+/// production_days nào, mà đó lại đúng là trường hợp cần cảnh báo nhất (CR-01 §14.5).
+/// </summary>
+public sealed record DashboardUnclosedDayDto(
+    Guid OrderId,
+    string OrderCode,
+    DateOnly ProductionDate,
+    int PlannedQuantity,
+    int DayActualQuantity);
+
+/// <summary>Phần thiếu của một ngày đã Xuất hàng mà chưa được xử lý bù.</summary>
+public sealed record DashboardOpenShortageDto(
+    Guid OrderId,
+    string OrderCode,
+    Guid ProductionPlanId,
+    DateOnly ProductionDate,
+    int ShortageQuantity);
 
 public sealed record DashboardStatisticsDto(
     DateOnly Date,
@@ -71,8 +123,12 @@ public sealed record DashboardStatisticsDto(
     int CompletedOrders,
     int BehindOrders,
     int TotalOrderQuantity,
+    /// <summary>Bao gồm cả sản lượng tạm tính của các ngày đang mở (CR-01 §6.9).</summary>
     int TotalActualQuantity,
     int TotalRemainingQuantity,
     DashboardTodayDto Today,
     IReadOnlyList<DashboardAlertDto> Alerts,
-    IReadOnlyList<DashboardOrderDto> TrackedOrders);
+    IReadOnlyList<DashboardOrderDto> TrackedOrders,
+    IReadOnlyList<DashboardTodayProductionDto> TodayProduction,
+    IReadOnlyList<DashboardUnclosedDayDto> UnclosedPastDays,
+    IReadOnlyList<DashboardOpenShortageDto> OpenShortages);

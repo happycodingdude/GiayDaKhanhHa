@@ -97,7 +97,7 @@ export function AdjustmentHistory({ orderId, readOnly }: { orderId: string; read
             <Button onClick={() => setPendingReverse(null)} disabled={reverse.isPending}>
               Quay lại
             </Button>
-            <Button variant="danger" loading={reverse.isPending} onClick={confirmReverse}>
+            <Button variant="primary" loading={reverse.isPending} onClick={confirmReverse}>
               Hoàn tác
             </Button>
           </>

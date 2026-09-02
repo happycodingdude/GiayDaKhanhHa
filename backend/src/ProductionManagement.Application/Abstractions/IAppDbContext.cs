@@ -14,7 +14,10 @@ public interface IAppDbContext
     DbSet<User> Users { get; }
     DbSet<Order> Orders { get; }
     DbSet<ProductionPlan> ProductionPlans { get; }
-    DbSet<ProductionRecord> ProductionRecords { get; }
+    DbSet<ProductionDay> ProductionDays { get; }
+    DbSet<ProductionEntry> ProductionEntries { get; }
+    DbSet<ProductionEntryLog> ProductionEntryLogs { get; }
+    DbSet<SystemSettings> SystemSettings { get; }
     DbSet<PlanAdjustment> PlanAdjustments { get; }
     DbSet<PlanAdjustmentItem> PlanAdjustmentItems { get; }
 
@@ -24,6 +27,13 @@ public interface IAppDbContext
 
     /// <summary>Khóa dòng đơn hàng (SELECT ... FOR UPDATE). Trả về false khi không tồn tại.</summary>
     Task<bool> LockOrderAsync(Guid orderId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Khóa dòng ngày sản xuất. Khóa đơn hàng là chưa đủ cho bất biến "tổng ghi nhận trong ngày
+    /// &lt;= kế hoạch ngày" (CR-01 §5.6). Thứ tự khóa thống nhất toàn hệ thống:
+    /// Order → ProductionDay → ProductionPlan.
+    /// </summary>
+    Task LockProductionDayAsync(Guid productionDayId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Khóa dòng các kế hoạch sản xuất được chỉ định. Các dòng được khóa theo thứ tự id tăng dần để

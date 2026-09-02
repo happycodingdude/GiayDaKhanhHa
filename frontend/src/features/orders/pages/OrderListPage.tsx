@@ -94,7 +94,7 @@ export function OrderListPage() {
             {search && (
               <Button
                 type="button"
-                variant="ghost"
+                variant="primary"
                 onClick={() => {
                   setSearchInput('')
                   applySearch('')
@@ -145,6 +145,7 @@ export function OrderListPage() {
                   <th className="num">Tổng SL</th>
                   <th className="num">Đã hoàn thành</th>
                   <th className="num">Còn lại</th>
+                  <th>Hôm nay</th>
                   <th>Hạn hoàn thành</th>
                   <th>Tiến độ</th>
                   <th>Trạng thái</th>
@@ -165,6 +166,29 @@ export function OrderListPage() {
                     <td className="num">{formatNumber(order.quantity)}</td>
                     <td className="num">{formatNumber(order.totalActual)}</td>
                     <td className="num">{formatNumber(order.remaining)}</td>
+                    {/* Hôm nay đơn này đang chạy tới đâu, để không phải mở từng đơn ra xem. */}
+                    <td>
+                      {order.todayPlannedQuantity === null ? (
+                        <span className="muted">Không sản xuất</span>
+                      ) : (
+                        <>
+                          <span className="table__strong">
+                            {formatNumber(order.todayActualQuantity ?? 0)} /{' '}
+                            {formatNumber(order.todayPlannedQuantity)}
+                          </span>
+                          <span className="table__sub">
+                            {order.todayStatus === 'Closed' ? 'Đã xuất hàng' : 'Tạm tính'}
+                          </span>
+                        </>
+                      )}
+                      {/* Chỉ báo việc bị treo: ngày đã qua mà sản lượng vẫn chưa được chốt sổ. */}
+                      {order.hasUnclosedPastDay && (
+                        <>
+                          {' '}
+                          <Badge tone="warning">Có ngày chưa xuất hàng</Badge>
+                        </>
+                      )}
+                    </td>
                     <td>
                       {formatDate(order.dueDate)}
                       {order.isOverdue && (

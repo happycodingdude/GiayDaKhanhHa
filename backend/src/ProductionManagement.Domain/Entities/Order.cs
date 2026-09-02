@@ -7,7 +7,7 @@ namespace ProductionManagement.Domain.Entities;
 public sealed class Order
 {
     private readonly List<ProductionPlan> _productionPlans = [];
-    private readonly List<ProductionRecord> _productionRecords = [];
+    private readonly List<ProductionDay> _productionDays = [];
 
     private Order() { }
 
@@ -21,7 +21,7 @@ public sealed class Order
     public DateTimeOffset UpdatedAt { get; private set; }
 
     public IReadOnlyCollection<ProductionPlan> ProductionPlans => _productionPlans;
-    public IReadOnlyCollection<ProductionRecord> ProductionRecords => _productionRecords;
+    public IReadOnlyCollection<ProductionDay> ProductionDays => _productionDays;
 
     public bool IsCompleted => Status == OrderStatus.Completed;
 
@@ -148,7 +148,11 @@ public sealed class Order
 
     /// <summary>
     /// Trạng thái đơn hàng suy ra từ tổng sản lượng thực tế và không bao giờ do quản lý đặt
-    /// (Step 1 §13). Phải gọi bên trong đúng transaction đã thay đổi bản ghi sản xuất.
+    /// (Step 1 §13).
+    ///
+    /// Chỉ được đánh giá tại đúng một thời điểm: khi Xuất hàng một ngày sản xuất (CR-01 OV-4, §14.1).
+    /// Ghi nhận sản lượng trong ngày không đụng tới trạng thái đơn — tổng thực tế bằng số lượng đơn
+    /// mà chưa Xuất hàng thì đơn vẫn Incomplete. Phải gọi bên trong đúng transaction đóng ngày.
     /// </summary>
     public void RecalculateStatus(int totalActual, DateTimeOffset now)
     {

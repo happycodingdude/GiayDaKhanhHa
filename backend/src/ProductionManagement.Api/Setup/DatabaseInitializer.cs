@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using Microsoft.EntityFrameworkCore;
 using ProductionManagement.Application.Abstractions;
+using ProductionManagement.Application.Features.Settings;
 using ProductionManagement.Domain.Entities;
 using ProductionManagement.Infrastructure.Persistence;
 
@@ -24,8 +25,11 @@ public static class DatabaseInitializer
             logger.LogInformation("Database migrations applied.");
         }
 
+        var clock = scope.ServiceProvider.GetRequiredService<IClock>();
+
         if (await db.Users.AnyAsync())
         {
+            await EnsureSystemSettingsAsync(db, clock, logger);
             return;
         }
 
@@ -38,10 +42,12 @@ public static class DatabaseInitializer
             : configuredPassword;
 
         var hasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();
-        var clock = scope.ServiceProvider.GetRequiredService<IClock>();
 
-        db.Users.Add(User.Create(username, hasher.Hash(password), displayName, clock.UtcNow));
+        var user = User.Create(username, hasher.Hash(password), displayName, clock.UtcNow);
+        db.Users.Add(user);
         await db.SaveChangesAsync();
+
+        await EnsureSystemSettingsAsync(db, clock, logger);
 
         if (string.IsNullOrWhiteSpace(configuredPassword))
         {
@@ -54,6 +60,31 @@ public static class DatabaseInitializer
         {
             logger.LogInformation("Created the initial account '{Username}' from configuration.", username);
         }
+    }
+
+    /// <summary>
+    /// Cấu hình vận hành có đúng một dòng, tạo bởi bootstrap chứ không hard-code trong migration
+    /// (CR-01 §5.4). Giá trị mặc định: chu kỳ 60 phút, có nhắc trước khi tới hạn.
+    /// </summary>
+    private static async Task EnsureSystemSettingsAsync(AppDbContext db, IClock clock, ILogger logger)
+    {
+        if (await db.SystemSettings.AnyAsync())
+        {
+            return;
+        }
+
+        // updated_by trỏ về tài khoản đầu tiên: cột này NOT NULL và mọi dòng đều phải truy được
+        // người chịu trách nhiệm.
+        var firstUserId = await db.Users.OrderBy(u => u.CreatedAt).Select(u => u.Id).FirstAsync();
+
+        db.SystemSettings.Add(SystemSettings.Create(
+            SettingsService.DefaultRecordingIntervalMinutes,
+            SettingsService.DefaultRemindBeforeDue,
+            firstUserId,
+            clock.UtcNow));
+
+        await db.SaveChangesAsync();
+        logger.LogInformation("Created the default system settings row.");
     }
 
     private static string GeneratePassword()

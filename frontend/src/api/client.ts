@@ -2,7 +2,7 @@ import { ApiError, NetworkError, type ApiErrorBody } from './errors'
 
 const BASE_URL = '/api/v1'
 
-type Method = 'GET' | 'POST' | 'PUT'
+type Method = 'GET' | 'POST' | 'PUT' | 'DELETE'
 
 interface RequestOptions {
   signal?: AbortSignal
@@ -75,4 +75,6 @@ export const apiClient = {
     request<T>('POST', path, body, options),
   put: <T>(path: string, body?: unknown, options?: RequestOptions) =>
     request<T>('PUT', path, body, options),
+  delete: <T>(path: string, options?: RequestOptions) =>
+    request<T>('DELETE', path, undefined, options),
 }
