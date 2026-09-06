@@ -235,7 +235,7 @@ export function ShortageDialog({
           <div className="notice notice--warning">
             <p>Không còn ngày sản xuất nào có thể nhận phần bù.</p>
             {rejectedDays.length > 0 && (
-              <ul className="plain-list">
+              <ul className="plain-list modal-scroll">
                 {rejectedDays.map(({ day, reason }) => (
                   <li key={day.id}>
                     {formatDate(day.productionDate)}: {reason}
@@ -275,7 +275,7 @@ export function ShortageDialog({
       >
         <Stepper steps={steps} current="chooseDay" compact />
 
-        <div className="options">
+        <div className="options modal-scroll">
           {eligibleDays.map((day) => (
             <label
               key={day.id}
@@ -302,7 +302,8 @@ export function ShortageDialog({
         {rejectedDays.length > 0 && (
           <>
             <p className="field__label">Ngày không thể nhận bù</p>
-            <ul className="plain-list muted">
+            {/* Danh sách phụ: giữ trần cố định để không tranh chỗ với danh sách ngày chọn được. */}
+            <ul className="plain-list muted modal-scroll modal-scroll--cap">
               {rejectedDays.map(({ day, reason }) => (
                 <li key={day.id}>
                   {formatDate(day.productionDate)}: {reason}
@@ -353,7 +354,7 @@ export function ShortageDialog({
           Số lượng thiếu: <strong>{formatNumber(proposal.shortageQuantity)} đôi</strong>
         </p>
 
-        <ul className="plain-list">
+        <ul className="plain-list modal-scroll">
           {proposal.items.map((item) => (
             <li key={item.productionPlanId}>
               {formatDate(item.productionDate)}: {formatNumber(item.currentPlannedQuantity)} →{' '}
@@ -391,7 +392,8 @@ export function ShortageDialog({
 
       {shortageHeader}
 
-      <div className="table-wrapper">
+      {/* Đơn hàng có thể trải hàng chục ngày sản xuất: bảng tự cuộn để modal không cao quá màn hình. */}
+      <div className="table-wrapper modal-scroll">
         <table className="table">
           <thead>
             <tr>

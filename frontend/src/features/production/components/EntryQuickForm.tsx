@@ -44,6 +44,14 @@ export function EntryQuickForm({ day }: { day: ProductionDayDetailDto }) {
 
   const canSubmit = parsed !== null && parsed > 0 && localError === null && !createEntry.isPending
 
+  // Ghi nhận trọn phần còn lại của ngày là thao tác lặp lại nhiều nhất (hết ca, đủ kế hoạch), nên
+  // nó có nút riêng. Chỉ điền số rồi trả focus về ô nhập — Enter vẫn là bước xác nhận, không tự
+  // ghi nhận thay người dùng.
+  const fillMax = () => {
+    setValue(String(day.remainingAllowance))
+    inputRef.current?.focus()
+  }
+
   const submit = async () => {
     if (!canSubmit || parsed === null) return
 
@@ -74,9 +82,23 @@ export function EntryQuickForm({ day }: { day: ProductionDayDetailDto }) {
     >
       <div className="entry-form__fields">
         <div className="entry-form__field">
-          <label className="field__label" htmlFor="entryQuantity">
-            Số lượng (đôi) <span className="field__required">*</span>
-          </label>
+          {/* Nút nhập nhanh nằm trên hàng nhãn, không nằm trong ô: cột này chỉ rộng khoảng 200px,
+              nhét thêm nút vào input-group sẽ bóp ô nhập lại còn vài ký tự. */}
+          <div className="entry-form__label-row">
+            <label className="field__label" htmlFor="entryQuantity">
+              Số lượng (đôi) <span className="field__required">*</span>
+            </label>
+            <button
+              type="button"
+              className="entry-form__max"
+              onClick={fillMax}
+              disabled={parsed === day.remainingAllowance}
+              title={`Nhập tối đa ${formatNumber(day.remainingAllowance)} đôi`}
+              aria-label={`Nhập tối đa ${formatNumber(day.remainingAllowance)} đôi`}
+            >
+              Tối đa
+            </button>
+          </div>
           {/* Đơn vị dính liền ô nhập để con số không bao giờ bị đọc trần trụi. */}
           <div className={`input-group ${localError ? 'input-group--invalid' : ''}`}>
             <input

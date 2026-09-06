@@ -117,8 +117,9 @@ export function CloseDayDialog({
             </p>
           ) : (
             /* Danh sách hiển thị đầy đủ, không thu gọn: quản lý phải nhìn qua toàn bộ số đã nhập
-               trước khi chốt một con số không sửa lại được (CR-01 §8.1). */
-            <div className="table-wrapper">
+               trước khi chốt một con số không sửa lại được (CR-01 §8.1). Bảng tự cuộn khi dài —
+               vẫn là danh sách đầy đủ, chỉ để modal không cao quá khung nhìn. */
+            <div className="table-wrapper modal-scroll">
               <table className="table">
                 <thead>
                   <tr>

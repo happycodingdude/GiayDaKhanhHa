@@ -1307,12 +1307,12 @@ ol {
 
 /* ---------- Lựa chọn (thẻ radio) ---------- */
 
+/* Chỉ lo bố cục. Danh sách nào dài thì gắn thêm .modal-scroll để nhận phần chiều cao còn lại của
+   thân modal — trần cố định ở đây sẽ khiến modal tràn khung nhìn thay vì để danh sách co lại. */
 .options {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  max-height: 320px;
-  overflow-y: auto;
 }
 
 .option {
@@ -1445,12 +1445,16 @@ ol {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 14px;
-  align-items: start;
+  /* Không dùng align-items: start — mỗi panel sẽ cao theo nội dung riêng và lề dưới lệch nhau.
+     Để mặc định stretch, cột nào ngắn hơn sẽ giãn theo cột cao nhất. */
 }
 
-/* Danh sách rỗng vẫn giữ một khoảng cao tối thiểu, để modal không co giật khi ghi nhận lần đầu. */
+/* Danh sách rỗng vẫn giữ một khoảng cao tối thiểu, để modal không co giật khi ghi nhận lần đầu.
+   Chiếm trọn phần thân đã giãn và canh giữa, nếu không nó dính lên đầu và chừa một mảng trống dưới. */
 .day-panel__body--flush .state {
   min-height: 200px;
+  height: 100%;
+  justify-content: center;
 }
 
 .day-grid--single {
@@ -1458,13 +1462,22 @@ ol {
 }
 
 .day-panel {
+  display: flex;
+  flex-direction: column;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--surface);
+}
+
+/* Panel chứa danh sách là panel duy nhất được phép co lại: overflow ẩn nên chiều cao tối thiểu tự
+   động của nó bằng 0, phần dôi ra do bảng bên trong cuộn. Cột form giữ overflow mặc định nên chiều
+   cao tối thiểu của nó bằng nội dung — lưới không bao giờ ép nút "Ghi nhận" ra khỏi panel. */
+.day-panel--scroll {
   overflow: hidden;
 }
 
 .day-panel__header {
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -1479,7 +1492,11 @@ ol {
 }
 
 .day-panel__body {
+  flex: 1 1 auto;
+  min-height: 0;
   padding: 18px;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Bảng lịch sử tự có viền riêng nên phần thân không cần padding. */
@@ -1492,6 +1509,7 @@ ol {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  height: 100%;
 }
 
 .entry-form__fields {
@@ -1507,6 +1525,40 @@ ol {
   min-width: 0;
 }
 
+/* Nhãn trái, nút nhập nhanh phải. Nút cao 20px nên hàng vẫn bằng đúng chiều cao một nhãn trần —
+   ô nhập của hai cột giữ nguyên cùng một đường ngang. */
+.entry-form__label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+/* Chip thay vì nút chuẩn: nút .btn cao 36px sẽ đội hàng nhãn lên và tranh chấp thị giác với
+   "Ghi nhận" — đây chỉ là phím tắt điền số, không phải hành động chính. */
+.entry-form__max {
+  flex: 0 0 auto;
+  padding: 0 9px;
+  border: none;
+  border-radius: 999px;
+  background: var(--info-bg);
+  color: var(--primary);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 20px;
+  cursor: pointer;
+}
+
+.entry-form__max:hover:not(:disabled) {
+  background: rgba(31, 111, 235, 0.16);
+}
+
+.entry-form__max:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .entry-form__hints {
   display: flex;
   flex-direction: column;
@@ -1514,11 +1566,12 @@ ol {
   color: var(--text-muted);
 }
 
-/* Nút đẩy xuống đáy panel để hai cột có cùng chiều cao thị giác. */
+/* Nút nằm sát đáy panel: hai cột đã cao bằng nhau, hàng nút neo dưới cùng thay vì lửng lơ. */
 .entry-form__actions {
   display: flex;
   justify-content: flex-end;
-  margin-top: 12px;
+  margin-top: auto;
+  padding-top: 12px;
 }
 
 /* Ô nhập kèm đơn vị dính liền. */
@@ -1563,12 +1616,13 @@ ol {
 }
 
 /* Bảng lịch sử trong modal: viền ngoài đã do panel lo, nên bỏ viền của table-wrapper.
-   Chiều cao cố định + cuộn dọc: một ngày có thể có rất nhiều lần ghi nhận, và danh sách dài
-   không được phép kéo dài cả modal. */
+   Chiếm đúng phần chiều cao còn lại của panel rồi tự cuộn — một ngày có thể có rất nhiều lần ghi
+   nhận, và danh sách dài không được phép kéo dài cả modal. */
 .entry-history {
   border: none;
   border-radius: 0;
-  max-height: 296px;
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
 }
 
@@ -1704,26 +1758,34 @@ ol {
   }
 }
 
+/* Modal luôn nằm trọn trong khung nhìn: nền không cuộn, hộp thoại canh giữa và cao tối đa bằng
+   phần màn hình còn lại sau padding. Phần dài ra thì cuộn bên trong thân modal, không đẩy tiêu đề
+   hay hàng nút ra khỏi màn hình. */
 .modal-backdrop {
   position: fixed;
   inset: 0;
   background: rgba(16, 24, 40, 0.5);
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
-  padding: 48px 16px;
-  overflow-y: auto;
+  padding: 24px 16px;
+  overflow: hidden;
   z-index: 100;
 }
 
 .modal {
   width: 100%;
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   background: var(--surface);
   border-radius: var(--radius);
   box-shadow: 0 12px 40px rgba(16, 24, 40, 0.22);
 }
 
 .modal__header {
+  flex: 0 0 auto;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -1751,19 +1813,89 @@ ol {
   cursor: pointer;
 }
 
+/* Thân modal KHÔNG phải vùng cuộn của thiết kế: phần dôi ra được vùng danh sách bên trong hấp thụ
+   (xem .modal__body > .modal-scroll). overflow-y ở đây chỉ là van an toàn cho khung nhìn quá thấp —
+   thà cuộn còn hơn cắt cụt nội dung — chứ không phải cách cuộn thường ngày. */
 .modal__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
   padding: 18px;
   display: flex;
   flex-direction: column;
   gap: 14px;
 }
 
+/* Khối không phải danh sách giữ nguyên chiều cao tự nhiên: cho chúng co lại sẽ bóp méo bảng, tóm
+   tắt và form. Vùng danh sách là ngoại lệ, khai báo ngay bên dưới. */
+.modal__body > * {
+  flex-shrink: 0;
+}
+
 .modal__footer {
+  flex: 0 0 auto;
   display: flex;
   justify-content: flex-end;
   gap: 10px;
   padding: 14px 18px;
   border-top: 1px solid var(--border);
+}
+
+/* Danh sách dài trong modal tự cuộn, để thân modal không phải cuộn theo. Khi nằm lồng bên trong một
+   khối khác (ví dụ trong .notice) thì trần theo vh là đủ. */
+.modal-scroll {
+  max-height: min(320px, 38vh);
+  overflow-y: auto;
+}
+
+/* Là con trực tiếp của thân modal thì đây chính là vùng cuộn duy nhất: nó nhận đúng phần chiều cao
+   còn lại thay vì có trần cố định, nên tiêu đề, tóm tắt và hàng nút luôn đứng yên trong khung nhìn.
+   Không đặt min-height: nó sẽ phình vùng danh sách ra khi list chỉ có một hai dòng. Danh sách ngắn
+   giữ chiều cao tự nhiên vì lúc đó thân modal không dư chỗ để giãn thêm.
+   Cần chọn theo .modal__body để thắng .modal__body > * { flex-shrink: 0 } ở trên. */
+.modal__body > .modal-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none;
+}
+
+/* Danh sách phụ khi một modal có hai danh sách: giữ trần cố định thay vì cùng co giãn với danh sách
+   chính. Flex chia phần dôi ra theo tỉ lệ chiều cao, nên danh sách hai dòng sẽ bị bóp còn vài pixel
+   trong khi danh sách chính vẫn dài. */
+.modal__body > .modal-scroll--cap {
+  flex: 0 0 auto;
+  max-height: min(200px, 24vh);
+}
+
+/* Lưới hai cột của MH5 đóng vai vùng danh sách: nó co lại và bảng lịch sử bên trong cuộn. */
+.modal__body > .day-grid {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* Hàng tiêu đề dính lại khi cuộn. border-collapse làm mất viền dưới của ô sticky, nên vẽ lại
+   bằng inset shadow. */
+.modal-scroll thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  box-shadow: inset 0 -1px 0 var(--border);
+}
+
+/* Cuộn tới đầu/cuối một vùng bên trong modal thì dừng ở đó, không lan tiếp ra phần tử phía sau. */
+.modal-backdrop,
+.modal__body,
+.modal-scroll,
+.entry-history,
+.options {
+  overscroll-behavior: contain;
+}
+
+/* Màn hình hẹp: lấy lại khoảng lề của nền để modal còn chỗ thở theo chiều dọc. */
+@media (max-width: 900px) {
+  .modal-backdrop {
+    padding: 12px;
+  }
 }
 
 /* ---------- Cảnh báo / lịch sử ---------- */

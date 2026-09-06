@@ -132,7 +132,9 @@ export function ProductionDayDialog({
               </section>
             )}
 
-            <section className="day-panel">
+            {/* Panel này là vùng danh sách của modal: nó co lại theo chỗ còn trống và bảng bên
+                trong tự cuộn, để cột form bên cạnh không bao giờ bị cắt cụt. */}
+            <section className="day-panel day-panel--scroll">
               <header className="day-panel__header">
                 <h3 className="day-panel__title">Các lần đã ghi nhận trong ngày</h3>
                 {day.entries.length > 0 && (

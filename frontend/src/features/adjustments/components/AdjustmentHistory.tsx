@@ -109,7 +109,7 @@ export function AdjustmentHistory({ orderId, readOnly }: { orderId: string; read
               Phần bù {formatNumber(pendingReverse.shortageQuantity)} đôi sẽ được trừ khỏi kế hoạch của
               các ngày sau:
             </p>
-            <ul className="plain-list">
+            <ul className="plain-list modal-scroll">
               {pendingReverse.items.map((item) => (
                 <li key={item.productionPlanId}>
                   {formatDate(item.productionDate)}: −{formatNumber(item.addOnQuantity)} đôi
