@@ -15,9 +15,27 @@ public static class ErrorCodes
 
     // Đơn hàng
     public const string OrderNotFound = "ORDER_NOT_FOUND";
-    public const string OrderCodeAlreadyExists = "ORDER_CODE_ALREADY_EXISTS";
+    public const string ShoeCodeAlreadyExists = "SHOE_CODE_ALREADY_EXISTS";
     public const string OrderOverdue = "ORDER_OVERDUE";
+    public const string OrderNotDeletable = "ORDER_NOT_DELETABLE";
     public const string InitialPlanTotalMismatch = "INITIAL_PLAN_TOTAL_MISMATCH";
+
+    // Ảnh mẫu của đơn hàng (CR-001 §6.4, BR-N02, BR-N03)
+    public const string ImageNotFound = "IMAGE_NOT_FOUND";
+    public const string ImageTypeNotSupported = "IMAGE_TYPE_NOT_SUPPORTED";
+    public const string ImageTooLarge = "IMAGE_TOO_LARGE";
+
+    // Lập tiến độ (CR-001 §6.6, §6.10)
+    public const string OrderScheduleAlreadyExists = "ORDER_SCHEDULE_ALREADY_EXISTS";
+    public const string OrderNotScheduled = "ORDER_NOT_SCHEDULED";
+    public const string LineAllocationMismatch = "LINE_ALLOCATION_MISMATCH";
+    public const string LinePlanTotalMismatch = "LINE_PLAN_TOTAL_MISMATCH";
+
+    // Dây chuyền sản xuất
+    public const string ProductionLineNotFound = "PRODUCTION_LINE_NOT_FOUND";
+    public const string ProductionLineInactive = "PRODUCTION_LINE_INACTIVE";
+    public const string ProductionLineCodeAlreadyExists = "PRODUCTION_LINE_CODE_ALREADY_EXISTS";
+    public const string ProductionLineEmptyAllocation = "PRODUCTION_LINE_EMPTY_ALLOCATION";
 
     // Kế hoạch sản xuất
     public const string ProductionPlanNotFound = "PRODUCTION_PLAN_NOT_FOUND";
@@ -44,4 +62,7 @@ public static class ErrorCodes
     public const string SourceDayNotClosed = "SOURCE_DAY_NOT_CLOSED";
     public const string TargetDayClosed = "TARGET_DAY_CLOSED";
     public const string TargetDateInPast = "TARGET_DATE_IN_PAST";
+
+    /// <summary>Bù sản lượng chỉ được thực hiện trong phạm vi cùng một dây chuyền (CR-001 BR-N12).</summary>
+    public const string AdjustmentTargetLineMismatch = "ADJUSTMENT_TARGET_LINE_MISMATCH";
 }

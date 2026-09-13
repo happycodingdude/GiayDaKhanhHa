@@ -46,6 +46,18 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
     /// <summary>Ngày nghiệp vụ mà API nhìn thấy, để các luật phụ thuộc ngày là tất định.</summary>
     public DateOnly Today { get; private set; }
 
+    /// <summary>
+    /// Thư mục ảnh riêng của lần chạy test, xoá khi dispose. Để lộ ra để test kiểm được phía disk —
+    /// một lần lưu hỏng không được để lại file mồ côi.
+    /// </summary>
+    public string ImageStoragePath { get; } = Path.Combine(Path.GetTempPath(), $"pm_test_images_{Guid.NewGuid():N}");
+
+    /// <summary>Mọi file ảnh đang nằm trên disk của một đơn hàng. Tên file luôn bắt đầu bằng id đơn.</summary>
+    public string[] ImageFilesOf(Guid orderId)
+        => Directory.Exists(ImageStoragePath)
+            ? Directory.GetFiles(ImageStoragePath, $"{orderId:N}-*", SearchOption.AllDirectories)
+            : [];
+
     public async Task InitializeAsync()
     {
         await using (var connection = new NpgsqlConnection(AdminConnectionString))
@@ -70,6 +82,11 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         await using var command = new NpgsqlCommand(
             $"DROP DATABASE IF EXISTS \"{_databaseName}\" WITH (FORCE)", connection);
         await command.ExecuteNonQueryAsync();
+
+        if (Directory.Exists(ImageStoragePath))
+        {
+            Directory.Delete(ImageStoragePath, recursive: true);
+        }
     }
 
     protected override void ConfigureWebHost(Microsoft.AspNetCore.Hosting.IWebHostBuilder builder)
@@ -80,6 +97,7 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         builder.UseSetting("Bootstrap:DisplayName", "Tester");
         builder.UseSetting("Database:AutoMigrate", "true");
         builder.UseSetting("Business:TimeZone", "UTC");
+        builder.UseSetting("Storage:OrderImagesPath", ImageStoragePath);
     }
 
     /// <summary>Client đã đăng nhập. Cookie xác thực do cookie container của client mang theo.</summary>

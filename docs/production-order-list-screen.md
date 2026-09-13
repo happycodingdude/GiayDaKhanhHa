@@ -10,7 +10,7 @@ Mục tiêu:
 - Xem toàn bộ đơn hàng.
 - Phân biệt đơn chưa hoàn thành và đã hoàn thành.
 - Nhận biết đơn đang chậm tiến độ.
-- Xem tổng số lượng, đã hoàn thành, còn lại và deadline.
+- Xem tổng số lượng, đã hoàn thành, còn lại và ngày kết thúc.
 - Tìm nhanh theo mã đơn hàng.
 - Lọc theo trạng thái.
 - Mở nhanh Chi tiết đơn hàng.
@@ -47,11 +47,11 @@ Dashboard dùng để "nhìn nhanh và phát hiện vấn đề"; Danh sách đ�
 │                                                             │
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
-│ Mã đơn   Tổng SL   Đã làm   Còn lại   Deadline  Tiến độ    │
+│ Mã đơn   Tổng SL   Đã làm   Còn lại   Ngày kết thúc Tiến độ│
 │                                                             │
-│ ORD-001   1,000      760      240     15/08      76%       │
-│ ORD-002     800      800        0     14/08     100%       │
-│ ORD-003     500      300      200     18/08      60%       │
+│ ORD-001   1,000      760      240     15/08          76%   │
+│ ORD-002     800      800        0     14/08         100%   │
+│ ORD-003     500      300      200     18/08          60%   │
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -148,20 +148,20 @@ Các cột:
 | Tổng SL | Tổng số đôi cần hoàn thành |
 | Đã hoàn thành | Tổng sản lượng thực tế lũy kế |
 | Còn lại | Tổng SL - đã hoàn thành |
-| Deadline | Ngày cần hoàn thành |
+| Ngày kết thúc | Ngày cần hoàn thành |
 | Tiến độ | Tỷ lệ hoàn thành |
 | Tình trạng | Đúng tiến độ / Chậm / Hoàn thành |
 
 Ví dụ:
 
 ```text
-┌────────┬────────┬────────┬────────┬──────────┬─────────┬──────────┐
-│ Mã đơn │ Tổng   │ Đã làm │ Còn lại│ Deadline │ Tiến độ │ Tình trạng│
-├────────┼────────┼────────┼────────┼──────────┼─────────┼──────────┤
-│ORD-001 │ 1,000  │ 760    │ 240    │ 15/08    │ 76%     │ 🔴 Chậm  │
-│ORD-002 │ 800    │ 800    │ 0      │ 14/08    │ 100%    │ ✓ Xong   │
-│ORD-003 │ 500    │ 300    │ 200    │ 18/08    │ 60%     │ 🟢 Đúng  │
-└────────┴────────┴────────┴────────┴──────────┴─────────┴──────────┘
+┌────────┬────────┬────────┬────────┬───────────────┬─────────┬──────────┐
+│ Mã đơn │ Tổng   │ Đã làm │ Còn lại│ Ngày kết thúc │ Tiến độ │ Tình trạng│
+├────────┼────────┼────────┼────────┼───────────────┼─────────┼──────────┤
+│ORD-001 │ 1,000  │ 760    │ 240    │ 15/08         │ 76%     │ 🔴 Chậm  │
+│ORD-002 │ 800    │ 800    │ 0      │ 14/08         │ 100%    │ ✓ Xong   │
+│ORD-003 │ 500    │ 300    │ 200    │ 18/08         │ 60%     │ 🟢 Đúng  │
+└────────┴────────┴────────┴────────┴───────────────┴─────────┴──────────┘
 ```
 
 ---
@@ -445,7 +445,7 @@ Màn hình đạt yêu cầu khi quản lý có thể:
 3. Biết đơn nào đang chậm.
 4. Biết mỗi đơn đã hoàn thành bao nhiêu.
 5. Biết còn bao nhiêu.
-6. Biết deadline.
+6. Biết ngày kết thúc.
 7. Tìm nhanh theo mã đơn.
 8. Lọc theo trạng thái.
 9. Mở chi tiết đơn bằng một thao tác.

@@ -4,15 +4,19 @@ using ProductionManagement.Domain;
 
 namespace ProductionManagement.Application.Common;
 
+/// <summary>Khoá của một ô sản xuất: ngày × dây chuyền (CR-001 §2 QĐ-3).</summary>
+public readonly record struct CellKey(DateOnly ProductionDate, Guid ProductionLineId);
+
 /// <summary>
-/// Sản lượng của một ngày là tổng các lần ghi nhận chưa xoá, không phải một cột đọc thẳng ra được.
+/// Sản lượng của một ô là tổng các lần ghi nhận chưa xoá, không phải một cột đọc thẳng ra được.
 /// Gom cách tính đó về một chỗ để mọi màn hình (chi tiết đơn, thống kê, dashboard) không thể lệch
-/// nhau — nhất là ở điểm dễ sai nhất: ngày còn mở có sản lượng tạm tính nhưng KHÔNG có phần thiếu
+/// nhau — nhất là ở điểm dễ sai nhất: ô còn mở có sản lượng tạm tính nhưng KHÔNG có phần thiếu
 /// (CR-01 §4.5, §14.8).
 /// </summary>
 public sealed record ProductionDaySnapshot(
     Guid Id,
     Guid OrderId,
+    Guid ProductionLineId,
     DateOnly ProductionDate,
     ProductionDayStatus Status,
     int ActualQuantity,
@@ -22,14 +26,16 @@ public sealed record ProductionDaySnapshot(
 {
     public bool IsClosed => Status == ProductionDayStatus.Closed;
 
-    /// <summary>Ảnh chụp sản lượng chính thức. Null khi ngày còn mở — phần thiếu bám theo giá trị này.</summary>
+    public CellKey Key => new(ProductionDate, ProductionLineId);
+
+    /// <summary>Ảnh chụp sản lượng chính thức. Null khi ô còn mở — phần thiếu bám theo giá trị này.</summary>
     public int? ClosedActualQuantity => IsClosed ? ActualQuantity : null;
 }
 
 public static class ProductionDayQueries
 {
     /// <summary>
-    /// Trạng thái hiển thị của một ngày, suy ra chứ không lưu — một khoản bù làm kế hoạch từ 0 thành
+    /// Trạng thái hiển thị của một ô, suy ra chứ không lưu — một khoản bù làm kế hoạch từ 0 thành
     /// 40 sẽ khiến trạng thái lưu cứng lệch ngay (CR-01 §4.3, §14.3).
     /// Thứ tự kiểm tra quan trọng: NoPlan xét trước NotStarted.
     /// </summary>
@@ -70,11 +76,12 @@ public static class ProductionDayQueries
             .Select(d => new ProductionDaySnapshot(
                 d.Id,
                 d.OrderId,
+                d.ProductionLineId,
                 d.ProductionDate,
                 d.Status,
-                // Ngày đã đóng dùng ảnh chụp, ngày còn mở cộng sống các lần ghi nhận. Hai giá trị
-                // này bằng nhau với ngày đã đóng, nhưng đọc ảnh chụp là rẻ hơn và đúng theo định
-                // nghĩa "bất biến sau khi đóng".
+                // Ô đã đóng dùng ảnh chụp, ô còn mở cộng sống các lần ghi nhận. Hai giá trị này bằng
+                // nhau với ô đã đóng, nhưng đọc ảnh chụp là rẻ hơn và đúng theo định nghĩa
+                // "bất biến sau khi đóng".
                 d.ActualQuantity ?? d.Entries.Sum(e => (int?)e.Quantity) ?? 0,
                 d.ClosedAt,
                 d.Entries.OrderByDescending(e => e.RecordedAt).Select(e => (DateTimeOffset?)e.RecordedAt).FirstOrDefault(),

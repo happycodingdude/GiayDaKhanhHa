@@ -1,8 +1,9 @@
 namespace ProductionManagement.Domain.Entities;
 
 /// <summary>
-/// Kế hoạch của một ngày sản xuất. <see cref="InitialPlannedQuantity"/> là bất biến;
-/// <see cref="PlannedQuantity"/> là kế hoạch hiện tại sau các điều chỉnh bù (Step 1 §4).
+/// Kế hoạch của một ô sản xuất — một ngày trên một dây chuyền (CR-001 §2 QĐ-3).
+/// <see cref="InitialPlannedQuantity"/> là bất biến; <see cref="PlannedQuantity"/> là kế hoạch hiện
+/// tại sau các điều chỉnh bù (Step 1 §4).
 /// </summary>
 public sealed class ProductionPlan
 {
@@ -11,18 +12,22 @@ public sealed class ProductionPlan
     public Guid Id { get; private set; }
     public Guid OrderId { get; private set; }
     public Order Order { get; private set; } = null!;
+    public Guid ProductionLineId { get; private set; }
+    public ProductionLine ProductionLine { get; private set; } = null!;
     public DateOnly ProductionDate { get; private set; }
     public int InitialPlannedQuantity { get; private set; }
     public int PlannedQuantity { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
     public DateTimeOffset UpdatedAt { get; private set; }
 
-    internal static ProductionPlan Create(Order order, DateOnly productionDate, int plannedQuantity, DateTimeOffset now)
+    internal static ProductionPlan Create(
+        Order order, Guid productionLineId, DateOnly productionDate, int plannedQuantity, DateTimeOffset now)
     {
         return new ProductionPlan
         {
             Id = Guid.CreateVersion7(),
             Order = order,
+            ProductionLineId = productionLineId,
             ProductionDate = productionDate,
             InitialPlannedQuantity = plannedQuantity,
             PlannedQuantity = plannedQuantity,

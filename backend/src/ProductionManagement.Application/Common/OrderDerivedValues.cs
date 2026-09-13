@@ -18,41 +18,67 @@ public sealed record OrderDerivedValues(
     bool IsOverdue,
     bool IsPastDueDate);
 
+/// <summary>Một ô kế hoạch: ngày × dây chuyền (CR-001 §2 QĐ-3).</summary>
+public readonly record struct PlanCell(
+    DateOnly ProductionDate, Guid ProductionLineId, int PlannedQuantity, int InitialPlannedQuantity);
+
+/// <summary>Sản lượng của một ô sản xuất. <c>IsClosed</c> = ô đã Xuất hàng.</summary>
+public readonly record struct ActualCell(
+    DateOnly ProductionDate, Guid ProductionLineId, int ActualQuantity, bool IsClosed);
+
 public static class OrderDerivedCalculator
 {
     /// <summary>
     /// Tính toàn bộ giá trị suy ra của đơn hàng từ dữ liệu gốc.
     /// </summary>
-    /// <param name="plans">(ProductionDate, PlannedQuantity, InitialPlannedQuantity) của đơn hàng.</param>
-    /// <param name="days">
-    /// (ProductionDate, ActualQuantity, IsClosed) của các ngày sản xuất đã có dữ liệu.
-    /// <c>ActualQuantity</c> là tổng các lần ghi nhận chưa xoá — bao gồm cả ngày còn mở, nên
-    /// <c>TotalActual</c> là số tạm tính cho tới khi ngày cuối được Xuất hàng (CR-01 §4.5, §6.9).
+    /// <param name="dueDate">
+    /// Null với đơn chưa lập tiến độ: chưa có ngày kết thúc thì không có "còn bao nhiêu ngày", không
+    /// trễ, và không bị đóng băng (CR-001 BR-N04).
+    /// </param>
+    /// <param name="cells">Các ô kế hoạch của đơn hàng.</param>
+    /// <param name="actuals">
+    /// Sản lượng của các ô đã có dữ liệu. <c>ActualQuantity</c> là tổng các lần ghi nhận chưa xoá —
+    /// bao gồm cả ô còn mở, nên <c>TotalActual</c> là số tạm tính cho tới khi ô cuối được Xuất hàng
+    /// (CR-01 §4.5, §6.9).
     /// </param>
     public static OrderDerivedValues Compute(
         int orderQuantity,
         OrderStatus orderStatus,
-        DateOnly dueDate,
-        IReadOnlyCollection<(DateOnly ProductionDate, int PlannedQuantity, int InitialPlannedQuantity)> plans,
-        IReadOnlyCollection<(DateOnly ProductionDate, int ActualQuantity, bool IsClosed)> days,
+        DateOnly? dueDate,
+        IReadOnlyCollection<PlanCell> cells,
+        IReadOnlyCollection<ActualCell> actuals,
         DateOnly today)
     {
-        var totalActual = days.Sum(d => d.ActualQuantity);
-        var totalPlan = plans.Sum(p => p.PlannedQuantity);
-        var totalInitialPlan = plans.Sum(p => p.InitialPlannedQuantity);
+        var totalActual = actuals.Sum(d => d.ActualQuantity);
+        var totalPlan = cells.Sum(p => p.PlannedQuantity);
+        var totalInitialPlan = cells.Sum(p => p.InitialPlannedQuantity);
 
-        // "Chậm tiến độ" so sánh kế hoạch lũy kế với thực tế lũy kế trên những ngày sản xuất đã tới
-        // hạn (master summary §5). Đây chủ đích không phải là một trạng thái đơn hàng
+        // "Chậm tiến độ" so sánh kế hoạch lũy kế với thực tế lũy kế trên những ô sản xuất đã tới hạn
+        // (master summary §5). Đây chủ đích không phải là một trạng thái đơn hàng
         // (order list spec §5).
         //
-        // Hôm nay chỉ được tính khi đã Xuất hàng: sản lượng của ngày còn mở là số tạm tính và còn
+        // Hôm nay chỉ được tính khi ô đó đã Xuất hàng: sản lượng của ô còn mở là số tạm tính và còn
         // tăng tiếp, nên đơn hàng không bị coi là trễ vì sản lượng chưa chốt sổ. Không có điều này
         // thì sáng nào đơn hàng cũng hiện "chậm", làm cảnh báo mất sạch ý nghĩa (CR-01 §4.5).
-        var closedToday = days.Any(d => d.ProductionDate == today && d.IsClosed);
-        bool IsDue(DateOnly date) => date < today || (date == today && closedToday);
+        //
+        // Xét theo từng ô chứ không theo cả ngày: dây chuyền A đã xuất hàng hôm nay thì phần của nó
+        // được tính, dây chuyền B chưa xuất thì chưa (CR-001 §2 QĐ-3).
+        var closedToday = actuals
+            .Where(d => d.ProductionDate == today && d.IsClosed)
+            .Select(d => d.ProductionLineId)
+            .ToHashSet();
 
-        var cumulativePlanToDate = plans.Where(p => IsDue(p.ProductionDate)).Sum(p => p.PlannedQuantity);
-        var cumulativeActualToDate = days.Where(d => IsDue(d.ProductionDate)).Sum(d => d.ActualQuantity);
+        bool IsDue(DateOnly date, Guid lineId)
+            => date < today || (date == today && closedToday.Contains(lineId));
+
+        var cumulativePlanToDate = cells
+            .Where(p => IsDue(p.ProductionDate, p.ProductionLineId))
+            .Sum(p => p.PlannedQuantity);
+
+        var cumulativeActualToDate = actuals
+            .Where(d => IsDue(d.ProductionDate, d.ProductionLineId))
+            .Sum(d => d.ActualQuantity);
+
         var behindQuantity = ProductionCalculations.BehindScheduleQuantity(cumulativePlanToDate, cumulativeActualToDate);
 
         var scheduleStatus = orderStatus == OrderStatus.Completed
@@ -61,8 +87,7 @@ public static class OrderDerivedCalculator
                 ? ScheduleStatus.Behind
                 : ScheduleStatus.OnSchedule;
 
-        var daysRemaining = Math.Max(dueDate.DayNumber - today.DayNumber, 0);
-        var isOverdue = Order.IsOverdue(orderStatus, dueDate, today);
+        var daysRemaining = dueDate is null ? 0 : Math.Max(dueDate.Value.DayNumber - today.DayNumber, 0);
 
         return new OrderDerivedValues(
             TotalActual: totalActual,
@@ -73,7 +98,7 @@ public static class OrderDerivedCalculator
             ScheduleStatus: scheduleStatus,
             BehindQuantity: behindQuantity,
             DaysRemaining: daysRemaining,
-            IsOverdue: isOverdue,
+            IsOverdue: Order.IsOverdue(orderStatus, dueDate, today),
             // Không giống IsOverdue: đơn đã hoàn thành thì không trễ, nhưng kỳ sản xuất của nó vẫn
             // kết thúc và dữ liệu vẫn bị đóng băng y như vậy.
             IsPastDueDate: Order.IsPastDueDate(dueDate, today));

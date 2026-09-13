@@ -19,9 +19,15 @@ public sealed record ApplyAdjustmentRequest(
     int ShortageQuantity,
     IReadOnlyList<AdjustmentTargetRequest>? Targets);
 
+/// <summary>
+/// Một ô đích của đề xuất bù. Dây chuyền được trả kèm để UI nói rõ đang bù trên dây chuyền nào —
+/// mọi ô ở đây luôn cùng một dây chuyền với ô nguồn (CR-001 §6.8, BR-N12).
+/// </summary>
 public sealed record AdjustmentPreviewItemDto(
     Guid ProductionPlanId,
     DateOnly ProductionDate,
+    Guid ProductionLineId,
+    string ProductionLineName,
     int CurrentPlannedQuantity,
     int AddOnQuantity,
     int PlannedQuantityAfter);
@@ -29,6 +35,9 @@ public sealed record AdjustmentPreviewItemDto(
 public sealed record AdjustmentPreviewDto(
     Guid SourceProductionPlanId,
     DateOnly SourceProductionDate,
+    Guid ProductionLineId,
+    string ProductionLineCode,
+    string ProductionLineName,
     int SourcePlannedQuantity,
     int? SourceActualQuantity,
     int ShortageQuantity,
@@ -43,6 +52,9 @@ public sealed record PlanAdjustmentItemDto(
     Guid ProductionPlanId,
     DateOnly ProductionDate,
     int AddOnQuantity);
+
+/// <summary>Bù sản lượng luôn nằm gọn trong một dây chuyền, nên nó là thuộc tính của cả lần bù.</summary>
+public sealed record AdjustmentLineDto(Guid Id, string Code, string Name);
 
 /// <summary>
 /// Điều gì đã xảy ra với điều chỉnh đang hiệu lực của ngày nguồn khi sản lượng thực tế bị sửa.
@@ -79,6 +91,7 @@ public sealed record PlanAdjustmentDto(
     Guid Id,
     Guid SourceProductionPlanId,
     DateOnly SourceProductionDate,
+    AdjustmentLineDto ProductionLine,
     int ShortageQuantity,
     string AdjustmentType,
     string Status,

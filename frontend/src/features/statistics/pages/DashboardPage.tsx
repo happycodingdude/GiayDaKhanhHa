@@ -8,7 +8,7 @@ import { useDashboardStatistics } from '../hooks/useStatistics'
 
 /**
  * Dashboard gồm đúng hai khối: số tổng toàn hệ thống, rồi timeline các đơn hàng đang theo dõi.
- * Mọi thao tác lên một ngày sản xuất đều nằm ở màn hình chi tiết đơn hàng, nên dashboard chỉ để
+ * Mọi thao tác lên một ô sản xuất đều nằm ở màn hình chi tiết tiến độ, nên dashboard chỉ để
  * nhìn — không phải nơi bắt đầu một hành động.
  */
 export function DashboardPage() {
@@ -37,7 +37,7 @@ export function DashboardPage() {
 
   const data = query.data
   const openOrder = (orderId: string) =>
-    navigate({ to: '/orders/$orderId', params: { orderId: String(orderId) } })
+    navigate({ to: '/progress/$orderId', params: { orderId: String(orderId) } })
 
   return (
     <div className="page">
@@ -46,8 +46,8 @@ export function DashboardPage() {
           <h1 className="page__title">Dashboard</h1>
           <p className="page__subtitle">Tình hình sản xuất ngày {formatDate(data.date)}</p>
         </div>
-        <Link to="/orders/new">
-          <Button variant="primary">+ Tạo đơn hàng</Button>
+        <Link to="/goods-receipt/new">
+          <Button variant="primary">+ Nhập hàng</Button>
         </Link>
       </header>
 
@@ -55,10 +55,10 @@ export function DashboardPage() {
         <Card>
           <EmptyState
             title="Chưa có đơn hàng"
-            description="Tạo đơn hàng đầu tiên để bắt đầu theo dõi sản xuất."
+            description="Nhập lô hàng đầu tiên để bắt đầu theo dõi sản xuất."
             action={
-              <Link to="/orders/new">
-                <Button variant="primary">+ Tạo đơn hàng</Button>
+              <Link to="/goods-receipt/new">
+                <Button variant="primary">+ Nhập hàng</Button>
               </Link>
             }
           />

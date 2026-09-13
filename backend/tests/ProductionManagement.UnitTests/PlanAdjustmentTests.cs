@@ -103,9 +103,10 @@ public class ProductionPlanAddOnTests
 
     private static ProductionPlan PlanOf(int quantity)
     {
-        var order = Order.Create(
-            "ORD-001", quantity, new DateOnly(2026, 8, 13), new DateOnly(2026, 8, 13),
-            [(new DateOnly(2026, 8, 13), quantity)], Now);
+        var date = new DateOnly(2026, 8, 13);
+        var order = Order.Receive("SH-2026-001", quantity, Now);
+
+        order.Schedule(date, date, [new ScheduleLine(TestIds.Of(1), quantity, [(date, quantity)])], Now);
 
         return order.ProductionPlans.Single();
     }

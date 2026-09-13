@@ -1,9 +1,11 @@
 namespace ProductionManagement.Domain.Services;
 
 /// <summary>
-/// Option 2 — chia đều toàn bộ phần thiếu cho mọi ngày sản xuất còn lại.
+/// Option 2 — chia đều toàn bộ phần thiếu cho mọi ô sản xuất còn lại CỦA CÙNG MỘT DÂY CHUYỀN.
+/// Danh sách ứng viên do bên gọi lọc theo dây chuyền; ở đây chỉ còn thuần bài toán chia đều
+/// (CR-001 BR-N13).
 /// Khi phần thiếu chia không hết, phần dư được cộng mỗi lần một đơn vị, bắt đầu từ ngày gần nhất
-/// (Option 2 spec §4.5).
+/// (Option 2 spec §4.5, CR-001 §6.6b).
 /// </summary>
 public sealed class EvenDistributionAllocationStrategy : IAutomaticAllocationStrategy
 {
@@ -24,13 +26,13 @@ public sealed class EvenDistributionAllocationStrategy : IAutomaticAllocationStr
 
         var ordered = candidates.OrderBy(c => c.ProductionDate).ThenBy(c => c.ProductionPlanId).ToList();
 
-        var baseShare = shortageQuantity / ordered.Count;
-        var remainder = shortageQuantity % ordered.Count;
+        // Cùng một quy tắc chia dư với hai tầng phân bổ khi lập tiến độ (CR-001 §6.6b).
+        var shares = EvenDistribution.Split(shortageQuantity, ordered.Count);
 
         var results = new List<AllocationResult>(ordered.Count);
         for (var i = 0; i < ordered.Count; i++)
         {
-            var addOn = baseShare + (i < remainder ? 1 : 0);
+            var addOn = shares[i];
 
             // add_on_quantity > 0 là ràng buộc CHECK của database, nên những ngày không nhận được gì
             // đơn giản là không nằm trong đề xuất.

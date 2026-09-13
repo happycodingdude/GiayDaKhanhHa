@@ -25,6 +25,7 @@ public sealed class ProductionDayConfiguration : IEntityTypeConfiguration<Produc
         builder.Property(d => d.Id).HasColumnName("id").ValueGeneratedNever();
 
         builder.Property(d => d.OrderId).HasColumnName("order_id").IsRequired();
+        builder.Property(d => d.ProductionLineId).HasColumnName("production_line_id").IsRequired();
         builder.Property(d => d.ProductionDate).HasColumnName("production_date").HasColumnType("date").IsRequired();
 
         // varchar + CHECK thay vì enum gốc của PostgreSQL (Step 3 §5).
@@ -39,10 +40,13 @@ public sealed class ProductionDayConfiguration : IEntityTypeConfiguration<Produc
         builder.Property(d => d.CreatedAt).HasColumnName("created_at").IsRequired();
         builder.Property(d => d.UpdatedAt).HasColumnName("updated_at").IsRequired();
 
-        // Vẫn đúng một dòng cho mỗi đơn hàng mỗi ngày; điều đổi là ngày nay chứa N lần ghi nhận.
-        builder.HasIndex(d => new { d.OrderId, d.ProductionDate })
+        // Đúng một dòng cho mỗi ô (đơn hàng, ngày, dây chuyền); mỗi ô chứa N lần ghi nhận
+        // (CR-001 §5.5, BR-N09).
+        builder.HasIndex(d => new { d.OrderId, d.ProductionDate, d.ProductionLineId })
             .IsUnique()
-            .HasDatabaseName("uq_production_days_order_date");
+            .HasDatabaseName("uq_production_days_order_date_line");
+
+        builder.HasIndex(d => d.ProductionLineId).HasDatabaseName("ix_production_days_line");
 
         builder.HasIndex(d => new { d.Status, d.ProductionDate })
             .HasDatabaseName("ix_production_days_status_date");
@@ -51,6 +55,12 @@ public sealed class ProductionDayConfiguration : IEntityTypeConfiguration<Produc
             .WithMany(o => o.ProductionDays)
             .HasForeignKey(d => d.OrderId)
             .HasConstraintName("fk_production_days_order")
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(d => d.ProductionLine)
+            .WithMany()
+            .HasForeignKey(d => d.ProductionLineId)
+            .HasConstraintName("fk_production_days_line")
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasMany(d => d.Entries)

@@ -9,10 +9,33 @@ public enum UserStatus
     Inactive
 }
 
+/// <summary>
+/// Vòng đời đơn hàng sau CR-001: nhập hàng xong là <c>Pending</c> (chưa lập tiến độ), lập tiến độ
+/// xong chuyển <c>Incomplete</c>, đủ sản lượng thì <c>Completed</c>. Không bao giờ quay lại
+/// <c>Pending</c> (CR-001 §4.1).
+/// </summary>
 public enum OrderStatus
 {
+    Pending,
     Incomplete,
     Completed
+}
+
+/// <summary>Dây chuyền không xoá cứng, chỉ bật/tắt (CR-001 §2 QĐ-9).</summary>
+public enum ProductionLineStatus
+{
+    Active,
+    Inactive
+}
+
+/// <summary>
+/// Cách quản lý phân bổ số lượng đơn cho các dây chuyền ở tầng 1. Chỉ là công cụ nhập liệu phía UI,
+/// không lưu vào database — backend luôn validate con số thật được gửi lên (CR-001 BR-N16, §6.6).
+/// </summary>
+public enum AllocationMode
+{
+    Even,
+    Manual
 }
 
 /// <summary>Vòng đời của một ngày sản xuất. Close là một chiều — không có reopen (CR-01 N-06).</summary>

@@ -9,6 +9,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
 {
     public DbSet<User> Users => Set<User>();
     public DbSet<Order> Orders => Set<Order>();
+    public DbSet<ProductionLine> ProductionLines => Set<ProductionLine>();
+    public DbSet<OrderProductionLine> OrderProductionLines => Set<OrderProductionLine>();
     public DbSet<ProductionPlan> ProductionPlans => Set<ProductionPlan>();
     public DbSet<ProductionDay> ProductionDays => Set<ProductionDay>();
     public DbSet<ProductionEntry> ProductionEntries => Set<ProductionEntry>();

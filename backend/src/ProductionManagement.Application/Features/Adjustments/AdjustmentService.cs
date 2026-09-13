@@ -38,6 +38,8 @@ public sealed class AdjustmentService(
         OrderMutationGuard.EnsureEditable(order, clock.Today);
         GuardOrderNotCompleted(order);
 
+        var line = await GetLineAsync(source.ProductionLineId, ct);
+
         var (shortage, actual) = await GetShortageAsync(source, ct);
         if (shortage <= 0)
         {
@@ -48,7 +50,7 @@ public sealed class AdjustmentService(
         await GuardNoActiveAdjustmentAsync(source.Id, ct);
 
         var candidates = await GetEligibleTargetsAsync(source, ct);
-        var closedDates = await GetClosedDatesAsync(source.OrderId, ct);
+        var closedDates = await GetClosedDatesOnLineAsync(source.OrderId, source.ProductionLineId, ct);
         var allPlans = await db.ProductionPlans.AsNoTracking()
             .Where(p => p.OrderId == source.OrderId)
             .ToListAsync(ct);
@@ -92,12 +94,16 @@ public sealed class AdjustmentService(
 
         var items = proposal
             .OrderBy(p => p.Date)
-            .Select(p => new AdjustmentPreviewItemDto(p.PlanId, p.Date, p.Current, p.AddOn, p.Current + p.AddOn))
+            .Select(p => new AdjustmentPreviewItemDto(
+                p.PlanId, p.Date, line.Id, line.Name, p.Current, p.AddOn, p.Current + p.AddOn))
             .ToList();
 
         return new AdjustmentPreviewDto(
             SourceProductionPlanId: source.Id,
             SourceProductionDate: source.ProductionDate,
+            ProductionLineId: line.Id,
+            ProductionLineCode: line.Code,
+            ProductionLineName: line.Name,
             SourcePlannedQuantity: source.PlannedQuantity,
             SourceActualQuantity: actual,
             ShortageQuantity: shortage,
@@ -156,7 +162,7 @@ public sealed class AdjustmentService(
         await GuardNoActiveAdjustmentAsync(source.Id, ct);
 
         var candidates = await GetEligibleTargetsAsync(source, ct);
-        var closedDates = await GetClosedDatesAsync(source.OrderId, ct);
+        var closedDates = await GetClosedDatesOnLineAsync(source.OrderId, source.ProductionLineId, ct);
         var allPlans = await db.ProductionPlans.AsNoTracking()
             .Where(p => p.OrderId == source.OrderId)
             .ToListAsync(ct);
@@ -306,9 +312,15 @@ public sealed class AdjustmentService(
             .Distinct()
             .ToList();
 
-        var planDates = await db.ProductionPlans.AsNoTracking()
+        var planInfo = await db.ProductionPlans.AsNoTracking()
             .Where(p => planIds.Contains(p.Id))
-            .ToDictionaryAsync(p => p.Id, p => p.ProductionDate, ct);
+            .Select(p => new
+            {
+                p.Id,
+                p.ProductionDate,
+                Line = new AdjustmentLineDto(p.ProductionLineId, p.ProductionLine.Code, p.ProductionLine.Name),
+            })
+            .ToDictionaryAsync(p => p.Id, ct);
 
         var userIds = adjustments
             .SelectMany(a => new[] { (Guid?)a.CreatedBy, a.AppliedBy, a.ReversedBy })
@@ -330,13 +342,19 @@ public sealed class AdjustmentService(
             .Select(a => new PlanAdjustmentDto(
                 a.Id,
                 a.SourceProductionPlanId,
-                planDates.GetValueOrDefault(a.SourceProductionPlanId),
+                planInfo.GetValueOrDefault(a.SourceProductionPlanId)?.ProductionDate ?? default,
+                // Mọi ô của một lần bù luôn cùng một dây chuyền, nên dây chuyền của ô nguồn là dây
+                // chuyền của cả lần bù (CR-001 BR-N12).
+                planInfo.GetValueOrDefault(a.SourceProductionPlanId)?.Line
+                    ?? new AdjustmentLineDto(Guid.Empty, "—", "—"),
                 a.ShortageQuantity,
                 a.AdjustmentType.ToString(),
                 a.Status.ToString(),
                 a.Items
                     .Select(i => new PlanAdjustmentItemDto(
-                        i.ProductionPlanId, planDates.GetValueOrDefault(i.ProductionPlanId), i.AddOnQuantity))
+                        i.ProductionPlanId,
+                        planInfo.GetValueOrDefault(i.ProductionPlanId)?.ProductionDate ?? default,
+                        i.AddOnQuantity))
                     .OrderBy(i => i.ProductionDate)
                     .ToList(),
                 userNames.GetValueOrDefault(a.CreatedBy, "—"),
@@ -355,7 +373,9 @@ public sealed class AdjustmentService(
     private async Task<(int Shortage, int Actual)> GetShortageAsync(ProductionPlan source, CancellationToken ct)
     {
         var day = await db.ProductionDays.AsNoTracking()
-            .Where(d => d.OrderId == source.OrderId && d.ProductionDate == source.ProductionDate)
+            .Where(d => d.OrderId == source.OrderId
+                        && d.ProductionDate == source.ProductionDate
+                        && d.ProductionLineId == source.ProductionLineId)
             .Select(d => new { d.Status, d.ActualQuantity })
             .FirstOrDefaultAsync(ct);
 
@@ -363,19 +383,30 @@ public sealed class AdjustmentService(
         {
             throw new BusinessRuleException(
                 ErrorCodes.SourceDayNotClosed,
-                "This production day has not been closed yet, so it has no confirmed shortage to handle.");
+                "This production cell has not been closed yet, so it has no confirmed shortage to handle.");
         }
 
         var actual = day.ActualQuantity!.Value;
         return (Math.Max(source.PlannedQuantity - actual, 0), actual);
     }
 
-    /// <summary>Các ngày của đơn hàng đã Xuất hàng — không ngày nào trong số đó nhận được khoản bù.</summary>
-    private async Task<List<DateOnly>> GetClosedDatesAsync(Guid orderId, CancellationToken ct)
+    /// <summary>
+    /// Các ngày ĐÃ Xuất hàng của một dây chuyền — không ngày nào trong số đó nhận được khoản bù.
+    /// Lọc theo dây chuyền là bắt buộc: cùng một ngày, dây chuyền A có thể đã đóng còn dây chuyền B
+    /// thì chưa (CR-001 §2 QĐ-3).
+    /// </summary>
+    private async Task<List<DateOnly>> GetClosedDatesOnLineAsync(
+        Guid orderId, Guid productionLineId, CancellationToken ct)
         => await db.ProductionDays.AsNoTracking()
-            .Where(d => d.OrderId == orderId && d.Status == ProductionDayStatus.Closed)
+            .Where(d => d.OrderId == orderId
+                        && d.ProductionLineId == productionLineId
+                        && d.Status == ProductionDayStatus.Closed)
             .Select(d => d.ProductionDate)
             .ToListAsync(ct);
+
+    private async Task<ProductionLine> GetLineAsync(Guid productionLineId, CancellationToken ct)
+        => await db.ProductionLines.AsNoTracking().FirstOrDefaultAsync(l => l.Id == productionLineId, ct)
+           ?? throw new NotFoundException(ErrorCodes.ProductionLineNotFound, "Production line was not found.");
 
     /// <summary>
     /// Đơn đã hoàn thành thì phần thiếu còn lại không cần xử lý nữa: các ngày phía sau chỉ còn chờ
@@ -407,26 +438,27 @@ public sealed class AdjustmentService(
     }
 
     /// <summary>
-    /// Các kế hoạch được nhận khoản bù: nằm sau ngày thiếu và không thuộc quá khứ. Điều chỉnh một
-    /// ngày đã qua là viết lại lịch sử (master summary §8 Rule 7, §11).
+    /// Các ô được nhận khoản bù: cùng dây chuyền với ô nguồn, nằm sau ngày thiếu và không thuộc quá
+    /// khứ. Điều chỉnh một ngày đã qua là viết lại lịch sử (master summary §8 Rule 7, §11);
+    /// bù sang dây chuyền khác bị cấm ở Phase này (CR-001 BR-N12).
     /// </summary>
     private async Task<List<ProductionPlan>> GetEligibleTargetsAsync(ProductionPlan source, CancellationToken ct)
     {
-        var closedDates = await GetClosedDatesAsync(source.OrderId, ct);
+        var closedDates = await GetClosedDatesOnLineAsync(source.OrderId, source.ProductionLineId, ct);
 
         var candidates = await db.ProductionPlans.AsNoTracking()
             .Where(AdjustmentRules.EligibleTarget(
-                source.OrderId, source.Id, source.ProductionDate, clock.Today, closedDates))
+                source.OrderId, source.Id, source.ProductionLineId, source.ProductionDate, clock.Today, closedDates))
             .OrderBy(p => p.ProductionDate)
             .ToListAsync(ct);
 
-        // Trường hợp biên mới do CR-01 tạo ra: ngày cuối của đơn bị thiếu và không còn ngày nào
-        // phía sau chưa đóng (CR-01 §6.7, AC-15).
+        // Trường hợp biên: ngày cuối của dây chuyền bị thiếu và không còn ô nào phía sau chưa đóng
+        // TRÊN CHÍNH DÂY CHUYỀN ĐÓ (CR-01 §6.7 AC-15, CR-001 BR-N12).
         if (candidates.Count == 0)
         {
             throw new BusinessRuleException(
                 ErrorCodes.NoEligibleTargetDay,
-                "There is no remaining production day that can absorb this shortage.");
+                "This production line has no remaining production day that can absorb the shortage.");
         }
 
         return candidates;
@@ -467,8 +499,12 @@ public sealed class AdjustmentService(
                 }
 
                 var rejection = AdjustmentRules.RejectionFor(
+                    plan.ProductionLineId, source.ProductionLineId,
                     plan.ProductionDate, source.ProductionDate, clock.Today,
-                    closedDates.Contains(plan.ProductionDate));
+                    // closedDates chỉ chứa ngày của dây chuyền nguồn, nên chỉ tra cứu được khi ô
+                    // đích cùng dây chuyền — trường hợp khác dây chuyền đã bị RejectionFor bắt trước.
+                    plan.ProductionLineId == source.ProductionLineId
+                    && closedDates.Contains(plan.ProductionDate));
 
                 return rejection ?? (ErrorCodes.InvalidAdjustmentTarget,
                     "A selected production day cannot receive this add-on.");

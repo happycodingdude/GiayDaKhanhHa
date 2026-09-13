@@ -56,10 +56,13 @@ export function AdjustmentHistory({ orderId, readOnly }: { orderId: string; read
                 <Badge tone="info">
                   {adjustment.adjustmentType === 'Manual' ? 'Chọn ngày để bù' : 'Hệ thống chia đều'}
                 </Badge>
+                {/* Bù luôn nằm gọn trong một dây chuyền, nên nhãn này thuộc về cả lần bù (BR-N12). */}
+                <Badge tone="neutral">{adjustment.productionLine.code}</Badge>
               </div>
 
               <p className="history__meta">
-                Ngày thiếu: {formatDate(adjustment.sourceProductionDate)} · 👤 {adjustment.createdBy} ·{' '}
+                Ô thiếu: {formatDate(adjustment.sourceProductionDate)} · {adjustment.productionLine.code} · 👤{' '}
+                {adjustment.createdBy} ·{' '}
                 {formatTimestamp(adjustment.appliedAt ?? adjustment.createdAt)}
               </p>
 
@@ -106,8 +109,9 @@ export function AdjustmentHistory({ orderId, readOnly }: { orderId: string; read
         {pendingReverse && (
           <>
             <p>
-              Phần bù {formatNumber(pendingReverse.shortageQuantity)} đôi sẽ được trừ khỏi kế hoạch của
-              các ngày sau:
+              Phần bù {formatNumber(pendingReverse.shortageQuantity)} đôi trên dây chuyền{' '}
+              <strong>{pendingReverse.productionLine.code}</strong> sẽ được trừ khỏi kế hoạch của các
+              ngày sau:
             </p>
             <ul className="plain-list modal-scroll">
               {pendingReverse.items.map((item) => (

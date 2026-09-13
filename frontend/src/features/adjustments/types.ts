@@ -19,9 +19,15 @@ export interface ApplyAdjustmentRequest {
   targets: AdjustmentTargetRequest[]
 }
 
+/**
+ * Một ô đích của đề xuất bù. Dây chuyền được trả kèm để UI nói rõ đang bù trên dây chuyền nào —
+ * mọi ô ở đây luôn cùng một dây chuyền với ô nguồn (CR-001 §6.8, BR-N12).
+ */
 export interface AdjustmentPreviewItemDto {
   productionPlanId: string
   productionDate: IsoDate
+  productionLineId: string
+  productionLineName: string
   currentPlannedQuantity: number
   addOnQuantity: number
   plannedQuantityAfter: number
@@ -31,6 +37,9 @@ export interface AdjustmentPreviewItemDto {
 export interface AdjustmentPreviewDto {
   sourceProductionPlanId: string
   sourceProductionDate: IsoDate
+  productionLineId: string
+  productionLineCode: string
+  productionLineName: string
   sourcePlannedQuantity: number
   sourceActualQuantity: number | null
   shortageQuantity: number
@@ -48,10 +57,18 @@ export interface PlanAdjustmentItemDto {
   addOnQuantity: number
 }
 
+/** Bù sản lượng luôn nằm gọn trong một dây chuyền, nên nó là thuộc tính của cả lần bù. */
+export interface AdjustmentLineDto {
+  id: string
+  code: string
+  name: string
+}
+
 export interface PlanAdjustmentDto {
   id: string
   sourceProductionPlanId: string
   sourceProductionDate: IsoDate
+  productionLine: AdjustmentLineDto
   shortageQuantity: number
   adjustmentType: AdjustmentType
   status: AdjustmentStatus

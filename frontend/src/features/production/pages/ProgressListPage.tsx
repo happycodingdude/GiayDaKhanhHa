@@ -1,63 +1,69 @@
 import { Link, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
+import { Select } from '../../../shared/components/Select'
 import { Badge, Button, Card, ProgressBar } from '../../../shared/components/ui'
-import { OrderStatusBadge, ScheduleStatusBadge } from '../../../shared/components/StatusBadges'
+import { ScheduleStatusBadge } from '../../../shared/components/StatusBadges'
 import { EmptyState, ErrorState, LoadingState } from '../../../shared/feedback/QueryState'
 import { formatDate } from '../../../shared/lib/date'
 import { formatNumber, formatPercent } from '../../../shared/lib/format'
-import { useOrders } from '../hooks/useOrders'
+import { OrderStatusBadge } from '../../orders/components/OrderStatusBadge'
+import { OrderThumbnail } from '../../orders/components/OrderThumbnail'
+import { ProductionLineTags } from '../../orders/components/ProductionLineTags'
+import { useOrders } from '../../orders/hooks/useOrders'
+import { useProductionLines } from '../../production-lines/hooks/useProductionLines'
 
+/**
+ * `Scheduled` là bộ lọc mặc định: màn này chỉ theo dõi đơn ĐÃ có tiến độ. Đơn `Pending` thuộc màn
+ * Nhập hàng (CR-001 §7.7).
+ */
 const STATUS_FILTERS = [
-  { value: 'All', label: 'Tất cả' },
+  { value: 'Scheduled', label: 'Tất cả' },
   { value: 'Incomplete', label: 'Chưa hoàn thành' },
   { value: 'Completed', label: 'Hoàn thành' },
 ]
 
 const PAGE_SIZES = [10, 20, 50]
 
-export function OrderListPage() {
+/**
+ * Tiến độ — danh sách (CR-001 §7.7).
+ *
+ * Giữ nguyên nguyên tắc đã chốt: "Chậm" KHÔNG phải trạng thái đơn hàng, nó là một cột riêng tách
+ * khỏi Chưa hoàn thành / Hoàn thành (order list spec §5).
+ */
+export function ProgressListPage() {
   const navigate = useNavigate()
 
-  // Bộ lọc, tìm kiếm và phân trang là state UI cục bộ (Step 5 §8).
-  const [status, setStatus] = useState('All')
+  const [status, setStatus] = useState('Scheduled')
+  const [productionLineId, setProductionLineId] = useState('')
   const [searchInput, setSearchInput] = useState('')
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
 
-  const query = useOrders({ status, search, page, pageSize })
-
-  const applySearch = (value: string) => {
-    setSearch(value.trim())
-    setPage(1)
-  }
-
-  const changeStatus = (value: string) => {
-    setStatus(value)
-    setPage(1)
-  }
-
-  const changePageSize = (value: number) => {
-    setPageSize(value)
-    setPage(1)
-  }
+  const query = useOrders({
+    status,
+    search,
+    productionLineId: productionLineId || undefined,
+    page,
+    pageSize,
+  })
+  const linesQuery = useProductionLines()
 
   const result = query.data
-  const hasFilters = search !== '' || status !== 'All'
+  const hasFilters = search !== '' || status !== 'Scheduled' || productionLineId !== ''
   const totalPages = Math.max(result?.totalPages ?? 1, 1)
 
-  const openOrder = (orderId: string) =>
-    navigate({ to: '/orders/$orderId', params: { orderId: String(orderId) } })
+  const openOrder = (orderId: string) => navigate({ to: '/progress/$orderId', params: { orderId } })
 
   return (
     <div className="page page--fill">
       <header className="page__header">
         <div>
-          <h1 className="page__title">Đơn hàng</h1>
-          <p className="page__subtitle">Quản lý các đơn hàng sản xuất</p>
+          <h1 className="page__title">Tiến độ</h1>
+          <p className="page__subtitle">Theo dõi sản xuất theo mã giày và dây chuyền</p>
         </div>
-        <Link to="/orders/new">
-          <Button variant="primary">+ Tạo đơn hàng</Button>
+        <Link to="/progress/new">
+          <Button variant="primary">+ Lập tiến độ</Button>
         </Link>
       </header>
 
@@ -69,40 +75,48 @@ export function OrderListPage() {
                 key={filter.value}
                 type="button"
                 className={`segmented__item ${status === filter.value ? 'segmented__item--active' : ''}`}
-                onClick={() => changeStatus(filter.value)}
+                onClick={() => {
+                  setStatus(filter.value)
+                  setPage(1)
+                }}
               >
                 {filter.label}
               </button>
             ))}
           </div>
 
+          <div className="pagination__size">
+            Dây chuyền
+            <Select
+              value={productionLineId}
+              options={[
+                { value: '', label: 'Tất cả' },
+                ...(linesQuery.data?.items ?? []).map((line) => ({ value: line.id, label: line.code })),
+              ]}
+              onChange={(next) => {
+                setProductionLineId(next)
+                setPage(1)
+              }}
+              aria-label="Lọc theo dây chuyền"
+            />
+          </div>
+
           <form
             className="search"
             onSubmit={(event) => {
               event.preventDefault()
-              applySearch(searchInput)
+              setSearch(searchInput.trim())
+              setPage(1)
             }}
           >
             <input
               className="input search__input"
-              placeholder="🔍 Tìm mã đơn hàng…"
+              placeholder="🔍 Tìm mã giày…"
               value={searchInput}
               onChange={(event) => setSearchInput(event.target.value)}
-              aria-label="Tìm mã đơn hàng"
+              aria-label="Tìm mã giày"
             />
             <Button type="submit">Tìm</Button>
-            {search && (
-              <Button
-                type="button"
-                variant="primary"
-                onClick={() => {
-                  setSearchInput('')
-                  applySearch('')
-                }}
-              >
-                Xoá
-              </Button>
-            )}
           </form>
         </div>
 
@@ -111,7 +125,7 @@ export function OrderListPage() {
           <ErrorState
             error={query.error}
             onRetry={() => void query.refetch()}
-            title="Không tải được danh sách đơn hàng"
+            title="Không tải được danh sách tiến độ"
           />
         )}
 
@@ -119,34 +133,33 @@ export function OrderListPage() {
           (hasFilters ? (
             <EmptyState
               icon="🔍"
-              title="Không tìm thấy đơn hàng phù hợp"
-              description="Thử đổi bộ lọc trạng thái hoặc từ khoá tìm kiếm."
+              title="Không tìm thấy tiến độ phù hợp"
+              description="Thử đổi bộ lọc trạng thái, dây chuyền hoặc từ khoá tìm kiếm."
             />
           ) : (
             <EmptyState
-              title="Chưa có đơn hàng"
-              description="Tạo đơn hàng đầu tiên để bắt đầu theo dõi sản xuất."
+              title="Chưa có tiến độ nào"
+              description="Lập tiến độ cho một đơn hàng đã nhập để bắt đầu theo dõi sản xuất."
               action={
-                <Link to="/orders/new">
-                  <Button variant="primary">+ Tạo đơn hàng</Button>
+                <Link to="/progress/new">
+                  <Button variant="primary">+ Lập tiến độ</Button>
                 </Link>
               }
             />
           ))}
 
         {result && result.items.length > 0 && (
-          // Bảng chiếm phần chiều cao còn lại và tự cuộn, nhờ vậy footer phân trang bên dưới
-          // luôn nhìn thấy được mà cửa sổ không phải cuộn.
           <div className="table-wrapper table-wrapper--fill">
             <table className="table">
               <thead>
                 <tr>
-                  <th>Mã đơn</th>
+                  <th>Ảnh</th>
+                  <th>Mã giày</th>
+                  <th>Dây chuyền</th>
                   <th className="num">Tổng SL</th>
-                  <th className="num">Đã hoàn thành</th>
-                  <th className="num">Còn lại</th>
-                  <th>Hôm nay</th>
-                  <th>Hạn hoàn thành</th>
+                  <th className="num">Đã làm</th>
+                  <th>Ngày bắt đầu</th>
+                  <th>Ngày kết thúc</th>
                   <th>Tiến độ</th>
                   <th>Trạng thái</th>
                   <th>Tình trạng</th>
@@ -154,7 +167,6 @@ export function OrderListPage() {
               </thead>
               <tbody>
                 {result.items.map((order) => (
-                  // Cả dòng đều bấm được để mở đơn hàng chỉ bằng một thao tác.
                   <tr
                     key={order.id}
                     className="table__row--clickable"
@@ -162,40 +174,28 @@ export function OrderListPage() {
                     tabIndex={0}
                     onKeyDown={(event) => event.key === 'Enter' && openOrder(order.id)}
                   >
-                    <td className="table__strong">{order.orderCode}</td>
+                    <td>
+                      <OrderThumbnail imageUrl={order.imageUrl} shoeCode={order.shoeCode} />
+                    </td>
+                    <td className="table__strong">{order.shoeCode}</td>
+                    <td>
+                      <ProductionLineTags lines={order.productionLines} />
+                    </td>
                     <td className="num">{formatNumber(order.quantity)}</td>
                     <td className="num">{formatNumber(order.totalActual)}</td>
-                    <td className="num">{formatNumber(order.remaining)}</td>
-                    {/* Hôm nay đơn này đang chạy tới đâu, để không phải mở từng đơn ra xem. */}
+                    <td>{order.startDate ? formatDate(order.startDate) : '—'}</td>
                     <td>
-                      {order.todayPlannedQuantity === null ? (
-                        <span className="muted">Không sản xuất</span>
-                      ) : (
-                        <>
-                          <span className="table__strong">
-                            {formatNumber(order.todayActualQuantity ?? 0)} /{' '}
-                            {formatNumber(order.todayPlannedQuantity)}
-                          </span>
-                          <span className="table__sub">
-                            {order.todayStatus === 'Closed' ? 'Đã xuất hàng' : 'Tạm tính'}
-                          </span>
-                        </>
-                      )}
-                      {/* Chỉ báo việc bị treo: ngày đã qua mà sản lượng vẫn chưa được chốt sổ. */}
-                      {order.hasUnclosedPastDay && (
-                        <>
-                          {' '}
-                          <Badge tone="warning">Có ngày chưa xuất hàng</Badge>
-                        </>
-                      )}
-                    </td>
-                    <td>
-                      {formatDate(order.dueDate)}
+                      {order.dueDate ? formatDate(order.dueDate) : '—'}
                       {order.isOverdue && (
                         <>
                           {' '}
                           <Badge tone="danger">Quá hạn</Badge>
                         </>
+                      )}
+                      {order.hasUnclosedPastCell && (
+                        <span className="table__sub">
+                          <Badge tone="warning">Có ngày chưa xuất hàng</Badge>
+                        </span>
                       )}
                     </td>
                     <td className="table__progress">
@@ -236,21 +236,18 @@ export function OrderListPage() {
             </span>
 
             <div className="pagination__controls">
-              <label className="pagination__size">
+              <div className="pagination__size">
                 Số dòng
-                <select
-                  className="select"
+                <Select
                   value={pageSize}
-                  onChange={(event) => changePageSize(Number(event.target.value))}
+                  options={PAGE_SIZES.map((size) => ({ value: size, label: String(size) }))}
+                  onChange={(next) => {
+                    setPageSize(next)
+                    setPage(1)
+                  }}
                   aria-label="Số dòng mỗi trang"
-                >
-                  {PAGE_SIZES.map((size) => (
-                    <option key={size} value={size}>
-                      {size}
-                    </option>
-                  ))}
-                </select>
-              </label>
+                />
+              </div>
 
               <Button disabled={page <= 1} onClick={() => setPage((current) => current - 1)}>
                 ← Trước

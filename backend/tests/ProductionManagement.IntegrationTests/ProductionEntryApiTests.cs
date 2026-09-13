@@ -9,23 +9,23 @@ namespace ProductionManagement.IntegrationTests;
 /// </summary>
 public class ProductionEntryApiTests(ApiFactory factory) : IntegrationTestBase(factory)
 {
-    private static async Task<ProductionDayDetailResponse> DayAsync(
-        HttpClient client, Guid orderId, DateOnly date)
-        => await (await GetDayAsync(client, orderId, date)).ReadAsync<ProductionDayDetailResponse>();
+    private static async Task<ProductionCellDetailResponse> CellAsync(
+        HttpClient client, Guid orderId, DateOnly date, Guid lineId)
+        => await (await GetCellAsync(client, orderId, date, lineId)).ReadAsync<ProductionCellDetailResponse>();
 
     [Fact]
     public async Task Several_entries_accumulate_into_the_day_total()
     {
         var client = await ClientAsync();
-        var (order, days) = await CreateOrderAsync(client, 200, 200);
+        var (order, lineId, days) = await CreateOrderAsync(client, 200, 200);
 
-        (await PostEntryAsync(client, order.Id, days[0].ProductionDate, 15, "Tổ 2 vào ca")).EnsureSuccessStatusCode();
-        (await PostEntryAsync(client, order.Id, days[0].ProductionDate, 20)).EnsureSuccessStatusCode();
-        var third = await PostEntryAsync(client, order.Id, days[0].ProductionDate, 20);
+        (await PostEntryAsync(client, order.Id, days[0].ProductionDate, lineId, 15, "Tổ 2 vào ca")).EnsureSuccessStatusCode();
+        (await PostEntryAsync(client, order.Id, days[0].ProductionDate, lineId, 20)).EnsureSuccessStatusCode();
+        var third = await PostEntryAsync(client, order.Id, days[0].ProductionDate, lineId, 20);
         third.EnsureSuccessStatusCode();
 
         // POST trả luôn state đầy đủ của ngày, nên frontend không phải refetch (CR-01 §7.4).
-        var day = await third.ReadAsync<ProductionDayDetailResponse>();
+        var day = await third.ReadAsync<ProductionCellDetailResponse>();
         Assert.Equal(55, day.DayActualQuantity);
         Assert.Equal(145, day.RemainingAllowance);
         Assert.Equal("DailyPlan", day.RemainingAllowanceReason);
@@ -40,12 +40,12 @@ public class ProductionEntryApiTests(ApiFactory factory) : IntegrationTestBase(f
     public async Task An_entry_beyond_the_daily_plan_is_rejected_and_names_the_allowance()
     {
         var client = await ClientAsync();
-        var (order, days) = await CreateOrderAsync(client, 120, 120);
+        var (order, lineId, days) = await CreateOrderAsync(client, 120, 120);
 
-        (await PostEntryAsync(client, order.Id, days[0].ProductionDate, 90)).EnsureSuccessStatusCode();
+        (await PostEntryAsync(client, order.Id, days[0].ProductionDate, lineId, 90)).EnsureSuccessStatusCode();
 
         // AC-01: kế hoạch 120, đã nhập 90, ghi thêm 40.
-        var response = await PostEntryAsync(client, order.Id, days[0].ProductionDate, 40);
+        var response = await PostEntryAsync(client, order.Id, days[0].ProductionDate, lineId, 40);
         Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
 
         var error = await response.ReadErrorAsync();
@@ -55,10 +55,10 @@ public class ProductionEntryApiTests(ApiFactory factory) : IntegrationTestBase(f
         Assert.Equal("30", error.Details.Single().Message);
 
         // AC-02: đúng phần còn được nhập thì thành công.
-        var accepted = await PostEntryAsync(client, order.Id, days[0].ProductionDate, 30);
+        var accepted = await PostEntryAsync(client, order.Id, days[0].ProductionDate, lineId, 30);
         accepted.EnsureSuccessStatusCode();
 
-        var day = await accepted.ReadAsync<ProductionDayDetailResponse>();
+        var day = await accepted.ReadAsync<ProductionCellDetailResponse>();
         Assert.Equal(120, day.DayActualQuantity);
         Assert.Equal(0, day.RemainingAllowance);
     }
@@ -72,26 +72,26 @@ public class ProductionEntryApiTests(ApiFactory factory) : IntegrationTestBase(f
         // Trần đơn hàng chỉ trở thành ràng buộc chặt hơn với dữ liệu có TRƯỚC CR-01, khi một ngày
         // được phép vượt kế hoạch (OV-3) — đúng loại dòng mà migration mang sang. Nên trạng thái đó
         // được dựng thẳng trong database, giống cách OverdueOrderTests làm đơn hàng "già" đi.
-        var (order, days) = await CreateOrderFromAsync(client, Today.AddDays(-1), 100, 120);
+        var (order, lineId, days) = await CreateOrderFromAsync(client, Today.AddDays(-1), 100, 120);
 
-        await RecordAndCloseAsync(client, order.Id, days[0].ProductionDate, 100);
+        await RecordAndCloseAsync(client, order.Id, days[0].ProductionDate, lineId, 100);
         await OverProduceLegacyDayAsync(order.Id, days[0].ProductionDate, 110);
 
-        (await PostEntryAsync(client, order.Id, days[1].ProductionDate, 90)).EnsureSuccessStatusCode();
+        (await PostEntryAsync(client, order.Id, days[1].ProductionDate, lineId, 90)).EnsureSuccessStatusCode();
 
         // Trần ngày còn 30, nhưng đơn hàng 220 chỉ còn 220 - 200 = 20.
-        var day = await DayAsync(client, order.Id, days[1].ProductionDate);
+        var day = await CellAsync(client, order.Id, days[1].ProductionDate, lineId);
         Assert.Equal(20, day.RemainingAllowance);
         Assert.Equal("OrderQuantity", day.RemainingAllowanceReason);
 
-        var response = await PostEntryAsync(client, order.Id, days[1].ProductionDate, 30);
+        var response = await PostEntryAsync(client, order.Id, days[1].ProductionDate, lineId, 30);
         Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
 
         var error = await response.ReadErrorAsync();
         Assert.Equal("ACTUAL_EXCEEDS_ORDER_QUANTITY", error.Code);
         Assert.Equal("20", error.Details!.Single().Message);
 
-        (await PostEntryAsync(client, order.Id, days[1].ProductionDate, 20)).EnsureSuccessStatusCode();
+        (await PostEntryAsync(client, order.Id, days[1].ProductionDate, lineId, 20)).EnsureSuccessStatusCode();
     }
 
     /// <summary>
@@ -123,10 +123,13 @@ public class ProductionEntryApiTests(ApiFactory factory) : IntegrationTestBase(f
     public async Task A_day_planned_for_zero_cannot_receive_an_entry()
     {
         var client = await ClientAsync();
-        // AC-04.
-        var (order, days) = await CreateOrderFromAsync(client, Today.AddDays(-1), 0, 100);
+        // AC-04. Sau CR-001, ô kế hoạch 0 không sinh dòng plan nào cả (§6.6b) — nên nó không nằm
+        // trong ma trận và phải tra bằng chính ngày đó.
+        var zeroDate = Today.AddDays(-1);
+        var (order, lineId, cells) = await CreateOrderFromAsync(client, zeroDate, 0, 100);
+        Assert.DoesNotContain(cells, c => c.ProductionDate == zeroDate);
 
-        var response = await PostEntryAsync(client, order.Id, days[0].ProductionDate, 10);
+        var response = await PostEntryAsync(client, order.Id, zeroDate, lineId, 10);
 
         Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
         Assert.Equal("DAY_HAS_NO_PLAN", (await response.ReadErrorAsync()).Code);
@@ -136,9 +139,9 @@ public class ProductionEntryApiTests(ApiFactory factory) : IntegrationTestBase(f
     public async Task A_date_outside_the_production_plan_cannot_receive_an_entry()
     {
         var client = await ClientAsync();
-        var (order, _) = await CreateOrderAsync(client, 100);
+        var (order, lineId, _) = await CreateOrderAsync(client, 100);
 
-        var response = await PostEntryAsync(client, order.Id, Today.AddDays(-30), 10);
+        var response = await PostEntryAsync(client, order.Id, Today.AddDays(-30), lineId, 10);
 
         Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
         Assert.Equal("DAY_HAS_NO_PLAN", (await response.ReadErrorAsync()).Code);
@@ -152,9 +155,9 @@ public class ProductionEntryApiTests(ApiFactory factory) : IntegrationTestBase(f
         var client = await ClientAsync();
         // AC-05: ghi nhận bằng 0 là vô nghĩa — "cả ngày không sản xuất được" thể hiện bằng
         // Xuất hàng với 0 lần ghi nhận.
-        var (order, days) = await CreateOrderAsync(client, 100);
+        var (order, lineId, days) = await CreateOrderAsync(client, 100);
 
-        var response = await PostEntryAsync(client, order.Id, days[0].ProductionDate, quantity);
+        var response = await PostEntryAsync(client, order.Id, days[0].ProductionDate, lineId, quantity);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         Assert.Equal("VALIDATION_ERROR", (await response.ReadErrorAsync()).Code);
@@ -165,17 +168,17 @@ public class ProductionEntryApiTests(ApiFactory factory) : IntegrationTestBase(f
     {
         var client = await ClientAsync();
         // AC-06 — test quan trọng nhất của CR: null, KHÔNG phải 0.
-        var (order, days) = await CreateOrderAsync(client, 200, 200);
+        var (order, lineId, days) = await CreateOrderAsync(client, 200, 200);
 
-        (await PostEntryAsync(client, order.Id, days[0].ProductionDate, 60)).EnsureSuccessStatusCode();
+        (await PostEntryAsync(client, order.Id, days[0].ProductionDate, lineId, 60)).EnsureSuccessStatusCode();
 
-        var day = await DayAsync(client, order.Id, days[0].ProductionDate);
+        var day = await CellAsync(client, order.Id, days[0].ProductionDate, lineId);
         Assert.Null(day.ShortageQuantity);
         Assert.Null(day.Difference);
         Assert.True(day.IsProvisional);
         Assert.Equal("InProduction", day.DayStatus);
 
-        var timeline = await GetDaysAsync(client, order.Id);
+        var timeline = await GetCellsAsync(client, order.Id);
         Assert.Null(timeline[0].ShortageQuantity);
         Assert.Null(timeline[0].Difference);
         Assert.Equal(60, timeline[0].ActualQuantity);
@@ -187,14 +190,14 @@ public class ProductionEntryApiTests(ApiFactory factory) : IntegrationTestBase(f
     {
         var client = await ClientAsync();
         // AC-20. Ngày 0 là hôm nay, ngày 1 là ngày mai.
-        var (order, days) = await CreateOrderAsync(client, 100, 100);
+        var (order, lineId, days) = await CreateOrderAsync(client, 100, 100);
 
-        var response = await PostEntryAsync(client, order.Id, days[1].ProductionDate, 40);
+        var response = await PostEntryAsync(client, order.Id, days[1].ProductionDate, lineId, 40);
 
         Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
         Assert.Equal("FUTURE_DATE_NOT_ALLOWED", (await response.ReadErrorAsync()).Code);
 
-        var timeline = await GetDaysAsync(client, order.Id);
+        var timeline = await GetCellsAsync(client, order.Id);
         Assert.Null(timeline[1].ActualQuantity);
         Assert.Equal("NotStarted", timeline[1].DayStatus);
     }
@@ -204,11 +207,11 @@ public class ProductionEntryApiTests(ApiFactory factory) : IntegrationTestBase(f
     {
         var client = await ClientAsync();
         // AC-17.
-        var (order, days) = await CreateOrderAsync(client, 100, 100);
+        var (order, lineId, days) = await CreateOrderAsync(client, 100, 100);
 
-        var created = await PostEntryAsync(client, order.Id, days[0].ProductionDate, 25);
-        var entryId = (await created.ReadAsync<ProductionDayDetailResponse>()).Entries[0].Id;
-        (await PostEntryAsync(client, order.Id, days[0].ProductionDate, 60)).EnsureSuccessStatusCode();
+        var created = await PostEntryAsync(client, order.Id, days[0].ProductionDate, lineId, 25);
+        var entryId = (await created.ReadAsync<ProductionCellDetailResponse>()).Entries[0].Id;
+        (await PostEntryAsync(client, order.Id, days[0].ProductionDate, lineId, 60)).EnsureSuccessStatusCode();
 
         // Đã nhập 85/100. Nâng 25 lên 45 sẽ thành 105 — vượt trần ngày.
         var tooHigh = await PutEntryAsync(client, entryId, 45);
@@ -219,7 +222,7 @@ public class ProductionEntryApiTests(ApiFactory factory) : IntegrationTestBase(f
         var updated = await PutEntryAsync(client, entryId, 10);
         updated.EnsureSuccessStatusCode();
 
-        var day = await updated.ReadAsync<ProductionDayDetailResponse>();
+        var day = await updated.ReadAsync<ProductionCellDetailResponse>();
         Assert.Equal(70, day.DayActualQuantity);
         Assert.True(day.Entries.Single(e => e.Id == entryId).IsEdited);
     }
@@ -229,16 +232,16 @@ public class ProductionEntryApiTests(ApiFactory factory) : IntegrationTestBase(f
     {
         var client = await ClientAsync();
         // AC-18: xoá mềm — entry biến khỏi entries[] và khỏi mọi phép SUM.
-        var (order, days) = await CreateOrderAsync(client, 100, 100);
+        var (order, lineId, days) = await CreateOrderAsync(client, 100, 100);
 
-        var created = await PostEntryAsync(client, order.Id, days[0].ProductionDate, 30);
-        var entryId = (await created.ReadAsync<ProductionDayDetailResponse>()).Entries[0].Id;
-        (await PostEntryAsync(client, order.Id, days[0].ProductionDate, 20)).EnsureSuccessStatusCode();
+        var created = await PostEntryAsync(client, order.Id, days[0].ProductionDate, lineId, 30);
+        var entryId = (await created.ReadAsync<ProductionCellDetailResponse>()).Entries[0].Id;
+        (await PostEntryAsync(client, order.Id, days[0].ProductionDate, lineId, 20)).EnsureSuccessStatusCode();
 
         var deleted = await DeleteEntryAsync(client, entryId);
         deleted.EnsureSuccessStatusCode();
 
-        var day = await deleted.ReadAsync<ProductionDayDetailResponse>();
+        var day = await deleted.ReadAsync<ProductionCellDetailResponse>();
         Assert.Equal(20, day.DayActualQuantity);
         Assert.Single(day.Entries);
         Assert.DoesNotContain(day.Entries, e => e.Id == entryId);
@@ -259,10 +262,10 @@ public class ProductionEntryApiTests(ApiFactory factory) : IntegrationTestBase(f
     {
         var client = await ClientAsync();
         // Cố ý: nếu không, quản lý có thể nhập vượt tổng đơn trong ngày cuối (CR-01 §4.5).
-        var (order, days) = await CreateOrderFromAsync(client, Today.AddDays(-1), 100, 100);
+        var (order, lineId, days) = await CreateOrderFromAsync(client, Today.AddDays(-1), 100, 100);
 
-        await RecordAndCloseAsync(client, order.Id, days[0].ProductionDate, 100);
-        (await PostEntryAsync(client, order.Id, days[1].ProductionDate, 40)).EnsureSuccessStatusCode();
+        await RecordAndCloseAsync(client, order.Id, days[0].ProductionDate, lineId, 100);
+        (await PostEntryAsync(client, order.Id, days[1].ProductionDate, lineId, 40)).EnsureSuccessStatusCode();
 
         Assert.Equal(140, (await GetOrderAsync(client, order.Id)).TotalActual);
     }

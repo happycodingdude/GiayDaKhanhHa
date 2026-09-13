@@ -10,15 +10,15 @@ public class AdjustmentApiTests(ApiFactory factory) : IntegrationTestBase(factor
     /// Đơn hàng thiếu 20 đơn vị ở ngày đầu tiên, ngày đó ĐÃ Xuất hàng. Sau CR-01 phần thiếu chỉ tồn
     /// tại ở ngày đã chốt sổ, nên mọi test về điều chỉnh đều phải đóng ngày nguồn trước.
     /// </summary>
-    private async Task<(HttpClient Client, OrderResponse Order, IReadOnlyList<ProductionDayResponse> Days)>
+    private async Task<(HttpClient Client, OrderResponse Order, IReadOnlyList<ProductionCellResponse> Days)>
         OrderWithShortageAsync(params int[] plan)
     {
         var client = await ClientAsync();
-        var (order, days) = await CreateOrderAsync(client, plan.Length > 0 ? plan : [100, 120, 200, 250]);
+        var (order, lineId, days) = await CreateOrderAsync(client, plan.Length > 0 ? plan : [100, 120, 200, 250]);
 
-        await RecordAndCloseAsync(client, order.Id, days[0].ProductionDate, days[0].PlannedQuantity - 20);
+        await RecordAndCloseAsync(client, order.Id, days[0].ProductionDate, lineId, days[0].PlannedQuantity - 20);
 
-        return (client, order, await GetDaysAsync(client, order.Id));
+        return (client, order, await GetCellsAsync(client, order.Id));
     }
 
     private static Task<HttpResponseMessage> PreviewAsync(
@@ -53,7 +53,7 @@ public class AdjustmentApiTests(ApiFactory factory) : IntegrationTestBase(factor
         Assert.Equal(days[1].PlannedQuantity + 20, preview.Items[0].PlannedQuantityAfter);
 
         // Preview không bao giờ lưu xuống: các kế hoạch đã lưu không đổi.
-        var after = await GetDaysAsync(client, order.Id);
+        var after = await GetCellsAsync(client, order.Id);
         Assert.Equal(days.Select(d => d.PlannedQuantity), after.Select(d => d.PlannedQuantity));
         Assert.Empty(await (await client.GetAsync($"/api/v1/orders/{order.Id}/plan-adjustments"))
             .ReadAsync<List<PlanAdjustmentResponse>>());
@@ -92,8 +92,8 @@ public class AdjustmentApiTests(ApiFactory factory) : IntegrationTestBase(factor
     public async Task Previewing_a_day_without_a_shortage_is_rejected()
     {
         var client = await ClientAsync();
-        var (order, days) = await CreateOrderAsync(client, 100, 100);
-        await RecordAndCloseAsync(client, order.Id, days[0].ProductionDate, 100);
+        var (order, lineId, days) = await CreateOrderAsync(client, 100, 100);
+        await RecordAndCloseAsync(client, order.Id, days[0].ProductionDate, lineId, 100);
 
         var response = await PreviewAsync(client, days[0].Id, "Automatic");
 
@@ -109,7 +109,7 @@ public class AdjustmentApiTests(ApiFactory factory) : IntegrationTestBase(factor
         var response = await ApplyAsync(client, days[0].Id, "Manual", 20, (days[2].Id, 20));
         response.EnsureSuccessStatusCode();
 
-        var after = await GetDaysAsync(client, order.Id);
+        var after = await GetCellsAsync(client, order.Id);
         Assert.Equal(days[2].PlannedQuantity + 20, after[2].PlannedQuantity);
         Assert.Equal(20, after[2].AddOnQuantity);
         // Kế hoạch ban đầu là bất biến và không ngày nào khác bị giảm.
@@ -204,7 +204,7 @@ public class AdjustmentApiTests(ApiFactory factory) : IntegrationTestBase(factor
         // Các dòng lịch sử được giữ nguyên.
         Assert.Equal(20, reversed.Items.Sum(i => i.AddOnQuantity));
 
-        var after = await GetDaysAsync(client, order.Id);
+        var after = await GetCellsAsync(client, order.Id);
         Assert.Equal(days[1].PlannedQuantity, after[1].PlannedQuantity);
         Assert.Equal(0, after[1].AddOnQuantity);
 
@@ -257,7 +257,7 @@ public class AdjustmentApiTests(ApiFactory factory) : IntegrationTestBase(factor
         var applied = await (await ApplyAsync(client, days[0].Id, "Manual", 20, (days[1].Id, 20)))
             .ReadAsync<PlanAdjustmentResponse>();
 
-        var after = await GetDaysAsync(client, order.Id);
+        var after = await GetCellsAsync(client, order.Id);
         Assert.True(after[0].HasActiveAdjustment);
         Assert.Equal(applied.Id, after[0].ActiveAdjustmentId);
         Assert.False(after[1].HasActiveAdjustment);
@@ -272,8 +272,8 @@ public class AdjustmentApiTests(ApiFactory factory) : IntegrationTestBase(factor
     {
         var client = await ClientAsync();
         // Kỳ sản xuất kết thúc hôm nay, nên phần thiếu rơi vào ngày cuối và không còn ngày nào sau đó.
-        var (order, days) = await CreateOrderFromAsync(client, Today.AddDays(-1), 100, 100);
-        await RecordAndCloseAsync(client, order.Id, days[1].ProductionDate, 80);
+        var (order, lineId, days) = await CreateOrderFromAsync(client, Today.AddDays(-1), 100, 100);
+        await RecordAndCloseAsync(client, order.Id, days[1].ProductionDate, lineId, 80);
 
         var response = await PreviewAsync(client, days[1].Id, "Automatic");
 
@@ -286,8 +286,8 @@ public class AdjustmentApiTests(ApiFactory factory) : IntegrationTestBase(factor
     {
         var client = await ClientAsync();
         // AC-13. Ngày còn mở chưa có con số chính thức nào, nên chưa có gì để bù (CR-01 OV-5).
-        var (order, days) = await CreateOrderAsync(client, 100, 120);
-        (await PostEntryAsync(client, order.Id, days[0].ProductionDate, 80)).EnsureSuccessStatusCode();
+        var (order, lineId, days) = await CreateOrderAsync(client, 100, 120);
+        (await PostEntryAsync(client, order.Id, days[0].ProductionDate, lineId, 80)).EnsureSuccessStatusCode();
 
         var response = await PreviewAsync(client, days[0].Id, "Automatic");
 
@@ -300,10 +300,10 @@ public class AdjustmentApiTests(ApiFactory factory) : IntegrationTestBase(factor
     {
         var client = await ClientAsync();
         // AC-14. Ngày 0 và ngày 1 đều là quá khứ/hôm nay nên cả hai đóng được.
-        var (order, days) = await CreateOrderFromAsync(client, Today.AddDays(-1), 100, 120, 200);
+        var (order, lineId, days) = await CreateOrderFromAsync(client, Today.AddDays(-1), 100, 120, 200);
 
-        await RecordAndCloseAsync(client, order.Id, days[1].ProductionDate, 100);
-        await RecordAndCloseAsync(client, order.Id, days[0].ProductionDate, 80);
+        await RecordAndCloseAsync(client, order.Id, days[1].ProductionDate, lineId, 100);
+        await RecordAndCloseAsync(client, order.Id, days[0].ProductionDate, lineId, 80);
 
         var response = await ApplyAsync(client, days[0].Id, "Manual", 20, (days[1].Id, 20));
 
@@ -315,11 +315,11 @@ public class AdjustmentApiTests(ApiFactory factory) : IntegrationTestBase(factor
     public async Task Automatic_allocation_skips_days_that_have_already_been_closed()
     {
         var client = await ClientAsync();
-        var (order, days) = await CreateOrderFromAsync(client, Today.AddDays(-1), 100, 120, 200, 250);
+        var (order, lineId, days) = await CreateOrderFromAsync(client, Today.AddDays(-1), 100, 120, 200, 250);
 
         // Ngày 1 là hôm nay và đã được chốt sổ, nên nó rơi khỏi tập ngày ứng viên.
-        await RecordAndCloseAsync(client, order.Id, days[1].ProductionDate, 120);
-        await RecordAndCloseAsync(client, order.Id, days[0].ProductionDate, 80);
+        await RecordAndCloseAsync(client, order.Id, days[1].ProductionDate, lineId, 120);
+        await RecordAndCloseAsync(client, order.Id, days[0].ProductionDate, lineId, 80);
 
         var preview = await (await PreviewAsync(client, days[0].Id, "Automatic"))
             .ReadAsync<AdjustmentPreviewResponse>();
@@ -333,17 +333,17 @@ public class AdjustmentApiTests(ApiFactory factory) : IntegrationTestBase(factor
     {
         var client = await ClientAsync();
         // AC-16 / N-12: bù 20 vào ngày kế hoạch 120 thì trần nhập của ngày đó tăng theo.
-        var (order, days) = await CreateOrderFromAsync(client, Today.AddDays(-1), 100, 120);
+        var (order, lineId, days) = await CreateOrderFromAsync(client, Today.AddDays(-1), 100, 120);
 
-        await RecordAndCloseAsync(client, order.Id, days[0].ProductionDate, 80);
+        await RecordAndCloseAsync(client, order.Id, days[0].ProductionDate, lineId, 80);
         (await ApplyAsync(client, days[0].Id, "Manual", 20, (days[1].Id, 20))).EnsureSuccessStatusCode();
 
-        var day = await (await GetDayAsync(client, order.Id, days[1].ProductionDate))
-            .ReadAsync<ProductionDayDetailResponse>();
+        var day = await (await GetCellAsync(client, order.Id, days[1].ProductionDate, lineId))
+            .ReadAsync<ProductionCellDetailResponse>();
 
         Assert.Equal(140, day.PlannedQuantity);
         Assert.Equal(20, day.AddOnQuantity);
         Assert.Equal(140, day.RemainingAllowance);
-        (await PostEntryAsync(client, order.Id, days[1].ProductionDate, 140)).EnsureSuccessStatusCode();
+        (await PostEntryAsync(client, order.Id, days[1].ProductionDate, lineId, 140)).EnsureSuccessStatusCode();
     }
 }

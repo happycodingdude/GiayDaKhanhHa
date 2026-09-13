@@ -6,7 +6,7 @@ namespace ProductionManagement.IntegrationTests;
 /// <summary>Các khối mới của dashboard — CR-01 §6.9, §14.5, AC-19.</summary>
 public class DashboardApiTests(ApiFactory factory) : IntegrationTestBase(factory)
 {
-    private sealed record TodayProduction(Guid OrderId, string OrderCode, int PlannedQuantity, int DayActualQuantity);
+    private sealed record TodayProduction(Guid OrderId, string ShoeCode, int PlannedQuantity, int DayActualQuantity);
 
     private sealed record UnclosedDay(Guid OrderId, DateOnly ProductionDate, int PlannedQuantity, int DayActualQuantity);
 
@@ -26,7 +26,7 @@ public class DashboardApiTests(ApiFactory factory) : IntegrationTestBase(factory
 
     private sealed record Dashboard(
         IReadOnlyList<TodayProduction> TodayProduction,
-        IReadOnlyList<UnclosedDay> UnclosedPastDays,
+        IReadOnlyList<UnclosedDay> UnclosedPastCells,
         IReadOnlyList<OpenShortage> OpenShortages,
         IReadOnlyList<TrackedOrder> TrackedOrders);
 
@@ -40,10 +40,10 @@ public class DashboardApiTests(ApiFactory factory) : IntegrationTestBase(factory
         // CR-01 §14.5: nguồn dữ liệu là production_plans, không phải production_days — ngày quá khứ
         // hoàn toàn không nhập gì thì chưa có dòng production_days nào, mà đó lại đúng là trường
         // hợp cần cảnh báo nhất.
-        var (order, days) = await CreateOrderFromAsync(client, Today.AddDays(-1), 100, 100);
+        var (order, lineId, days) = await CreateOrderFromAsync(client, Today.AddDays(-1), 100, 100);
 
         var dashboard = await DashboardAsync(client);
-        var unclosed = Assert.Single(dashboard.UnclosedPastDays, d => d.OrderId == order.Id);
+        var unclosed = Assert.Single(dashboard.UnclosedPastCells, d => d.OrderId == order.Id);
 
         Assert.Equal(days[0].ProductionDate, unclosed.ProductionDate);
         Assert.Equal(0, unclosed.DayActualQuantity);
@@ -54,15 +54,15 @@ public class DashboardApiTests(ApiFactory factory) : IntegrationTestBase(factory
     {
         var client = await ClientAsync();
         // AC-19.
-        var (order, days) = await CreateOrderFromAsync(client, Today.AddDays(-1), 100, 100);
+        var (order, lineId, days) = await CreateOrderFromAsync(client, Today.AddDays(-1), 100, 100);
 
-        (await PostEntryAsync(client, order.Id, days[0].ProductionDate, 70)).EnsureSuccessStatusCode();
-        Assert.Single((await DashboardAsync(client)).UnclosedPastDays, d => d.OrderId == order.Id);
+        (await PostEntryAsync(client, order.Id, days[0].ProductionDate, lineId, 70)).EnsureSuccessStatusCode();
+        Assert.Single((await DashboardAsync(client)).UnclosedPastCells, d => d.OrderId == order.Id);
 
         (await CloseDayAsync(client, order.Id, days[0].ProductionDate)).EnsureSuccessStatusCode();
 
         var dashboard = await DashboardAsync(client);
-        Assert.DoesNotContain(dashboard.UnclosedPastDays, d => d.OrderId == order.Id);
+        Assert.DoesNotContain(dashboard.UnclosedPastCells, d => d.OrderId == order.Id);
 
         var shortage = Assert.Single(dashboard.OpenShortages, s => s.OrderId == order.Id);
         Assert.Equal(30, shortage.ShortageQuantity);
@@ -72,9 +72,9 @@ public class DashboardApiTests(ApiFactory factory) : IntegrationTestBase(factory
     public async Task An_open_day_today_appears_under_today_production_and_has_no_shortage()
     {
         var client = await ClientAsync();
-        var (order, days) = await CreateOrderAsync(client, 200);
+        var (order, lineId, days) = await CreateOrderAsync(client, 200);
 
-        (await PostEntryAsync(client, order.Id, days[0].ProductionDate, 60)).EnsureSuccessStatusCode();
+        (await PostEntryAsync(client, order.Id, days[0].ProductionDate, lineId, 60)).EnsureSuccessStatusCode();
 
         var dashboard = await DashboardAsync(client);
         var today = Assert.Single(dashboard.TodayProduction, t => t.OrderId == order.Id);
@@ -91,9 +91,9 @@ public class DashboardApiTests(ApiFactory factory) : IntegrationTestBase(factory
         var client = await ClientAsync();
         // Hồi quy: timeline từng chỉ chấm điểm ngày đã Xuất hàng, nên sản lượng đã ghi nhận của
         // ngày đang sản xuất biến mất khỏi dashboard.
-        var (order, days) = await CreateOrderAsync(client, 100, 100);
+        var (order, lineId, days) = await CreateOrderAsync(client, 100, 100);
 
-        (await PostEntryAsync(client, order.Id, days[0].ProductionDate, 20)).EnsureSuccessStatusCode();
+        (await PostEntryAsync(client, order.Id, days[0].ProductionDate, lineId, 20)).EnsureSuccessStatusCode();
 
         var tracked = Assert.Single(
             (await DashboardAsync(client)).TrackedOrders, o => o.OrderId == order.Id);
@@ -114,9 +114,9 @@ public class DashboardApiTests(ApiFactory factory) : IntegrationTestBase(factory
     public async Task A_closed_day_reports_the_difference_for_today()
     {
         var client = await ClientAsync();
-        var (order, days) = await CreateOrderAsync(client, 100, 100);
+        var (order, lineId, days) = await CreateOrderAsync(client, 100, 100);
 
-        await RecordAndCloseAsync(client, order.Id, days[0].ProductionDate, 80);
+        await RecordAndCloseAsync(client, order.Id, days[0].ProductionDate, lineId, 80);
 
         var tracked = Assert.Single(
             (await DashboardAsync(client)).TrackedOrders, o => o.OrderId == order.Id);
@@ -130,9 +130,9 @@ public class DashboardApiTests(ApiFactory factory) : IntegrationTestBase(factory
     public async Task A_handled_shortage_leaves_the_open_shortage_list()
     {
         var client = await ClientAsync();
-        var (order, days) = await CreateOrderAsync(client, 100, 120);
+        var (order, lineId, days) = await CreateOrderAsync(client, 100, 120);
 
-        await RecordAndCloseAsync(client, order.Id, days[0].ProductionDate, 80);
+        await RecordAndCloseAsync(client, order.Id, days[0].ProductionDate, lineId, 80);
         Assert.Single((await DashboardAsync(client)).OpenShortages, s => s.OrderId == order.Id);
 
         var response = await client.PostAsJsonAsync(

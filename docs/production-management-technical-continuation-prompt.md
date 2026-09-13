@@ -44,7 +44,7 @@ Một Order gồm:
 - Mã đơn.
 - Tổng số lượng.
 - Ngày bắt đầu.
-- Hạn hoàn thành.
+- Ngày kết thúc.
 - Kế hoạch theo ngày.
 - Thực tế theo ngày.
 - Trạng thái.

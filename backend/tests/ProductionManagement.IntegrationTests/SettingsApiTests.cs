@@ -59,9 +59,9 @@ public class SettingsApiTests(ApiFactory factory) : IntegrationTestBase(factory)
     {
         var client = await ClientAsync();
         // AC-21: chu kỳ chỉ để nhắc; server không dùng nó để từ chối request nào (CR-01 N-10).
-        var (order, days) = await CreateOrderAsync(client, 100);
+        var (order, lineId, cells) = await CreateOrderAsync(client, 100);
 
-        (await PostEntryAsync(client, order.Id, days[0].ProductionDate, 10)).EnsureSuccessStatusCode();
-        (await PostEntryAsync(client, order.Id, days[0].ProductionDate, 10)).EnsureSuccessStatusCode();
+        (await PostEntryAsync(client, order.Id, cells[0].ProductionDate, lineId, 10)).EnsureSuccessStatusCode();
+        (await PostEntryAsync(client, order.Id, cells[0].ProductionDate, lineId, 10)).EnsureSuccessStatusCode();
     }
 }

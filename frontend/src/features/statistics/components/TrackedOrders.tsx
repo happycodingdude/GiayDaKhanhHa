@@ -251,8 +251,8 @@ function TrackedOrdersTimeline({
                   <td className="gantt__code table__strong">
                     {/* Bề rộng cố định ở lớp trong: cột này sticky và cột "Tiến độ" neo theo đúng
                         bề rộng của nó, nên một mã đơn dài bất thường không được phép nong cột ra. */}
-                    <span className="gantt__code-text" title={order.orderCode}>
-                      {order.orderCode}
+                    <span className="gantt__code-text" title={order.shoeCode}>
+                      {order.shoeCode}
                     </span>
                   </td>
                   <td className="gantt__progress">{formatPercent(order.progressPercentage)}</td>
@@ -356,7 +356,7 @@ function TrackedOrdersList({
               tabIndex={0}
               onKeyDown={(event) => event.key === 'Enter' && onOpenOrder(order.orderId)}
             >
-              <td className="table__strong">{order.orderCode}</td>
+              <td className="table__strong">{order.shoeCode}</td>
               <td className="table__progress">
                 <span>{formatPercent(order.progressPercentage)}</span>
                 <ProgressBar

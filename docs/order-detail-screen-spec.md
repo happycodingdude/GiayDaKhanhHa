@@ -45,7 +45,7 @@ Hiển thị:
 - Nút quay lại Danh sách đơn hàng.
 - Mã đơn hàng.
 - Trạng thái đơn hàng.
-- Deadline.
+- Ngày kết thúc.
 - Các thao tác chính:
   - Nhập sản lượng.
   - Điều chỉnh kế hoạch.
@@ -63,7 +63,7 @@ Hiển thị:
 - Tổng số lượng.
 - Đã hoàn thành.
 - Còn lại.
-- Deadline.
+- Ngày kết thúc.
 - Số ngày còn lại.
 - Tiến độ (%).
 - Tình trạng tiến độ.
@@ -444,7 +444,7 @@ Màn hình được xem là hoàn thành khi:
 
 - Quản lý nhìn vào có thể biết ngay đơn đang ở trạng thái nào.
 - Biết tổng số lượng, đã làm, còn lại.
-- Biết deadline và số ngày còn lại.
+- Biết ngày kết thúc và số ngày còn lại.
 - Biết Progress.
 - Biết đơn đúng tiến độ hay chậm.
 - Theo dõi được kế hoạch từng ngày.

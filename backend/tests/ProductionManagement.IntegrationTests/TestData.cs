@@ -8,11 +8,24 @@ public sealed record ApiErrorDetail(string Field, string Code, string Message);
 public sealed record ApiErrorResponse(
     string Code, string Message, IReadOnlyList<ApiErrorDetail>? Details);
 
+public sealed record ProductionLineResponse(
+    Guid Id, string Code, string Name, string Status, int SortOrder, string? Note, bool InUse);
+
+public sealed record ProductionLineListResponse(IReadOnlyList<ProductionLineResponse> Items);
+
+public sealed record OrderProductionLineResponse(
+    Guid Id, string Code, string Name, string Status, int SortOrder, int AllocatedQuantity);
+
 public sealed record OrderResponse(
     Guid Id,
-    string OrderCode,
+    string ShoeCode,
     int Quantity,
+    DateOnly? StartDate,
+    DateOnly? DueDate,
     string Status,
+    bool HasImage,
+    string? ImageUrl,
+    IReadOnlyList<OrderProductionLineResponse> ProductionLines,
     int TotalActual,
     int Remaining,
     int TotalPlan,
@@ -21,9 +34,11 @@ public sealed record OrderResponse(
     bool IsOverdue,
     bool IsPastDueDate);
 
-public sealed record ProductionDayResponse(
+/// <summary>Một ô của ma trận: ngày × dây chuyền.</summary>
+public sealed record ProductionCellResponse(
     Guid Id,
     DateOnly ProductionDate,
+    Guid ProductionLineId,
     int InitialPlannedQuantity,
     int AddOnQuantity,
     int PlannedQuantity,
@@ -37,14 +52,25 @@ public sealed record ProductionDayResponse(
     bool HasActiveAdjustment,
     Guid? ActiveAdjustmentId);
 
-public sealed record ProductionPlanListResponse(Guid OrderId, IReadOnlyList<ProductionDayResponse> Items);
+public sealed record ProductionMatrixLineResponse(
+    Guid Id, string Code, string Name, string Status, int SortOrder,
+    int AllocatedQuantity, int CurrentPlanQuantity, int ActualQuantity);
+
+public sealed record ProductionMatrixResponse(
+    Guid OrderId,
+    DateOnly? StartDate,
+    DateOnly? DueDate,
+    IReadOnlyList<ProductionMatrixLineResponse> ProductionLines,
+    IReadOnlyList<ProductionCellResponse> Items);
 
 public sealed record ProductionEntryResponse(
     Guid Id, int Quantity, DateTimeOffset RecordedAt, string? Note, int RunningTotal, bool IsEdited);
 
-public sealed record ProductionDayDetailResponse(
+public sealed record ProductionCellDetailResponse(
     Guid OrderId,
     DateOnly ProductionDate,
+    Guid ProductionLineId,
+    string ProductionLineCode,
     string DayStatus,
     int PlannedQuantity,
     int AddOnQuantity,
@@ -60,14 +86,18 @@ public sealed record ProductionDayDetailResponse(
     int? Difference,
     IReadOnlyList<ProductionEntryResponse> Entries);
 
-public sealed record CloseProductionDayResponse(
-    DateOnly ProductionDate,
-    string DayStatus,
+public sealed record ClosedProductionCellResponse(
+    Guid ProductionLineId,
+    string ProductionLineCode,
     int PlannedQuantity,
     int ActualQuantity,
     int ShortageQuantity,
-    int Difference,
+    int Difference);
+
+public sealed record CloseProductionDayResponse(
+    DateOnly ProductionDate,
     DateTimeOffset ClosedAt,
+    IReadOnlyList<ClosedProductionCellResponse> Cells,
     string OrderStatus,
     bool OrderCompleted,
     bool HasShortage);
@@ -75,10 +105,13 @@ public sealed record CloseProductionDayResponse(
 public sealed record SystemSettingsResponse(int RecordingIntervalMinutes, bool RemindBeforeDue);
 
 public sealed record AdjustmentPreviewItemResponse(
-    Guid ProductionPlanId, DateOnly ProductionDate, int CurrentPlannedQuantity, int AddOnQuantity, int PlannedQuantityAfter);
+    Guid ProductionPlanId, DateOnly ProductionDate, Guid ProductionLineId, string ProductionLineName,
+    int CurrentPlannedQuantity, int AddOnQuantity, int PlannedQuantityAfter);
 
 public sealed record AdjustmentPreviewResponse(
     Guid SourceProductionPlanId,
+    Guid ProductionLineId,
+    string ProductionLineCode,
     int ShortageQuantity,
     string AdjustmentType,
     IReadOnlyList<AdjustmentPreviewItemResponse> Items,
@@ -88,9 +121,12 @@ public sealed record AdjustmentPreviewResponse(
 
 public sealed record PlanAdjustmentItemResponse(Guid ProductionPlanId, DateOnly ProductionDate, int AddOnQuantity);
 
+public sealed record AdjustmentLineResponse(Guid Id, string Code, string Name);
+
 public sealed record PlanAdjustmentResponse(
     Guid Id,
     Guid SourceProductionPlanId,
+    AdjustmentLineResponse ProductionLine,
     int ShortageQuantity,
     string AdjustmentType,
     string Status,

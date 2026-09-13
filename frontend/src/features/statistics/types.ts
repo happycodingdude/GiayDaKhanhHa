@@ -19,9 +19,21 @@ export interface DailyStatisticsDto {
   cumulativeActual: number
 }
 
+/** Tách theo dây chuyền cho một đơn hàng (CR-001 §6.9). */
+export interface OrderLineStatisticsDto {
+  productionLineId: string
+  productionLineCode: string
+  productionLineName: string
+  /** Mốc phân bổ tầng 1, bất biến (BR-N18). */
+  allocatedQuantity: number
+  totalPlan: number
+  totalActual: number
+  shortage: number
+}
+
 export interface OrderStatisticsDto {
   orderId: string
-  orderCode: string
+  shoeCode: string
   orderQuantity: number
   totalActual: number
   remaining: number
@@ -32,7 +44,9 @@ export interface OrderStatisticsDto {
   behindQuantity: number
   daysRemaining: number
   isOverdue: boolean
+  /** Gộp mọi dây chuyền — đây là đường xu hướng theo thời gian. */
   daily: DailyStatisticsDto[]
+  byProductionLine: OrderLineStatisticsDto[]
 }
 
 export interface DashboardTodayDto {
@@ -45,7 +59,7 @@ export interface DashboardTodayDto {
 
 export interface DashboardAlertDto {
   orderId: string
-  orderCode: string
+  shoeCode: string
   behindQuantity: number
   daysRemaining: number
   isOverdue: boolean
@@ -63,7 +77,7 @@ export interface DashboardOrderDayDto {
 
 export interface DashboardOrderDto {
   orderId: string
-  orderCode: string
+  shoeCode: string
   startDate: IsoDate
   dueDate: IsoDate
   progressPercentage: number
@@ -80,37 +94,45 @@ export interface DashboardOrderDto {
   days: DashboardOrderDayDto[]
 }
 
-/** Một đơn hàng đang sản xuất hôm nay — khối "Đang sản xuất hôm nay" (CR-01 §6.9). */
+/** Một ô đang sản xuất hôm nay — khối "Đang sản xuất hôm nay" (CR-01 §6.9). */
 export interface DashboardTodayProductionDto {
   orderId: string
-  orderCode: string
+  shoeCode: string
   productionDate: IsoDate
+  productionLineId: string
+  productionLineCode: string
   plannedQuantity: number
   dayActualQuantity: number
   lastRecordedAt: string | null
 }
 
-/** Ngày đã qua mà chưa Xuất hàng — kể cả ngày hoàn toàn chưa nhập gì (CR-01 §14.5). */
+/** Ô đã qua mà chưa Xuất hàng — kể cả ô hoàn toàn chưa nhập gì (CR-01 §14.5). */
 export interface DashboardUnclosedDayDto {
   orderId: string
-  orderCode: string
+  shoeCode: string
   productionDate: IsoDate
+  productionLineId: string
+  productionLineCode: string
   plannedQuantity: number
   dayActualQuantity: number
 }
 
-/** Phần thiếu của một ngày đã Xuất hàng mà chưa được xử lý bù. */
+/** Phần thiếu của một ô đã Xuất hàng mà chưa được xử lý bù. */
 export interface DashboardOpenShortageDto {
   orderId: string
-  orderCode: string
+  shoeCode: string
   productionPlanId: string
   productionDate: IsoDate
+  productionLineId: string
+  productionLineCode: string
   shortageQuantity: number
 }
 
 export interface DashboardStatisticsDto {
   date: IsoDate
   totalOrders: number
+  /** Đơn đã nhập hàng nhưng chưa lập tiến độ. Không tham gia tính tiến độ (CR-001 §6.9). */
+  pendingOrderCount: number
   incompleteOrders: number
   completedOrders: number
   behindOrders: number
@@ -122,6 +144,6 @@ export interface DashboardStatisticsDto {
   alerts: DashboardAlertDto[]
   trackedOrders: DashboardOrderDto[]
   todayProduction: DashboardTodayProductionDto[]
-  unclosedPastDays: DashboardUnclosedDayDto[]
+  unclosedPastCells: DashboardUnclosedDayDto[]
   openShortages: DashboardOpenShortageDto[]
 }

@@ -254,7 +254,7 @@ Quản lý nhập:
 - Mã đơn hàng.
 - Tổng số lượng.
 - Ngày bắt đầu.
-- Hạn hoàn thành.
+- Ngày kết thúc.
 
 ## Bước 2 — Lập kế hoạch
 

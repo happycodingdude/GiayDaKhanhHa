@@ -13,6 +13,8 @@ public interface IAppDbContext
 {
     DbSet<User> Users { get; }
     DbSet<Order> Orders { get; }
+    DbSet<ProductionLine> ProductionLines { get; }
+    DbSet<OrderProductionLine> OrderProductionLines { get; }
     DbSet<ProductionPlan> ProductionPlans { get; }
     DbSet<ProductionDay> ProductionDays { get; }
     DbSet<ProductionEntry> ProductionEntries { get; }

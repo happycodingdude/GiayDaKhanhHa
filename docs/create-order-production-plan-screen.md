@@ -20,7 +20,7 @@ Bắt buộc:
 - Mã đơn hàng.
 - Tổng số lượng.
 - Ngày bắt đầu.
-- Hạn hoàn thành.
+- Ngày kết thúc.
 
 Ví dụ:
 
@@ -37,7 +37,7 @@ Ví dụ:
 │ Ngày bắt đầu *                              │
 │ [ 11/08/2026 ]                              │
 │                                             │
-│ Hạn hoàn thành *                            │
+│ Ngày kết thúc *                             │
 │ [ 15/08/2026 ]                              │
 │                                             │
 │                         [ Tiếp tục ]        │
@@ -76,15 +76,15 @@ Ví dụ:
 
 Quy tắc:
 
-> Ngày bắt đầu <= Hạn hoàn thành
+> Ngày bắt đầu <= Ngày kết thúc
 
-Không cho phép ngày bắt đầu sau deadline.
+Không cho phép ngày bắt đầu sau ngày kết thúc.
 
 Số ngày sản xuất được tính:
 
-> Deadline - Ngày bắt đầu + 1
+> Ngày kết thúc - Ngày bắt đầu + 1
 
-Bao gồm cả ngày bắt đầu và deadline.
+Bao gồm cả ngày bắt đầu và ngày kết thúc.
 
 Ví dụ:
 
@@ -242,7 +242,7 @@ Tuy nhiên hệ thống nên cảnh báo để quản lý xác nhận:
 
 > Ngày hoàn thành đang có kế hoạch 0 đôi. Bạn có chắc muốn tiếp tục?
 
-Không biến thành lỗi cứng vì quản lý có thể hoàn thành đơn trước deadline.
+Không biến thành lỗi cứng vì quản lý có thể hoàn thành đơn trước ngày kết thúc.
 
 ---
 
@@ -460,7 +460,7 @@ Flow đạt yêu cầu khi quản lý có thể:
 1. Nhập mã đơn.
 2. Nhập tổng số lượng.
 3. Chọn ngày bắt đầu.
-4. Chọn deadline.
+4. Chọn ngày kết thúc.
 5. Xem số ngày sản xuất.
 6. Phân bổ sản lượng theo từng ngày.
 7. Không thể xác nhận nếu tổng kế hoạch khác tổng đơn.

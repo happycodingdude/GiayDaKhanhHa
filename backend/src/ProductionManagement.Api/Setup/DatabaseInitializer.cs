@@ -30,6 +30,7 @@ public static class DatabaseInitializer
         if (await db.Users.AnyAsync())
         {
             await EnsureSystemSettingsAsync(db, clock, logger);
+            await SeedProductionLinesAsync(db, configuration, clock, logger);
             return;
         }
 
@@ -48,6 +49,7 @@ public static class DatabaseInitializer
         await db.SaveChangesAsync();
 
         await EnsureSystemSettingsAsync(db, clock, logger);
+        await SeedProductionLinesAsync(db, configuration, clock, logger);
 
         if (string.IsNullOrWhiteSpace(configuredPassword))
         {
@@ -85,6 +87,43 @@ public static class DatabaseInitializer
 
         await db.SaveChangesAsync();
         logger.LogInformation("Created the default system settings row.");
+    }
+
+    /// <summary>
+    /// Vài dây chuyền mẫu để môi trường dev dùng được ngay. Chủ đích KHÔNG nằm trong migration và
+    /// mặc định TẮT: danh mục dây chuyền là dữ liệu của từng xưởng, seed nhầm vào production sẽ tạo
+    /// ra những dây chuyền không có thật mà lại không xoá được (CR-001 §5.8, BR-N15).
+    ///
+    /// Bật bằng <c>Bootstrap__SeedProductionLines=true</c>. Chỉ chạy khi danh mục còn rỗng.
+    /// </summary>
+    private static async Task SeedProductionLinesAsync(
+        AppDbContext db, IConfiguration configuration, IClock clock, ILogger logger)
+    {
+        if (!configuration.GetValue("Bootstrap:SeedProductionLines", false))
+        {
+            return;
+        }
+
+        if (await db.ProductionLines.AnyAsync())
+        {
+            return;
+        }
+
+        var now = clock.UtcNow;
+        string[][] samples =
+        [
+            ["DC-01", "Dây chuyền 1"],
+            ["DC-02", "Dây chuyền 2"],
+            ["DC-03", "Dây chuyền 3"],
+        ];
+
+        for (var i = 0; i < samples.Length; i++)
+        {
+            db.ProductionLines.Add(ProductionLine.Create(samples[i][0], samples[i][1], i + 1, null, now));
+        }
+
+        await db.SaveChangesAsync();
+        logger.LogInformation("Seeded {Count} sample production lines for development.", samples.Length);
     }
 
     private static string GeneratePassword()

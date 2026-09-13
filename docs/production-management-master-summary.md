@@ -179,7 +179,7 @@ Thông tin quan trọng:
 - Đã hoàn thành.
 - Còn lại.
 - Tiến độ.
-- Deadline.
+- Ngày kết thúc.
 - Số ngày còn lại.
 - Trạng thái.
 - Cảnh báo chậm tiến độ.
@@ -193,7 +193,7 @@ Quản lý nhập:
 - Mã đơn hàng.
 - Tổng số lượng.
 - Ngày bắt đầu.
-- Hạn hoàn thành.
+- Ngày kết thúc.
 
 Sau khi tạo đơn, đơn hàng ở trạng thái:
 
@@ -237,7 +237,7 @@ Hiển thị toàn bộ tình trạng của một đơn hàng:
 - Đã hoàn thành.
 - Còn lại.
 - Tiến độ.
-- Deadline.
+- Ngày kết thúc.
 - Số ngày còn lại.
 - Trạng thái.
 

@@ -114,7 +114,9 @@ ol {
   color: #fff;
 }
 
-.shell__link--active {
+/* Liệt kê cả :hover để mục đang active không bị `.shell__link:hover` (specificity cao hơn) đè mất nền. */
+.shell__link--active,
+.shell__link--active:hover {
   background: var(--primary);
   color: #fff;
 }
@@ -359,6 +361,12 @@ ol {
   color: var(--text);
 }
 
+/* Nút nằm trong ô bảng: gọn hơn nút thường để dòng không cao lên. */
+.btn--sm {
+  padding: 4px 10px;
+  font-size: 13px;
+}
+
 .btn__spinner {
   width: 13px;
   height: 13px;
@@ -595,7 +603,10 @@ ol {
   cursor: pointer;
 }
 
-.table__row--clickable:hover td {
+/* --hover: dòng không bấm được nhưng vẫn sáng lên để mắt dò theo hàng — không đổi con trỏ, vì
+   con trỏ bàn tay hứa hẹn một thao tác không tồn tại. */
+.table__row--clickable:hover td,
+.table__row--hover:hover td {
   background: #f6f9ff;
 }
 
@@ -1590,7 +1601,8 @@ ol {
   border-color: var(--primary);
 }
 
-.input-group--invalid {
+.input-group--invalid,
+.field--invalid .input-group {
   border-color: var(--danger);
 }
 
@@ -1859,14 +1871,6 @@ ol {
   max-height: none;
 }
 
-/* Danh sách phụ khi một modal có hai danh sách: giữ trần cố định thay vì cùng co giãn với danh sách
-   chính. Flex chia phần dôi ra theo tỉ lệ chiều cao, nên danh sách hai dòng sẽ bị bóp còn vài pixel
-   trong khi danh sách chính vẫn dài. */
-.modal__body > .modal-scroll--cap {
-  flex: 0 0 auto;
-  max-height: min(200px, 24vh);
-}
-
 /* Lưới hai cột của MH5 đóng vai vùng danh sách: nó co lại và bảng lịch sử bên trong cuộn. */
 .modal__body > .day-grid {
   flex: 1 1 auto;
@@ -2002,14 +2006,121 @@ ol {
   color: var(--text-muted);
 }
 
+/* ---------- Select (dropdown tự vẽ, xem shared/components/Select.tsx) ---------- */
+
 .select {
-  padding: 7px 10px;
+  position: relative;
+  display: inline-block;
+}
+
+.select__trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px 7px 12px;
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: var(--surface);
-  color: inherit;
-  font: inherit;
+  color: var(--text);
+  font-weight: 500;
   cursor: pointer;
+  user-select: none;
+}
+
+.select__trigger:hover {
+  border-color: var(--text-muted);
+}
+
+.select__trigger:focus {
+  outline: none;
+}
+
+.select__trigger:focus-visible,
+.select__trigger--open {
+  outline: 2px solid rgba(31, 111, 235, 0.35);
+  outline-offset: 1px;
+  border-color: var(--primary);
+}
+
+.select__value {
+  display: grid;
+}
+
+.select__value > span {
+  grid-area: 1 / 1;
+}
+
+.select__value-ghost {
+  visibility: hidden;
+}
+
+.select__chevron {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  color: var(--text-muted);
+  transition: transform 0.15s ease;
+}
+
+.select__trigger--open .select__chevron {
+  transform: rotate(180deg);
+}
+
+.select__menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 50;
+  min-width: 100%;
+  max-height: 264px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  background: var(--surface);
+  /* Ô chọn thường nằm trong nhãn chữ xám (vd. `.pagination__size`); danh sách không thừa hưởng màu đó. */
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow:
+    0 12px 28px rgba(16, 24, 40, 0.12),
+    0 2px 6px rgba(16, 24, 40, 0.06);
+}
+
+.select__menu--up {
+  top: auto;
+  bottom: calc(100% + 4px);
+}
+
+.select__option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 7px 10px;
+  border-radius: 4px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.select__option--active {
+  background: var(--bg);
+}
+
+.select__option--selected {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.select__check {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  visibility: hidden;
+}
+
+.select__option--selected .select__check {
+  visibility: visible;
 }
 
 /* ---------- Toast ---------- */
@@ -2132,4 +2243,545 @@ ol {
     flex-direction: column;
     align-items: stretch;
   }
+}
+
+/* ---------- CR-001: điều hướng có nhóm ---------- */
+
+/*
+ * "Cấu hình" là nhãn nhóm, không phải link: bấm vào nó không dẫn đi đâu cả, nên nó không được
+ * trông giống một mục điều hướng (CR-001 §7.1).
+ */
+.shell__group-label {
+  margin: 12px 0 2px;
+  padding: 0 12px;
+  color: #7d8ba1;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.shell__link--nested {
+  padding-left: 22px;
+  font-size: 13px;
+}
+
+/* ---------- CR-001: ảnh mẫu ---------- */
+
+.uploader {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.uploader__dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 22px 18px;
+  border: 1.5px dashed var(--border-strong);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+
+/* Kéo qua phần tử con cũng phát dragleave; con không nhận sự kiện thì vùng thả không nhấp nháy. */
+.uploader__dropzone > * {
+  pointer-events: none;
+}
+
+.uploader__dropzone:hover:not(:disabled),
+.uploader__dropzone--active {
+  border-color: var(--primary);
+  background: var(--info-bg);
+}
+
+.uploader__dropzone:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.uploader__icon {
+  display: inline-flex;
+  color: var(--primary);
+}
+
+.uploader__icon svg {
+  width: 34px;
+  height: 34px;
+}
+
+.uploader__text {
+  margin-top: 2px;
+  font-weight: 500;
+}
+
+.uploader__hint {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+/* Khung xem trước cố định tỷ lệ: ảnh mẫu giày cao thấp khác nhau, để tự do thì bố cục nhảy loạn.
+   contain chứ không cover — ảnh mẫu phải thấy trọn đôi giày, không được cắt mất mũi hay gót. */
+.uploader__preview {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 5 / 4;
+  border-radius: 8px;
+  background: #eef1f5;
+  overflow: hidden;
+}
+
+.uploader__preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.uploader__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-muted);
+}
+
+.uploader__empty-icon {
+  font-size: 40px;
+  line-height: 1;
+  opacity: 0.55;
+}
+
+.uploader__tools {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  gap: 8px;
+}
+
+.uploader__tool {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--text);
+  box-shadow: 0 1px 3px rgba(16, 24, 40, 0.12);
+  cursor: pointer;
+}
+
+.uploader__tool svg {
+  width: 16px;
+  height: 16px;
+}
+
+.uploader__tool:hover:not(:disabled) {
+  background: #fff;
+  border-color: var(--border-strong);
+}
+
+.uploader__tool--danger:hover:not(:disabled) {
+  color: var(--danger);
+  border-color: #f0c4c1;
+}
+
+.uploader__tool:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ---------- CR-001: danh sách nhập hàng ---------- */
+
+/* Độ rộng cột lấy từ colgroup chứ không từ nội dung: mã giày dài ngắn khác nhau, dòng có 2 hay 3
+   nút thao tác, có hay không badge "Quá hạn" — đổi trang, đổi bộ lọc thì cột vẫn đứng yên.
+   min-width: màn hẹp thì bảng cuộn ngang trong khung, không bóp hai cột co giãn về gần bằng 0. */
+.receipt-table {
+  table-layout: fixed;
+  min-width: 1040px;
+}
+
+.receipt-table__col--image {
+  width: 72px;
+}
+
+.receipt-table__col--quantity {
+  width: 100px;
+}
+
+.receipt-table__col--period {
+  width: 130px;
+}
+
+.receipt-table__col--status {
+  width: 170px;
+}
+
+/* Đủ cho dòng nhiều nút nhất: Lập tiến độ + Sửa + Xoá. */
+.receipt-table__col--actions {
+  width: 264px;
+}
+
+/* Cột đã cố định thì nội dung dài phải xuống dòng trong cột của nó, không tràn sang cột bên cạnh. */
+.receipt-table__wrap {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+/* ---------- CR-001: màn nhập hàng ---------- */
+
+/* Ảnh mẫu bên trái, thông tin bên phải. Hai thẻ cao theo nội dung riêng — thẻ thông tin ngắn hơn
+   là chủ đích của thiết kế, không kéo giãn cho bằng nhau. */
+.receipt-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 5fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.receipt-card .card__header {
+  padding: 20px 22px 0;
+  border-bottom: none;
+}
+
+.receipt-card .card__title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 17px;
+}
+
+.receipt-card .card__title svg {
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+}
+
+.receipt-card .card__body {
+  padding: 18px 22px 22px;
+}
+
+/* Chiều cao tối thiểu giữ nút lưu ở cùng một chỗ: gợi ý hay thông báo lỗi hiện ra thì lấp vào
+   khoảng trống phía trên nó, không đẩy nút xuống. */
+.receipt-form {
+  min-height: 280px;
+}
+
+.receipt-form .form__actions {
+  margin-top: auto;
+}
+
+.receipt-form__quantity {
+  max-width: 320px;
+}
+
+/* Ảnh vừa chọn nằm ở thẻ bên kia, xa nút lưu: nhắc ngay cạnh nút rằng nó chưa được lưu. */
+.receipt-form__dirty {
+  margin-right: auto;
+  align-self: center;
+  color: var(--warning);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.receipt-form .input:disabled,
+.receipt-form .input-group:has(.input-group__input:disabled) {
+  background: var(--bg);
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+.receipt-form .input-group__input:disabled {
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+@media (max-width: 900px) {
+  .receipt-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Thumbnail trong bảng: bấm được, nên nó là <button> chứ không phải <img> trần. */
+.thumb {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  overflow: hidden;
+  cursor: pointer;
+  vertical-align: middle;
+}
+
+.thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.thumb--empty {
+  cursor: default;
+  color: var(--text-muted);
+}
+
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  background: rgba(12, 18, 28, 0.82);
+  cursor: zoom-out;
+}
+
+.lightbox__image {
+  max-width: 100%;
+  max-height: 100%;
+  border-radius: var(--radius);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.4);
+}
+
+.lightbox__close {
+  position: absolute;
+  top: 18px;
+  right: 22px;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.lightbox__close:hover {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+/* Ảnh mẫu đứng cạnh tiêu đề ở màn chi tiết tiến độ. */
+.page__heading-with-image {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+/* ---------- CR-001: dây chuyền ---------- */
+
+.line-tags {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.line-picker {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 8px;
+}
+
+.line-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.line-option:hover {
+  border-color: var(--primary);
+}
+
+.line-option--selected {
+  border-color: var(--primary);
+  background: var(--info-bg);
+}
+
+.line-option > span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* Hai lựa chọn phân bổ nằm ngang: chúng loại trừ nhau và cần được so sánh cạnh nhau. */
+.options--inline {
+  flex-direction: row;
+  flex-wrap: wrap;
+}
+
+.options--inline > .option {
+  flex: 1 1 260px;
+}
+
+/* ---------- CR-001: chọn đơn hàng khi lập tiến độ ---------- */
+
+.order-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 380px;
+  overflow-y: auto;
+}
+
+.order-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.order-option:hover {
+  border-color: var(--primary);
+}
+
+.order-option--selected {
+  border-color: var(--primary);
+  background: var(--info-bg);
+}
+
+.order-option__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* ---------- CR-001: ma trận ngày × dây chuyền ---------- */
+
+/*
+ * Cột ngày được ghim và phần còn lại cuộn ngang. Với 5+ dây chuyền, cuộn sang phải mà mất cột ngày
+ * là mất luôn mốc để đọc từng hàng (CR-001 §10).
+ */
+.matrix-scroll {
+  overflow-x: auto;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.matrix__date-col {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background: var(--surface);
+  min-width: 118px;
+}
+
+.matrix thead th {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: var(--surface);
+  box-shadow: inset 0 -1px 0 var(--border);
+}
+
+/* Hàng tiêu đề thứ hai nằm ngay dưới hàng đầu, nên offset đúng bằng chiều cao hàng đầu. Chiều cao
+   đó phụ thuộc nội dung nên được đo trong ProductionMatrix; 41px chỉ là giá trị dự phòng. */
+.matrix thead tr:nth-child(2) th {
+  top: var(--matrix-head-offset, 41px);
+}
+
+.matrix thead .matrix__date-col {
+  z-index: 4;
+}
+
+.matrix tfoot th {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  background: var(--surface);
+  box-shadow: inset 0 1px 0 var(--border);
+}
+
+.matrix tfoot .matrix__date-col {
+  z-index: 3;
+}
+
+.matrix__line-head {
+  text-align: center;
+}
+
+/*
+ * Ma trận dữ liệu có hai hàng tiêu đề sticky nên dùng viền tách rời. Với border-collapse, viền do bảng
+ * vẽ ở vị trí gốc chứ không đi theo ô sticky: khi cuộn, viền giữa hai hàng tiêu đề thành khe 1px cho
+ * dòng dữ liệu lọt qua, và viền dọc của dòng dữ liệu vẽ đè lên header. Viền tách rời thì mỗi ô tự mang
+ * viền của nó — viền dưới của `.table th` đã đi theo ô, không cần vẽ lại bằng shadow nữa.
+ */
+.matrix--data {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.matrix--data thead th {
+  box-shadow: none;
+}
+
+/* Nhóm ba cột của một dây chuyền: đường kẻ dọc phân tách để mắt không đọc lẫn sang cột bên cạnh. */
+.matrix--data .matrix__group-start {
+  border-left: 1px solid var(--border-strong);
+}
+
+.matrix__line-head .table__sub {
+  font-weight: 400;
+}
+
+.matrix__sub-head {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.matrix__empty {
+  color: var(--text-muted);
+  text-align: center;
+}
+
+/* Cột thao tác của từng dây chuyền: sát bên phải cột Lệch, không giãn theo chiều rộng bảng. */
+.matrix__cell-actions {
+  width: 1%;
+}
+
+.matrix__actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.matrix__day-action {
+  width: 1%;
+  text-align: center;
+}
+
+.matrix__gap {
+  display: block;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.matrix .input--number {
+  width: 88px;
+}
+
+/* Ô nhập sai giá trị: viền đỏ để lỗi thấy được ngay trên chính ô đó. */
+.input--invalid {
+  border-color: var(--danger);
 }

@@ -70,7 +70,7 @@ public class ProductionDayLifecycleTests
     private static readonly DateTimeOffset Now = new(2026, 8, 13, 10, 0, 0, TimeSpan.Zero);
     private static readonly DateOnly Date = new(2026, 8, 13);
 
-    private static ProductionDay OpenDay() => ProductionDay.Open(TestIds.Of(1), Date, TestIds.Of(1), Now);
+    private static ProductionDay OpenDay() => ProductionDay.Open(TestIds.Of(1), TestIds.Of(9), Date, TestIds.Of(1), Now);
 
     [Fact]
     public void A_new_day_is_open_and_has_no_official_quantity_yet()

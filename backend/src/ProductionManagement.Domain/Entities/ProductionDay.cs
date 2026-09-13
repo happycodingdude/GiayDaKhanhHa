@@ -1,8 +1,9 @@
 namespace ProductionManagement.Domain.Entities;
 
 /// <summary>
-/// Một ngày sản xuất của đơn hàng. Đúng một bản ghi cho mỗi Order + ProductionDate, được tạo lazily
-/// ở lần ghi nhận đầu tiên hoặc khi Xuất hàng cho ngày chưa có dòng nào (CR-01 §14.4).
+/// Một ô sản xuất: một ngày trên một dây chuyền của đơn hàng. Đúng một bản ghi cho mỗi
+/// Order + ProductionDate + ProductionLine, được tạo lazily ở lần ghi nhận đầu tiên hoặc khi Xuất
+/// hàng cho ô chưa có dòng nào (CR-01 §14.4, CR-001 §5.5).
 ///
 /// Sản lượng thực tế của ngày là tổng các <see cref="ProductionEntry"/> chưa xoá, không phải một
 /// giá trị nhập tay. <see cref="ActualQuantity"/> chỉ là ảnh chụp tại thời điểm đóng ngày.
@@ -17,6 +18,8 @@ public sealed class ProductionDay
     public Guid Id { get; private set; }
     public Guid OrderId { get; private set; }
     public Order Order { get; private set; } = null!;
+    public Guid ProductionLineId { get; private set; }
+    public ProductionLine ProductionLine { get; private set; } = null!;
     public DateOnly ProductionDate { get; private set; }
     public ProductionDayStatus Status { get; private set; }
 
@@ -34,11 +37,13 @@ public sealed class ProductionDay
 
     public bool IsClosed => Status == ProductionDayStatus.Closed;
 
-    public static ProductionDay Open(Guid orderId, DateOnly productionDate, Guid userId, DateTimeOffset now)
+    public static ProductionDay Open(
+        Guid orderId, Guid productionLineId, DateOnly productionDate, Guid userId, DateTimeOffset now)
         => new()
         {
             Id = Guid.CreateVersion7(),
             OrderId = orderId,
+            ProductionLineId = productionLineId,
             ProductionDate = productionDate,
             Status = ProductionDayStatus.Open,
             ActualQuantity = null,
@@ -49,7 +54,7 @@ public sealed class ProductionDay
         };
 
     /// <summary>
-    /// Chốt sổ ngày sản xuất. Sản lượng thực tế do server tự tính từ các lần ghi nhận — client không
+    /// Chốt sổ ô sản xuất. Sản lượng thực tế do server tự tính từ các lần ghi nhận — client không
     /// bao giờ gửi lên con số này (CR-01 §6.6, §14.1).
     /// </summary>
     public void Close(int actualQuantity, Guid userId, DateTimeOffset now)
@@ -70,7 +75,7 @@ public sealed class ProductionDay
         UpdatedAt = now;
     }
 
-    /// <summary>Ném 409 khi ngày đã đóng. Mọi thao tác lên entry đều phải đi qua đây (CR-01 N-04).</summary>
+    /// <summary>Ném 409 khi ô đã đóng. Mọi thao tác lên entry đều phải đi qua đây (CR-01 N-04).</summary>
     public void EnsureOpen()
     {
         if (IsClosed)

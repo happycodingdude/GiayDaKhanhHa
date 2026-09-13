@@ -7,7 +7,7 @@ import { InlineError, LoadingState } from '../../../shared/feedback/QueryState'
 import { useToast } from '../../../shared/feedback/ToastProvider'
 import { formatDate, today } from '../../../shared/lib/date'
 import { formatNumber } from '../../../shared/lib/format'
-import type { ProductionDayDto } from '../../production/types'
+import type { ProductionCellDto, ProductionMatrixLineDto } from '../../production/types'
 import { useApplyAdjustment, usePreviewAdjustment } from '../hooks/useAdjustments'
 import type { AdjustmentPreviewDto, AdjustmentType } from '../types'
 
@@ -40,14 +40,16 @@ function stepsFor(type: AdjustmentType): StepDefinition[] {
 export function ShortageDialog({
   open,
   orderId,
-  sourceDay,
-  allDays,
+  sourceCell,
+  allCells,
+  lines,
   onClose,
 }: {
   open: boolean
   orderId: string
-  sourceDay: ProductionDayDto | null
-  allDays: ProductionDayDto[]
+  sourceCell: ProductionCellDto | null
+  allCells: ProductionCellDto[]
+  lines: ProductionMatrixLineDto[]
   onClose: () => void
 }) {
   const { showToast } = useToast()
@@ -69,39 +71,36 @@ export function ShortageDialog({
     apply.reset()
     // Khởi tạo lại mỗi khi dialog mở cho một ngày nguồn khác.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, sourceDay?.id])
+  }, [open, sourceCell?.id])
 
   // Phần thiếu chỉ tồn tại ở ngày đã Xuất hàng, nên dialog này chỉ mở được cho ngày đã đóng
   // (CR-01 OV-5). Ngày còn mở chưa có con số chính thức nào để bù.
-  if (!sourceDay || sourceDay.shortageQuantity === null || sourceDay.shortageQuantity <= 0) {
+  if (!sourceCell || sourceCell.shortageQuantity === null || sourceCell.shortageQuantity <= 0) {
     return null
   }
 
-  const shortageQuantity = sourceDay.shortageQuantity
+  const shortageQuantity = sourceCell.shortageQuantity
   const currentDate = today()
 
-  /**
-   * Vì sao một ngày không nhận được phần bù. Ngày đích phải nằm sau ngày thiếu, không thuộc quá khứ,
-   * và CHƯA Xuất hàng — bù vào ngày đã chốt sổ là viết lại lịch sử của ngày đó
-   * (master summary §11, CR-01 §6.7).
-   */
-  const rejectionFor = (day: ProductionDayDto): string | null => {
-    if (day.productionDate <= sourceDay.productionDate) return 'Không nằm sau ngày thiếu'
-    if (day.dayStatus === 'Closed') return 'Đã xuất hàng'
-    if (day.productionDate < currentDate) return 'Ngày đã qua'
-    if (day.plannedQuantity === 0 && day.addOnQuantity === 0) return null
-    return null
-  }
+  const sourceLine = lines.find((line) => line.id === sourceCell.productionLineId)
 
-  const laterDays = allDays.filter((day) => day.productionDate > sourceDay.productionDate)
-  const eligibleDays = laterDays.filter((day) => rejectionFor(day) === null)
-  const rejectedDays = laterDays
-    .map((day) => ({ day, reason: rejectionFor(day) }))
-    .filter((entry): entry is { day: ProductionDayDto; reason: string } => entry.reason !== null)
+  /**
+   * Ngày nhận được phần bù: THUỘC CÙNG DÂY CHUYỀN với ô thiếu (không bù chéo dây chuyền), nằm sau
+   * ngày thiếu, không thuộc quá khứ, và CHƯA Xuất hàng — bù vào ô đã chốt sổ là viết lại lịch sử
+   * của ô đó (master summary §11, CR-01 §6.7, CR-001 BR-N12). Mọi danh sách ngày trong dialog chỉ
+   * gồm những ngày này; ngày không bù được thì không hiện.
+   */
+  const eligibleDays = allCells.filter(
+    (cell) =>
+      cell.productionLineId === sourceCell.productionLineId &&
+      cell.productionDate > sourceCell.productionDate &&
+      cell.productionDate >= currentDate &&
+      cell.dayStatus !== 'Closed',
+  )
 
   const runPreview = async (type: AdjustmentType, planId: string | null) => {
     const result = await preview.mutateAsync({
-      productionPlanId: sourceDay.id,
+      productionPlanId: sourceCell.id,
       request:
         type === 'Automatic'
           ? { adjustmentType: 'Automatic' }
@@ -120,7 +119,7 @@ export function ShortageDialog({
     if (!proposal) return
 
     await apply.mutateAsync({
-      productionPlanId: sourceDay.id,
+      productionPlanId: sourceCell.id,
       request: {
         adjustmentType: proposal.adjustmentType,
         shortageQuantity: proposal.shortageQuantity,
@@ -132,7 +131,7 @@ export function ShortageDialog({
     })
 
     showToast(
-      `Đã bù ${formatNumber(proposal.shortageQuantity)} đôi cho ${proposal.items.length} ngày sản xuất.`,
+      `Đã bù ${formatNumber(proposal.shortageQuantity)} đôi cho ${proposal.items.length} ngày của ${sourceLine?.code ?? ''}.`,
     )
     onClose()
   }
@@ -141,15 +140,19 @@ export function ShortageDialog({
     <dl className="summary-list summary-list--compact">
       <div>
         <dt>Ngày thiếu</dt>
-        <dd>{formatDate(sourceDay.productionDate)}</dd>
+        <dd>{formatDate(sourceCell.productionDate)}</dd>
+      </div>
+      <div>
+        <dt>Dây chuyền</dt>
+        <dd className="strong">{sourceLine?.code ?? '—'}</dd>
       </div>
       <div>
         <dt>Kế hoạch</dt>
-        <dd>{formatNumber(sourceDay.plannedQuantity)} đôi</dd>
+        <dd>{formatNumber(sourceCell.plannedQuantity)} đôi</dd>
       </div>
       <div>
         <dt>Thực tế</dt>
-        <dd>{formatNumber(sourceDay.actualQuantity ?? 0)} đôi</dd>
+        <dd>{formatNumber(sourceCell.actualQuantity ?? 0)} đôi</dd>
       </div>
       <div>
         <dt>Số lượng cần bù</dt>
@@ -206,8 +209,8 @@ export function ShortageDialog({
             <span>
               <strong>Chọn ngày để bù</strong>
               <span className="option__hint">
-                Bạn chọn một ngày sản xuất, toàn bộ {formatNumber(shortageQuantity)} đôi thiếu sẽ
-                được bù vào ngày đó.
+                Bạn chọn một ngày của <strong>{sourceLine?.code}</strong>, toàn bộ{' '}
+                {formatNumber(shortageQuantity)} đôi thiếu sẽ được bù vào ngày đó.
               </span>
             </span>
           </label>
@@ -222,8 +225,8 @@ export function ShortageDialog({
             <span>
               <strong>Hệ thống đề xuất chia đều</strong>
               <span className="option__hint">
-                Hệ thống tự chia toàn bộ số lượng thiếu cho tất cả các ngày sản xuất còn lại. Phần dư
-                được phân bổ từ ngày gần nhất trở đi.
+                Hệ thống tự chia toàn bộ số lượng thiếu cho các ngày còn lại của{' '}
+                <strong>{sourceLine?.code}</strong>. Phần dư được phân bổ từ ngày gần nhất trở đi.
               </span>
             </span>
           </label>
@@ -232,18 +235,9 @@ export function ShortageDialog({
         {/* Trường hợp biên mới do CR-01 tạo ra: ngày cuối bị thiếu, hoặc mọi ngày sau đó đều đã
             Xuất hàng nên không còn chỗ nào nhận được phần bù (CR-01 §6.7, AC-15). */}
         {eligibleDays.length === 0 && (
-          <div className="notice notice--warning">
-            <p>Không còn ngày sản xuất nào có thể nhận phần bù.</p>
-            {rejectedDays.length > 0 && (
-              <ul className="plain-list modal-scroll">
-                {rejectedDays.map(({ day, reason }) => (
-                  <li key={day.id}>
-                    {formatDate(day.productionDate)}: {reason}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+          <p className="notice notice--warning">
+            Dây chuyền {sourceLine?.code} không còn ngày sản xuất nào có thể nhận phần bù.
+          </p>
         )}
 
         {previewError && <InlineError message={previewError} />}
@@ -256,7 +250,7 @@ export function ShortageDialog({
       <Modal
         open={open}
         title="Chọn ngày muốn bù"
-        description={`Bù toàn bộ ${formatNumber(shortageQuantity)} đôi thiếu vào một ngày sản xuất.`}
+        description={`Bù toàn bộ ${formatNumber(shortageQuantity)} đôi thiếu vào một ngày của ${sourceLine?.code ?? ''}.`}
         onClose={onClose}
         width={DIALOG_WIDTH}
         footer={
@@ -297,22 +291,6 @@ export function ShortageDialog({
           ))}
         </div>
 
-        {/* Ngày bị loại vẫn hiện, kèm lý do: quản lý cần biết vì sao một ngày không chọn được thay
-            vì thấy nó biến mất không giải thích (CR-01 §8). */}
-        {rejectedDays.length > 0 && (
-          <>
-            <p className="field__label">Ngày không thể nhận bù</p>
-            {/* Danh sách phụ: giữ trần cố định để không tranh chỗ với danh sách ngày chọn được. */}
-            <ul className="plain-list muted modal-scroll modal-scroll--cap">
-              {rejectedDays.map(({ day, reason }) => (
-                <li key={day.id}>
-                  {formatDate(day.productionDate)}: {reason}
-                </li>
-              ))}
-            </ul>
-          </>
-        )}
-
         {previewError && <InlineError message={previewError} />}
       </Modal>
     )
@@ -326,7 +304,10 @@ export function ShortageDialog({
     )
   }
 
-  const totalPlanBefore = allDays.reduce((sum, day) => sum + day.plannedQuantity, 0)
+  // Tổng kế hoạch của cả dây chuyền: bù không bao giờ chạm sang dây chuyền khác (BR-N12).
+  const totalPlanBefore = allCells
+    .filter((cell) => cell.productionLineId === sourceCell.productionLineId)
+    .reduce((sum, cell) => sum + cell.plannedQuantity, 0)
 
   if (step === 'confirm') {
     return (
@@ -349,7 +330,8 @@ export function ShortageDialog({
         <Stepper steps={steps} current="confirm" compact />
 
         <p>
-          Ngày thiếu: <strong>{formatDate(sourceDay.productionDate)}</strong>
+          Ô thiếu: <strong>{formatDate(sourceCell.productionDate)}</strong> trên dây chuyền{' '}
+          <strong>{sourceLine?.code}</strong>
           <br />
           Số lượng thiếu: <strong>{formatNumber(proposal.shortageQuantity)} đôi</strong>
         </p>
@@ -375,6 +357,7 @@ export function ShortageDialog({
     <Modal
       open={open}
       title="Kế hoạch trước và sau khi bù"
+      description={`Các ngày của dây chuyền ${sourceLine?.code ?? ''} còn nhận được phần bù.`}
       onClose={onClose}
       width={DIALOG_WIDTH}
       footer={
@@ -392,7 +375,8 @@ export function ShortageDialog({
 
       {shortageHeader}
 
-      {/* Đơn hàng có thể trải hàng chục ngày sản xuất: bảng tự cuộn để modal không cao quá màn hình. */}
+      {/* Chỉ ngày còn nhận được bù: ngày đã qua hay đã xuất hàng không bao giờ đổi kế hoạch, liệt
+          kê chúng chỉ làm bảng dài thêm. Bảng tự cuộn để modal không cao quá màn hình. */}
       <div className="table-wrapper modal-scroll">
         <table className="table">
           <thead>
@@ -404,7 +388,7 @@ export function ShortageDialog({
             </tr>
           </thead>
           <tbody>
-            {allDays.map((day) => {
+            {eligibleDays.map((day) => {
               const item = proposal.items.find((entry) => entry.productionPlanId === day.id)
               return (
                 <tr key={day.id} className={item ? 'table__row--highlight' : ''}>

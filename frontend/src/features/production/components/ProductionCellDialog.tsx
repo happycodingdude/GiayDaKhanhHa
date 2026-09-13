@@ -9,35 +9,37 @@ import { DayStatusBadge } from './DayStatusBadge'
 import { EntryHistoryTable } from './EntryHistoryTable'
 import { EntryQuickForm } from './EntryQuickForm'
 import { RemainingAllowance } from './RemainingAllowance'
-import { useProductionDay } from '../hooks/useProductionDay'
+import { useProductionCell } from '../hooks/useProductionCell'
 import { useRecordingReminder } from '../hooks/useRecordingReminder'
 
 /**
- * MH5 — Nhập sản lượng, dạng modal mở từ bảng tiến độ. Bố cục:
+ * MH5 — Nhập sản lượng cho MỘT Ô (ngày × dây chuyền), dạng modal mở từ ma trận. Bố cục:
  *   1. Trạng thái ngày + mốc ghi nhận gần nhất
- *   2. Ba ô tổng quan: kế hoạch ngày · đã nhập · còn được nhập
- *   3. Hai cột: form ghi nhận nhanh | lịch sử các lần nhập trong ngày
+ *   2. Ba ô tổng quan: kế hoạch của ô · đã nhập · còn được nhập
+ *   3. Hai cột: form ghi nhận nhanh | lịch sử các lần nhập trong ô
  *
- * Xuất hàng KHÔNG nằm trong modal này: nó là một nút riêng cạnh "Nhập sản lượng" trên bảng tiến độ,
+ * Xuất hàng KHÔNG nằm trong modal này: nó chốt sổ cả ngày, là nút ở cột "Xuất hàng" của ma trận,
  * nên Enter trong form ghi nhận không bao giờ chạm tới được thao tác chốt sổ.
  *
- * `readOnly` dùng cho ngày đã Xuất hàng: modal chỉ hiển thị thông tin, không có form và không có
+ * `readOnly` dùng cho ô đã Xuất hàng: modal chỉ hiển thị thông tin, không có form và không có
  * lối vào Xử lý thiếu.
  */
-export function ProductionDayDialog({
+export function ProductionCellDialog({
   open,
   orderId,
   productionDate,
+  productionLineId,
   readOnly = false,
   onClose,
 }: {
   open: boolean
   orderId: string
   productionDate: IsoDate
+  productionLineId: string
   readOnly?: boolean
   onClose: () => void
 }) {
-  const query = useProductionDay(orderId, productionDate)
+  const query = useProductionCell(orderId, productionDate, productionLineId)
   const settingsQuery = useSettings()
 
   const day = query.data
@@ -55,10 +57,10 @@ export function ProductionDayDialog({
   return (
     <Modal
       open={open}
-      title={isClosed ? 'Chi tiết ngày sản xuất' : 'Nhập sản lượng'}
+      title={isClosed ? 'Chi tiết ô sản xuất' : 'Nhập sản lượng'}
       description={
         day
-          ? `${day.orderCode} · ${formatDate(productionDate)} · ${formatWeekday(productionDate)}`
+          ? `${day.shoeCode} · ${day.productionLineCode} · ${formatDate(productionDate)} · ${formatWeekday(productionDate)}`
           : undefined
       }
       onClose={onClose}
@@ -75,7 +77,7 @@ export function ProductionDayDialog({
         <ErrorState
           error={query.error}
           onRetry={() => void query.refetch()}
-          title="Không tải được ngày sản xuất"
+          title="Không tải được ô sản xuất"
         />
       )}
 
@@ -92,7 +94,7 @@ export function ProductionDayDialog({
 
           {day.isOrderReadOnly && (
             <p className="notice notice--danger">
-              🔒 Đơn hàng đã quá hạn hoàn thành nên chỉ được xem lại.
+              🔒 Đơn hàng đã qua ngày kết thúc nên chỉ được xem lại.
             </p>
           )}
 
@@ -106,7 +108,7 @@ export function ProductionDayDialog({
 
           {day.dayStatus === 'NoPlan' && (
             <p className="notice notice--warning">
-              Ngày này không có kế hoạch sản xuất nên không thể ghi nhận sản lượng.
+              Dây chuyền này không có kế hoạch trong ngày nên không thể ghi nhận sản lượng.
             </p>
           )}
 
@@ -136,7 +138,7 @@ export function ProductionDayDialog({
                 trong tự cuộn, để cột form bên cạnh không bao giờ bị cắt cụt. */}
             <section className="day-panel day-panel--scroll">
               <header className="day-panel__header">
-                <h3 className="day-panel__title">Các lần đã ghi nhận trong ngày</h3>
+                <h3 className="day-panel__title">Các lần đã ghi nhận trong ô</h3>
                 {day.entries.length > 0 && (
                   <Badge tone="info">
                     {day.entries.length} lần · tổng {formatNumber(day.dayActualQuantity)} đôi

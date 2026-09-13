@@ -3,12 +3,17 @@ using ProductionManagement.Domain;
 namespace ProductionManagement.Application.Contracts;
 
 /// <summary>
-/// Một dòng của bảng sản xuất theo ngày ở màn hình chi tiết đơn hàng: kế hoạch, sản lượng và các
-/// giá trị suy ra, ghép sẵn để frontend không phải gọi nhiều API (Step 4 §6).
+/// Một ô của ma trận sản xuất — một ngày trên một dây chuyền: kế hoạch, sản lượng và các giá trị
+/// suy ra, ghép sẵn để frontend không phải gọi nhiều API rồi tự join (CR-001 §6.7).
+///
+/// Backend trả phẳng theo ô; frontend dựng ma trận. Ô không có kế hoạch đơn giản là không xuất hiện
+/// trong danh sách (CR-001 §6.6b).
 /// </summary>
-public sealed record ProductionDayDto(
+public sealed record ProductionCellDto(
+    /// <summary>Id của ProductionPlan — khoá của ô, và là id mà luồng bù sản lượng dùng.</summary>
     Guid Id,
     DateOnly ProductionDate,
+    Guid ProductionLineId,
     int InitialPlannedQuantity,
     int AddOnQuantity,
     int PlannedQuantity,
@@ -17,25 +22,46 @@ public sealed record ProductionDayDto(
     ProductionDayDisplayStatus DayStatus,
 
     /// <summary>
-    /// Tổng các lần ghi nhận chưa xoá. Null nghĩa là chưa ghi nhận lần nào, khác hẳn với 0.
+    /// Tổng các lần ghi nhận chưa xoá của ô. Null nghĩa là chưa ghi nhận lần nào, khác hẳn với 0.
     /// Khi <see cref="IsProvisional"/> là true thì đây là số tạm tính, chưa chốt sổ.
     /// </summary>
     int? ActualQuantity,
     bool IsProvisional,
     Guid? ProductionDayId,
 
-    /// <summary>Chỉ có giá trị khi ngày đã Xuất hàng; ngày còn mở trả null (CR-01 OV-5).</summary>
+    /// <summary>Chỉ có giá trị khi ô đã Xuất hàng; ô còn mở trả null (CR-01 OV-5).</summary>
     int? ShortageQuantity,
     int? Difference,
     DateTimeOffset? ClosedAt,
 
-    // True khi ngày này là ngày nguồn của một điều chỉnh đang ở trạng thái Applied.
+    // True khi ô này là nguồn của một điều chỉnh đang ở trạng thái Applied.
     bool HasActiveAdjustment,
     Guid? ActiveAdjustmentId,
     string? LastRecordedBy,
     DateTimeOffset? LastRecordedAt);
 
-public sealed record ProductionPlanListDto(Guid OrderId, IReadOnlyList<ProductionDayDto> Items);
+/// <summary>Một dây chuyền trên ma trận, kèm tổng hợp theo cột.</summary>
+public sealed record ProductionMatrixLineDto(
+    Guid Id,
+    string Code,
+    string Name,
+    string Status,
+    int SortOrder,
+
+    /// <summary>Mốc phân bổ tầng 1, bất biến sau khi lập tiến độ (BR-N18).</summary>
+    int AllocatedQuantity,
+
+    /// <summary>Kế hoạch hiện tại của cả dây chuyền — có thể lớn hơn <c>AllocatedQuantity</c> sau bù.</summary>
+    int CurrentPlanQuantity,
+    int ActualQuantity);
+
+/// <summary>Ma trận ngày × dây chuyền của một đơn hàng (CR-001 §6.7).</summary>
+public sealed record ProductionMatrixDto(
+    Guid OrderId,
+    DateOnly? StartDate,
+    DateOnly? DueDate,
+    IReadOnlyList<ProductionMatrixLineDto> ProductionLines,
+    IReadOnlyList<ProductionCellDto> Items);
 
 /// <summary>Một lần ghi nhận sản lượng, kèm tổng lũy kế do server tính (CR-01 §6.3).</summary>
 public sealed record ProductionEntryDto(
@@ -48,13 +74,16 @@ public sealed record ProductionEntryDto(
     string? RecordedBy);
 
 /// <summary>
-/// Toàn bộ state của một ngày sản xuất — màn hình chính của luồng ghi nhận (CR-01 §6.3).
+/// Toàn bộ state của một ô sản xuất — màn hình chính của luồng ghi nhận (CR-01 §6.3).
 /// POST/PUT/DELETE entry cũng trả về đúng khuôn này để frontend không phải refetch thêm một vòng.
 /// </summary>
-public sealed record ProductionDayDetailDto(
+public sealed record ProductionCellDetailDto(
     Guid OrderId,
-    string OrderCode,
+    string ShoeCode,
     DateOnly ProductionDate,
+    Guid ProductionLineId,
+    string ProductionLineCode,
+    string ProductionLineName,
     ProductionDayDisplayStatus DayStatus,
     int InitialPlannedQuantity,
     int PlannedQuantity,
@@ -62,7 +91,7 @@ public sealed record ProductionDayDetailDto(
     int DayActualQuantity,
     bool IsProvisional,
 
-    /// <summary>Số hiển thị trên ô "Còn được nhập" = MIN(trần ngày, trần đơn hàng).</summary>
+    /// <summary>Số hiển thị trên ô "Còn được nhập" = MIN(trần ô, trần đơn hàng).</summary>
     int RemainingAllowance,
 
     /// <summary>Ràng buộc nào đang chặn, để UI chọn đúng câu thông báo.</summary>
@@ -81,19 +110,25 @@ public sealed record CreateProductionEntryRequest(int Quantity, string? Note);
 
 public sealed record UpdateProductionEntryRequest(int Quantity, string? Note);
 
+/// <summary>Một dây chuyền vừa được chốt sổ trong lần Xuất hàng cả ngày.</summary>
+public sealed record ClosedProductionCellDto(
+    Guid ProductionLineId,
+    string ProductionLineCode,
+    string ProductionLineName,
+    int PlannedQuantity,
+    int ActualQuantity,
+    int ShortageQuantity,
+    int Difference);
+
 /// <summary>
-/// Kết quả Xuất hàng. <c>HasShortage</c> là tín hiệu để frontend mở luồng Xử lý thiếu ngay sau khi
-/// đóng ngày (CR-01 §6.6).
+/// Kết quả Xuất hàng một ngày: mọi dây chuyền có kế hoạch mà còn mở trong ngày đó được chốt sổ
+/// cùng lúc. <c>HasShortage</c> là tín hiệu để frontend báo có phần thiếu cần xử lý (CR-01 §6.6).
 /// </summary>
 public sealed record CloseProductionDayDto(
     Guid OrderId,
     DateOnly ProductionDate,
-    ProductionDayDisplayStatus DayStatus,
-    int PlannedQuantity,
-    int ActualQuantity,
-    int ShortageQuantity,
-    int Difference,
     DateTimeOffset ClosedAt,
+    IReadOnlyList<ClosedProductionCellDto> Cells,
     string OrderStatus,
     bool OrderCompleted,
     bool HasShortage);

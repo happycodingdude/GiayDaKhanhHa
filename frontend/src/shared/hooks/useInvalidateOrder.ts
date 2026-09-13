@@ -12,13 +12,15 @@ export function useInvalidateOrder() {
   const queryClient = useQueryClient()
 
   /**
-   * Sau khi ghi nhận / sửa / xoá một lần sản lượng (CR-01 §7.3). Bảng kế hoạch cũng nằm trong danh
-   * sách vì cột "Thực tế" của nó hiển thị số tạm tính của ngày đang mở.
+   * Sau khi ghi nhận / sửa / xoá một lần sản lượng (CR-01 §7.3). Ma trận cũng nằm trong danh
+   * sách vì ô "Thực tế" của nó hiển thị số tạm tính của ô đang mở.
    */
   const invalidateAfterEntryChange = useCallback(
-    async (orderId: string, productionDate: string) => {
+    async (orderId: string, productionDate: string, productionLineId: string) => {
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: queryKeys.orderProductionDay(orderId, productionDate) }),
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.orderProductionCell(orderId, productionDate, productionLineId),
+        }),
         queryClient.invalidateQueries({ queryKey: queryKeys.order(orderId) }),
         queryClient.invalidateQueries({ queryKey: queryKeys.orderProductionPlans(orderId) }),
         queryClient.invalidateQueries({ queryKey: queryKeys.orderStatistics(orderId) }),
@@ -31,8 +33,8 @@ export function useInvalidateOrder() {
   )
 
   /**
-   * Sau khi Xuất hàng: thêm lịch sử bù sản lượng, vì đóng ngày là lúc phần thiếu mới xuất hiện và
-   * ngày mới đổi trạng thái trên bảng kế hoạch (CR-01 §7.3).
+   * Sau khi Xuất hàng: mọi ô của ngày đó cùng đổi trạng thái, và thêm lịch sử bù sản lượng, vì
+   * đóng ngày là lúc phần thiếu mới xuất hiện (CR-01 §7.3).
    */
   const invalidateAfterDayClose = useCallback(
     async (orderId: string, productionDate: string) => {

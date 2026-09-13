@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { formatNumber } from '../../../shared/lib/format'
-import type { ProductionDayDetailDto } from '../types'
+import type { ProductionCellDetailDto } from '../types'
 
 /**
  * Tổng quan ngày. "Còn được nhập" là con số quan trọng nhất của màn hình: nó do server tính từ hai
@@ -55,7 +55,7 @@ const BoxIcon = (
   </svg>
 )
 
-export function RemainingAllowance({ day }: { day: ProductionDayDetailDto }) {
+export function RemainingAllowance({ day }: { day: ProductionCellDetailDto }) {
   const closed = day.dayStatus === 'Closed'
   const shortage = day.shortageQuantity ?? 0
 

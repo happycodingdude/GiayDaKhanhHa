@@ -4,8 +4,8 @@ import { Button } from '../../../shared/components/ui'
 import { InlineError } from '../../../shared/feedback/QueryState'
 import { useToast } from '../../../shared/feedback/ToastProvider'
 import { formatNumber } from '../../../shared/lib/format'
-import { useCreateProductionEntry } from '../hooks/useProductionDay'
-import type { ProductionDayDetailDto } from '../types'
+import { useCreateProductionEntry } from '../hooks/useProductionCell'
+import type { ProductionCellDetailDto } from '../types'
 
 /**
  * Form ghi nhận nhanh — màn hình này được dùng 8–10 lần mỗi ngày nên phải nhanh: ô số lượng
@@ -17,9 +17,9 @@ import type { ProductionDayDetailDto } from '../types'
  * Nút bị khoá trong lúc mutation đang chạy: đó là tuyến phòng thủ chính chống double-submit, vì
  * production_entries cố ý không có unique constraint (CR-01 §14.7).
  */
-export function EntryQuickForm({ day }: { day: ProductionDayDetailDto }) {
+export function EntryQuickForm({ day }: { day: ProductionCellDetailDto }) {
   const { showToast } = useToast()
-  const createEntry = useCreateProductionEntry(day.orderId, day.productionDate)
+  const createEntry = useCreateProductionEntry(day.orderId, day.productionDate, day.productionLineId)
 
   const [value, setValue] = useState('')
   const [note, setNote] = useState('')

@@ -32,21 +32,40 @@ namespace ProductionManagement.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
-                    b.Property<DateOnly>("DueDate")
+                    b.Property<DateOnly?>("DueDate")
                         .HasColumnType("date")
                         .HasColumnName("due_date");
 
-                    b.Property<string>("OrderCode")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasColumnName("order_code");
+                    b.Property<string>("ImageContentType")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("image_content_type");
+
+                    b.Property<string>("ImageFileName")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("image_file_name");
+
+                    b.Property<string>("ImagePath")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("image_path");
+
+                    b.Property<int?>("ImageSizeBytes")
+                        .HasColumnType("integer")
+                        .HasColumnName("image_size_bytes");
 
                     b.Property<int>("Quantity")
                         .HasColumnType("integer")
                         .HasColumnName("quantity");
 
-                    b.Property<DateOnly>("StartDate")
+                    b.Property<string>("ShoeCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("shoe_code");
+
+                    b.Property<DateOnly?>("StartDate")
                         .HasColumnType("date")
                         .HasColumnName("start_date");
 
@@ -62,17 +81,52 @@ namespace ProductionManagement.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("OrderCode")
+                    b.HasIndex("ShoeCode")
                         .IsUnique()
-                        .HasDatabaseName("uq_orders_order_code");
+                        .HasDatabaseName("uq_orders_shoe_code");
+
+                    b.HasIndex("Status")
+                        .HasDatabaseName("ix_orders_status");
 
                     b.ToTable("orders", null, t =>
                         {
-                            t.HasCheckConstraint("ck_orders_date_range", "start_date <= due_date");
+                            t.HasCheckConstraint("ck_orders_image", "(image_path IS NULL AND image_file_name IS NULL AND image_content_type IS NULL AND image_size_bytes IS NULL) OR (image_path IS NOT NULL AND image_file_name IS NOT NULL AND image_content_type IS NOT NULL AND image_size_bytes IS NOT NULL AND image_size_bytes > 0)");
 
                             t.HasCheckConstraint("ck_orders_quantity_positive", "quantity > 0");
 
-                            t.HasCheckConstraint("ck_orders_status", "status IN ('Incomplete', 'Completed')");
+                            t.HasCheckConstraint("ck_orders_schedule_dates", "(status = 'Pending' AND start_date IS NULL AND due_date IS NULL) OR (status <> 'Pending' AND start_date IS NOT NULL AND due_date IS NOT NULL AND start_date <= due_date)");
+
+                            t.HasCheckConstraint("ck_orders_status", "status IN ('Pending', 'Incomplete', 'Completed')");
+                        });
+                });
+
+            modelBuilder.Entity("ProductionManagement.Domain.Entities.OrderProductionLine", b =>
+                {
+                    b.Property<Guid>("OrderId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("order_id");
+
+                    b.Property<Guid>("ProductionLineId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("production_line_id");
+
+                    b.Property<int>("AllocatedQuantity")
+                        .HasColumnType("integer")
+                        .HasColumnName("allocated_quantity");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.HasKey("OrderId", "ProductionLineId")
+                        .HasName("pk_order_production_lines");
+
+                    b.HasIndex("ProductionLineId")
+                        .HasDatabaseName("ix_order_production_lines_line");
+
+                    b.ToTable("order_production_lines", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_order_production_lines_allocated", "allocated_quantity > 0");
                         });
                 });
 
@@ -217,6 +271,10 @@ namespace ProductionManagement.Infrastructure.Persistence.Migrations
                         .HasColumnType("date")
                         .HasColumnName("production_date");
 
+                    b.Property<Guid>("ProductionLineId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("production_line_id");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -237,14 +295,17 @@ namespace ProductionManagement.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("CreatedBy");
 
-                    b.HasIndex("UpdatedBy");
+                    b.HasIndex("ProductionLineId")
+                        .HasDatabaseName("ix_production_days_line");
 
-                    b.HasIndex("OrderId", "ProductionDate")
-                        .IsUnique()
-                        .HasDatabaseName("uq_production_days_order_date");
+                    b.HasIndex("UpdatedBy");
 
                     b.HasIndex("Status", "ProductionDate")
                         .HasDatabaseName("ix_production_days_status_date");
+
+                    b.HasIndex("OrderId", "ProductionDate", "ProductionLineId")
+                        .IsUnique()
+                        .HasDatabaseName("uq_production_days_order_date_line");
 
                     b.ToTable("production_days", null, t =>
                         {
@@ -374,6 +435,63 @@ namespace ProductionManagement.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("ProductionManagement.Domain.Entities.ProductionLine", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("code");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("name");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("note");
+
+                    b.Property<int>("SortOrder")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasColumnName("sort_order");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("status");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique()
+                        .HasDatabaseName("uq_production_lines_code");
+
+                    b.ToTable("production_lines", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_production_lines_sort_order", "sort_order >= 0");
+
+                            t.HasCheckConstraint("ck_production_lines_status", "status IN ('Active', 'Inactive')");
+                        });
+                });
+
             modelBuilder.Entity("ProductionManagement.Domain.Entities.ProductionPlan", b =>
                 {
                     b.Property<Guid>("Id")
@@ -400,15 +518,22 @@ namespace ProductionManagement.Infrastructure.Persistence.Migrations
                         .HasColumnType("date")
                         .HasColumnName("production_date");
 
+                    b.Property<Guid>("ProductionLineId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("production_line_id");
+
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("OrderId", "ProductionDate")
+                    b.HasIndex("ProductionLineId")
+                        .HasDatabaseName("ix_production_plans_line");
+
+                    b.HasIndex("OrderId", "ProductionDate", "ProductionLineId")
                         .IsUnique()
-                        .HasDatabaseName("uq_production_plans_order_date");
+                        .HasDatabaseName("uq_production_plans_order_date_line");
 
                     b.ToTable("production_plans", null, t =>
                         {
@@ -500,6 +625,27 @@ namespace ProductionManagement.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("ProductionManagement.Domain.Entities.OrderProductionLine", b =>
+                {
+                    b.HasOne("ProductionManagement.Domain.Entities.Order", "Order")
+                        .WithMany("ProductionLines")
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_order_production_lines_order");
+
+                    b.HasOne("ProductionManagement.Domain.Entities.ProductionLine", "ProductionLine")
+                        .WithMany()
+                        .HasForeignKey("ProductionLineId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_order_production_lines_line");
+
+                    b.Navigation("Order");
+
+                    b.Navigation("ProductionLine");
+                });
+
             modelBuilder.Entity("ProductionManagement.Domain.Entities.PlanAdjustment", b =>
                 {
                     b.HasOne("ProductionManagement.Domain.Entities.User", null)
@@ -574,6 +720,13 @@ namespace ProductionManagement.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasConstraintName("fk_production_days_order");
 
+                    b.HasOne("ProductionManagement.Domain.Entities.ProductionLine", "ProductionLine")
+                        .WithMany()
+                        .HasForeignKey("ProductionLineId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_production_days_line");
+
                     b.HasOne("ProductionManagement.Domain.Entities.User", null)
                         .WithMany()
                         .HasForeignKey("UpdatedBy")
@@ -582,6 +735,8 @@ namespace ProductionManagement.Infrastructure.Persistence.Migrations
                         .HasConstraintName("fk_production_days_updated_by");
 
                     b.Navigation("Order");
+
+                    b.Navigation("ProductionLine");
                 });
 
             modelBuilder.Entity("ProductionManagement.Domain.Entities.ProductionEntry", b =>
@@ -636,7 +791,16 @@ namespace ProductionManagement.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasConstraintName("fk_production_plans_order");
 
+                    b.HasOne("ProductionManagement.Domain.Entities.ProductionLine", "ProductionLine")
+                        .WithMany()
+                        .HasForeignKey("ProductionLineId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_production_plans_line");
+
                     b.Navigation("Order");
+
+                    b.Navigation("ProductionLine");
                 });
 
             modelBuilder.Entity("ProductionManagement.Domain.Entities.SystemSettings", b =>
@@ -652,6 +816,8 @@ namespace ProductionManagement.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("ProductionManagement.Domain.Entities.Order", b =>
                 {
                     b.Navigation("ProductionDays");
+
+                    b.Navigation("ProductionLines");
 
                     b.Navigation("ProductionPlans");
                 });

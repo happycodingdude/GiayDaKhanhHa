@@ -4,8 +4,9 @@ import { useCurrentUser, useLogout } from '../../features/auth/hooks/useAuth'
 import { Button } from '../../shared/components/ui'
 
 /**
- * Khung ứng dụng sau khi đăng nhập. Điều hướng Phase 1 gồm Dashboard + Đơn hàng; kế hoạch sản
- * xuất, sản lượng thực tế và điều chỉnh đều đi vào từ luồng Đơn hàng (Step 5 §6).
+ * Khung ứng dụng sau khi đăng nhập. Điều hướng sau CR-001: Dashboard · Nhập hàng · Tiến độ · Cấu
+ * hình. Nhập hàng là bước "hàng về"; kế hoạch, sản lượng và bù thiếu đều đi vào từ Tiến độ
+ * (CR-001 §7.1).
  *
  * Sidebar là cột cố định cao hết màn hình, chứa thương hiệu, điều hướng và tài khoản đang đăng
  * nhập. Chỉ cột nội dung được cuộn.
@@ -32,11 +33,32 @@ export function AppLayout() {
           <Link to="/dashboard" className="shell__link" activeProps={{ className: 'shell__link shell__link--active' }}>
             <span aria-hidden="true">📊</span> Dashboard
           </Link>
-          <Link to="/orders" className="shell__link" activeProps={{ className: 'shell__link shell__link--active' }}>
-            <span aria-hidden="true">📦</span> Đơn hàng
+          <Link to="/goods-receipt" className="shell__link" activeProps={{ className: 'shell__link shell__link--active' }}>
+            <span aria-hidden="true">📦</span> Nhập hàng
           </Link>
-          <Link to="/settings" className="shell__link" activeProps={{ className: 'shell__link shell__link--active' }}>
-            <span aria-hidden="true">⚙️</span> Cấu hình
+          <Link to="/progress" className="shell__link" activeProps={{ className: 'shell__link shell__link--active' }}>
+            <span aria-hidden="true">📈</span> Tiến độ
+          </Link>
+
+          {/* Cấu hình là một nhóm: dây chuyền sản xuất nằm dưới nó, không phải một mục ngang hàng
+              với Nhập hàng và Tiến độ (CR-001 §7.1). */}
+          <span className="shell__group-label">Cấu hình</span>
+          <Link
+            to="/settings/production-lines"
+            className="shell__link shell__link--nested"
+            activeProps={{ className: 'shell__link shell__link--nested shell__link--active' }}
+          >
+            <span aria-hidden="true">🏭</span> Dây chuyền sản xuất
+          </Link>
+          {/* Khớp chính xác: mặc định Link active theo tiền tố nên sẽ sáng cả khi đang ở
+              /settings/production-lines, trùng với mục Dây chuyền sản xuất ở trên. */}
+          <Link
+            to="/settings"
+            activeOptions={{ exact: true }}
+            className="shell__link shell__link--nested"
+            activeProps={{ className: 'shell__link shell__link--nested shell__link--active' }}
+          >
+            <span aria-hidden="true">⚙️</span> Cấu hình chung
           </Link>
         </nav>
 

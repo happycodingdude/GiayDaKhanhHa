@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import { toUserMessage } from '../../../api/errors'
 import { Badge, Button } from '../../../shared/components/ui'
 import { Modal } from '../../../shared/dialogs/Modal'
@@ -6,8 +6,11 @@ import { EmptyState, InlineError } from '../../../shared/feedback/QueryState'
 import { useToast } from '../../../shared/feedback/ToastProvider'
 import { formatTimestamp } from '../../../shared/lib/date'
 import { formatNumber } from '../../../shared/lib/format'
-import { useDeleteProductionEntry, useUpdateProductionEntry } from '../hooks/useProductionDay'
-import type { ProductionDayDetailDto, ProductionEntryDto } from '../types'
+import { useDeleteProductionEntry, useUpdateProductionEntry } from '../hooks/useProductionCell'
+import type { ProductionCellDetailDto, ProductionEntryDto } from '../types'
+
+/** Số lần ghi nhận nhìn thấy cùng lúc; nhiều hơn thì bảng tự cuộn thay vì kéo dài cả modal. */
+const VISIBLE_ENTRIES = 4
 
 /**
  * Lịch sử các lần nhập trong ngày — hiển thị sẵn, không cần bấm mở, mới nhất trên cùng (CR-01 §8.1).
@@ -19,18 +22,45 @@ export function EntryHistoryTable({
   day,
   readOnly = false,
 }: {
-  day: ProductionDayDetailDto
+  day: ProductionCellDetailDto
   readOnly?: boolean
 }) {
   const { showToast } = useToast()
-  const updateEntry = useUpdateProductionEntry(day.orderId, day.productionDate)
-  const deleteEntry = useDeleteProductionEntry(day.orderId, day.productionDate)
+  const updateEntry = useUpdateProductionEntry(day.orderId, day.productionDate, day.productionLineId)
+  const deleteEntry = useDeleteProductionEntry(day.orderId, day.productionDate, day.productionLineId)
 
   const [editing, setEditing] = useState<ProductionEntryDto | null>(null)
   const [deleting, setDeleting] = useState<ProductionEntryDto | null>(null)
   const [draft, setDraft] = useState({ quantity: '', note: '' })
 
   const editable = !readOnly && day.dayStatus !== 'Closed' && !day.isOrderReadOnly
+  const hasEntries = day.entries.length > 0
+  const scrollRef = useRef<HTMLDivElement>(null)
+
+  // Trần chiều cao = tiêu đề + đúng VISIBLE_ENTRIES dòng đầu, đo từ dòng thật: dòng có ghi chú cao
+  // hơn dòng thường, nên một hằng số px sẽ cắt ngang dòng cuối hoặc để lộ nửa dòng kế tiếp. Hiệu
+  // hai toạ độ không đổi khi bảng đang cuộn, vì bảng và dòng dịch cùng một khoảng.
+  useLayoutEffect(() => {
+    const scroller = scrollRef.current
+    const table = scroller?.querySelector('table')
+    if (!scroller || !table) return
+
+    const syncHeight = () => {
+      const rows = table.tBodies[0]?.rows
+      const lastVisible = rows?.[VISIBLE_ENTRIES - 1]
+
+      scroller.style.maxHeight =
+        rows && rows.length > VISIBLE_ENTRIES && lastVisible
+          ? `${lastVisible.getBoundingClientRect().bottom - table.getBoundingClientRect().top}px`
+          : ''
+    }
+
+    syncHeight()
+    // Thêm/xoá lần ghi nhận, đổi bề ngang làm ghi chú xuống dòng: bảng đổi kích thước là đo lại.
+    const observer = new ResizeObserver(syncHeight)
+    observer.observe(table)
+    return () => observer.disconnect()
+  }, [hasEntries])
 
   const openEdit = (entry: ProductionEntryDto) => {
     setDraft({ quantity: String(entry.quantity), note: entry.note ?? '' })
@@ -70,7 +100,7 @@ export function EntryHistoryTable({
     setDeleting(null)
   }
 
-  if (day.entries.length === 0) {
+  if (!hasEntries) {
     return (
       <EmptyState
         icon="📝"
@@ -86,7 +116,7 @@ export function EntryHistoryTable({
 
   return (
     <>
-      <div className="table-wrapper entry-history">
+      <div className="table-wrapper entry-history" ref={scrollRef}>
         <table className="table">
           <thead>
             <tr>
