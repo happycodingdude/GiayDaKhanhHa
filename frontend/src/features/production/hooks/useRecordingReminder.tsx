@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 
 /** Lời nhắc đã sẵn sàng để hiển thị. `message` là null khi chưa cần nhắc gì. */
 export interface RecordingReminder {
-  message: string | null
+  message: ReactNode
   minutesSinceLastEntry: number | null
 }
 
@@ -41,16 +41,24 @@ export function useRecordingReminder(
 
   if (minutes >= intervalMinutes) {
     return {
-      message:
-        `Đã ${minutes} phút kể từ lần ghi nhận gần nhất, quá chu kỳ ${intervalMinutes} phút. ` +
-        'Nếu tổ đã sản xuất thêm, hãy ghi nhận để số liệu trong ngày luôn đúng.',
+      message: (
+        <>
+          Đã <strong>{minutes} phút</strong> kể từ lần ghi nhận gần nhất, quá chu kỳ{' '}
+          <strong>{intervalMinutes} phút</strong>. Nếu tổ đã sản xuất thêm, hãy ghi nhận để số liệu
+          trong ngày luôn đúng.
+        </>
+      ),
       minutesSinceLastEntry: minutes,
     }
   }
 
   if (remindBeforeDue && minutes >= intervalMinutes - LEAD_MINUTES) {
     return {
-      message: `Còn ${intervalMinutes - minutes} phút nữa là tới hạn ghi nhận tiếp theo.`,
+      message: (
+        <>
+          Còn <strong>{intervalMinutes - minutes} phút</strong> nữa là tới hạn ghi nhận tiếp theo.
+        </>
+      ),
       minutesSinceLastEntry: minutes,
     }
   }

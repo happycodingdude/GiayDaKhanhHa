@@ -109,7 +109,7 @@ export function AdjustmentHistory({ orderId, readOnly }: { orderId: string; read
         {pendingReverse && (
           <>
             <p>
-              Phần bù {formatNumber(pendingReverse.shortageQuantity)} đôi trên dây chuyền{' '}
+              Phần bù <strong>{formatNumber(pendingReverse.shortageQuantity)} đôi</strong> trên dây chuyền{' '}
               <strong>{pendingReverse.productionLine.code}</strong> sẽ được trừ khỏi kế hoạch của các
               ngày sau:
             </p>

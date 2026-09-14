@@ -144,7 +144,8 @@ export function CloseDayDialog({
 
           {withoutEntries.length > 0 && (
             <p className="notice notice--warning">
-              {withoutEntries.map((cell) => cell.productionLineCode).join(', ')} chưa ghi nhận lần nào.
+              <strong>{withoutEntries.map((cell) => cell.productionLineCode).join(', ')}</strong> chưa ghi
+              nhận lần nào.
               Xuất hàng bây giờ nghĩa là sản lượng của {withoutEntries.length > 1 ? 'các dây chuyền này' : 'dây chuyền này'}{' '}
               bằng <strong>0</strong> và toàn bộ kế hoạch được ghi nhận là thiếu.
             </p>
@@ -162,7 +163,7 @@ export function CloseDayDialog({
                     <th>Thời điểm</th>
                     <th className="num">Số lượng</th>
                     <th className="num">Lũy kế</th>
-                    <th>Ghi chú</th>
+                    <th className="table__col--fill">Ghi chú</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -173,7 +174,11 @@ export function CloseDayDialog({
                         <td>{formatTimestamp(entry.recordedAt)}</td>
                         <td className="num">+{formatNumber(entry.quantity)}</td>
                         <td className="num">{formatNumber(entry.runningTotal)}</td>
-                        <td>{entry.note ?? '—'}</td>
+                        <td>
+                          <span className="table__truncate" title={entry.note ?? undefined}>
+                            {entry.note ?? '—'}
+                          </span>
+                        </td>
                       </tr>
                     )),
                   )}
@@ -183,8 +188,9 @@ export function CloseDayDialog({
           )}
 
           <p className="notice notice--danger">
-            ⚠ Sau khi xuất hàng, ngày {formatDate(productionDate)} của{' '}
-            {lines.length > 1 ? `cả ${lines.length} dây chuyền` : 'dây chuyền này'} được chốt sổ vĩnh viễn:{' '}
+            ⚠ Sau khi xuất hàng, ngày <strong>{formatDate(productionDate)}</strong> của{' '}
+            {lines.length > 1 ? <strong>cả {lines.length} dây chuyền</strong> : 'dây chuyền này'} được chốt
+            sổ vĩnh viễn:{' '}
             <strong>không sửa, không xoá, không mở lại</strong>. Hãy kiểm tra lại toàn bộ số lượng ở trên
             trước khi xác nhận.
           </p>

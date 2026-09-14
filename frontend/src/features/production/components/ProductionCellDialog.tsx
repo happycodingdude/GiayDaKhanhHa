@@ -87,7 +87,8 @@ export function ProductionCellDialog({
             <DayStatusBadge status={day.dayStatus} isPastDay={isPastDay} />
             {day.lastRecordedAt && (
               <span className="modal__status-time">
-                <span aria-hidden="true">🕐</span> Nhập gần nhất: {formatTimestamp(day.lastRecordedAt)}
+                <span aria-hidden="true">🕐</span> Nhập gần nhất:{' '}
+                <strong>{formatTimestamp(day.lastRecordedAt)}</strong>
               </span>
             )}
           </p>
@@ -146,7 +147,9 @@ export function ProductionCellDialog({
                 )}
               </header>
               <div className="day-panel__body day-panel__body--flush">
-                <EntryHistoryTable day={day} readOnly={readOnly} />
+                {/* Chi tiết ô đã chốt sổ còn khối tổng kết bên dưới bảng, nên chỉ đủ chỗ cho 3 lần
+                    ghi nhận mà modal vẫn gọn trong khung nhìn; màn ghi nhận có form bên cạnh, giữ 4. */}
+                <EntryHistoryTable day={day} readOnly={readOnly} visibleEntries={isClosed ? 3 : 4} />
               </div>
             </section>
           </div>

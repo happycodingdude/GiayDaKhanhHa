@@ -149,14 +149,14 @@ export function ProgressDetailPage() {
 
       {readOnly && (
         <p className="notice notice--danger">
-          🔒 Đơn hàng đã qua ngày kết thúc ({order.dueDate ? formatDate(order.dueDate) : '—'}) nên
+          🔒 Đơn hàng đã qua ngày kết thúc (<strong>{order.dueDate ? formatDate(order.dueDate) : '—'}</strong>) nên
           chỉ được xem lại. Không thể nhập, sửa sản lượng hay bù sản lượng thiếu.
         </p>
       )}
 
       {unclosedPastDates.length > 0 && !readOnly && (
         <p className="notice notice--warning">
-          ⚠ {unclosedPastDates.length} ngày đã qua chưa xuất hàng (
+          ⚠ <strong>{unclosedPastDates.length} ngày</strong> đã qua chưa xuất hàng (
           {unclosedPastDates.slice(0, 3).map(formatShortDate).join(', ')}
           {unclosedPastDates.length > 3 && ` và ${unclosedPastDates.length - 3} ngày khác`}). Sản
           lượng của các ngày này chưa được chốt sổ nên vẫn là số tạm tính.
@@ -171,16 +171,26 @@ export function ProgressDetailPage() {
           <StatTile
             label="Ngày kết thúc"
             value={order.dueDate ? formatDate(order.dueDate) : '—'}
-            hint={order.isOverdue ? 'Đã quá hạn' : `Còn ${order.daysRemaining} ngày`}
+            hint={
+              order.isOverdue ? (
+                'Đã quá hạn'
+              ) : (
+                <>
+                  Còn <strong>{order.daysRemaining} ngày</strong>
+                </>
+              )
+            }
             tone={order.isOverdue ? 'danger' : 'neutral'}
           />
           <StatTile
             label="Tổng kế hoạch"
             value={`${formatNumber(order.totalPlan)} đôi`}
             hint={
-              order.totalPlan > order.totalInitialPlan
-                ? `Gồm ${formatNumber(order.totalPlan - order.totalInitialPlan)} đôi bù thêm`
-                : undefined
+              order.totalPlan > order.totalInitialPlan ? (
+                <>
+                  Gồm <strong>{formatNumber(order.totalPlan - order.totalInitialPlan)} đôi</strong> bù thêm
+                </>
+              ) : undefined
             }
           />
         </div>

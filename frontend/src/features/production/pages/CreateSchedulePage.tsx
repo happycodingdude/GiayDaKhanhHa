@@ -371,9 +371,11 @@ export function CreateSchedulePage() {
                 required
                 error={setupErrors.dueDate}
                 hint={
-                  startDate && dueDate && startDate <= dueDate
-                    ? `Số ngày sản xuất: ${countDays(startDate, dueDate)} ngày`
-                    : undefined
+                  startDate && dueDate && startDate <= dueDate ? (
+                    <>
+                      Số ngày sản xuất: <strong>{countDays(startDate, dueDate)} ngày</strong>
+                    </>
+                  ) : undefined
                 }
               >
                 <Input

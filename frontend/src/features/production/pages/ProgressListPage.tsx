@@ -230,9 +230,11 @@ export function ProgressListPage() {
         {result && result.totalCount > 0 && (
           <div className="pagination">
             <span className="pagination__info">
-              {formatNumber(result.totalCount)} đơn hàng · hiển thị{' '}
-              {formatNumber((result.page - 1) * result.pageSize + 1)}–
-              {formatNumber(Math.min(result.page * result.pageSize, result.totalCount))}
+              <strong>{formatNumber(result.totalCount)}</strong> đơn hàng · hiển thị{' '}
+              <strong>
+                {formatNumber((result.page - 1) * result.pageSize + 1)}–
+                {formatNumber(Math.min(result.page * result.pageSize, result.totalCount))}
+              </strong>
             </span>
 
             <div className="pagination__controls">

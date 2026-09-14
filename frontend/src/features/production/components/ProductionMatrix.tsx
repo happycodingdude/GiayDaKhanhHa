@@ -82,7 +82,12 @@ export function ProductionMatrix({
   return (
     <Card
       title="Tiến độ sản xuất theo ngày × dây chuyền"
-      description="KH = kế hoạch hiện tại · TT = sản lượng thực tế · Lệch chỉ có khi ngày đã xuất hàng."
+      description={
+        <>
+          <strong>KH</strong> = kế hoạch hiện tại · <strong>TT</strong> = sản lượng thực tế ·{' '}
+          <strong>Lệch</strong> = TT − KH, là số tạm tính khi ngày chưa xuất hàng.
+        </>
+      }
     >
       <div className="table-wrapper matrix-scroll">
         <table className="table matrix matrix--data" ref={tableRef}>
@@ -152,6 +157,13 @@ export function ProductionMatrix({
                     }
 
                     const ref: CellRef = { productionDate: date, productionLineId: line.id, cell }
+                    // Ô còn mở chưa có chênh lệch chính thức (server trả null, CR-01 N-07), nhưng vẫn
+                    // cần thấy đang cách kế hoạch bao nhiêu: tính tạm đúng công thức của server, TT − KH,
+                    // gắn nhãn như cột TT. Không tô đỏ — ngày chưa chốt thì số hụt chưa phải phần thiếu.
+                    const provisionalDifference =
+                      cell.isProvisional && cell.actualQuantity !== null
+                        ? cell.actualQuantity - cell.plannedQuantity
+                        : null
 
                     return (
                       <Fragment key={line.id}>
@@ -168,7 +180,8 @@ export function ProductionMatrix({
                           )}
                         </td>
                         <td className={`num ${(cell.difference ?? 0) < 0 ? 'danger' : ''}`}>
-                          {formatDifference(cell.difference)}
+                          {formatDifference(cell.difference ?? provisionalDifference)}
+                          {provisionalDifference !== null && <span className="table__sub">Tạm tính</span>}
                         </td>
                         <td className="matrix__cell-actions">
                           <CellActions
@@ -256,7 +269,7 @@ function CellActions({
 
   return (
     <div className="matrix__actions">
-      <Button variant="ghost" className="btn--sm" onClick={onView} aria-label={`Xem chi tiết ${label}`}>
+      <Button className="btn--sm" onClick={onView} aria-label={`Xem chi tiết ${label}`}>
         Xem
       </Button>
       {canHandleShortage && (

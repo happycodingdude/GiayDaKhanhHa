@@ -45,7 +45,12 @@ export function LineAllocationStep({
   return (
     <Card
       title="Phân bổ sản lượng cho dây chuyền"
-      description={`Tổng đơn hàng ${formatNumber(orderQuantity)} đôi phải được chia hết cho ${lines.length} dây chuyền đã chọn.`}
+      description={
+        <>
+          Tổng đơn hàng <strong>{formatNumber(orderQuantity)} đôi</strong> phải được chia hết cho{' '}
+          <strong>{lines.length} dây chuyền</strong> đã chọn.
+        </>
+      }
     >
       <div className="options options--inline">
         <label className={`option ${mode === 'Even' ? 'option--selected' : ''}`}>
@@ -61,8 +66,8 @@ export function LineAllocationStep({
           <span>
             <strong>Tự động chia đều</strong>
             <span className="option__hint">
-              Hệ thống chia {formatNumber(orderQuantity)} đôi cho {lines.length} dây chuyền, phần dư
-              dồn vào các dây chuyền đầu.
+              Hệ thống chia <strong>{formatNumber(orderQuantity)} đôi</strong> cho{' '}
+              <strong>{lines.length} dây chuyền</strong>, phần dư dồn vào các dây chuyền đầu.
             </span>
           </span>
         </label>

@@ -44,7 +44,9 @@ export function DashboardPage() {
       <header className="page__header">
         <div>
           <h1 className="page__title">Dashboard</h1>
-          <p className="page__subtitle">Tình hình sản xuất ngày {formatDate(data.date)}</p>
+          <p className="page__subtitle">
+            Tình hình sản xuất ngày <strong>{formatDate(data.date)}</strong>
+          </p>
         </div>
         <Link to="/goods-receipt/new">
           <Button variant="primary">+ Nhập hàng</Button>

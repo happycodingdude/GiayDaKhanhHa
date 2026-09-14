@@ -210,7 +210,7 @@ export function ShortageDialog({
               <strong>Chọn ngày để bù</strong>
               <span className="option__hint">
                 Bạn chọn một ngày của <strong>{sourceLine?.code}</strong>, toàn bộ{' '}
-                {formatNumber(shortageQuantity)} đôi thiếu sẽ được bù vào ngày đó.
+                <strong>{formatNumber(shortageQuantity)} đôi</strong> thiếu sẽ được bù vào ngày đó.
               </span>
             </span>
           </label>
@@ -236,7 +236,7 @@ export function ShortageDialog({
             Xuất hàng nên không còn chỗ nào nhận được phần bù (CR-01 §6.7, AC-15). */}
         {eligibleDays.length === 0 && (
           <p className="notice notice--warning">
-            Dây chuyền {sourceLine?.code} không còn ngày sản xuất nào có thể nhận phần bù.
+            Dây chuyền <strong>{sourceLine?.code}</strong> không còn ngày sản xuất nào có thể nhận phần bù.
           </p>
         )}
 
@@ -250,7 +250,12 @@ export function ShortageDialog({
       <Modal
         open={open}
         title="Chọn ngày muốn bù"
-        description={`Bù toàn bộ ${formatNumber(shortageQuantity)} đôi thiếu vào một ngày của ${sourceLine?.code ?? ''}.`}
+        description={
+          <>
+            Bù toàn bộ <strong>{formatNumber(shortageQuantity)} đôi</strong> thiếu vào một ngày của{' '}
+            <strong>{sourceLine?.code}</strong>.
+          </>
+        }
         onClose={onClose}
         width={DIALOG_WIDTH}
         footer={
@@ -284,7 +289,7 @@ export function ShortageDialog({
               <span>
                 <strong>{formatDate(day.productionDate)}</strong>
                 <span className="option__hint">
-                  Kế hoạch hiện tại: {formatNumber(day.plannedQuantity)} đôi
+                  Kế hoạch hiện tại: <strong>{formatNumber(day.plannedQuantity)} đôi</strong>
                 </span>
               </span>
             </label>
@@ -357,7 +362,11 @@ export function ShortageDialog({
     <Modal
       open={open}
       title="Kế hoạch trước và sau khi bù"
-      description={`Các ngày của dây chuyền ${sourceLine?.code ?? ''} còn nhận được phần bù.`}
+      description={
+        <>
+          Các ngày của dây chuyền <strong>{sourceLine?.code}</strong> còn nhận được phần bù.
+        </>
+      }
       onClose={onClose}
       width={DIALOG_WIDTH}
       footer={
@@ -430,14 +439,15 @@ export function ShortageDialog({
 
       {/* The order quantity itself never changes; only the plan moves (Option 1 spec §4.4/§4.5). */}
       <p className="muted">
-        Tổng số lượng đơn hàng không thay đổi. Phần bù chỉ làm thay đổi kế hoạch sản xuất, không làm
-        tăng số lượng phải giao.
+        Tổng số lượng đơn hàng <strong>không thay đổi</strong>. Phần bù chỉ làm thay đổi kế hoạch sản xuất,
+        không làm tăng số lượng phải giao.
       </p>
 
       {proposal.adjustmentType === 'Automatic' && (
         <p className="muted">
-          Hệ thống chia đều {formatNumber(proposal.shortageQuantity)} đôi cho {proposal.items.length} ngày
-          sản xuất còn lại. Phần dư được phân bổ từ ngày gần nhất trở đi.
+          Hệ thống chia đều <strong>{formatNumber(proposal.shortageQuantity)} đôi</strong> cho{' '}
+          <strong>{proposal.items.length} ngày</strong> sản xuất còn lại. Phần dư được phân bổ từ ngày gần
+          nhất trở đi.
         </p>
       )}
 

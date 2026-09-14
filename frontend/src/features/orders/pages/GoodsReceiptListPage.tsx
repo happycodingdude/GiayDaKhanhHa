@@ -247,9 +247,11 @@ export function GoodsReceiptListPage() {
         {result && result.totalCount > 0 && (
           <div className="pagination">
             <span className="pagination__info">
-              {formatNumber(result.totalCount)} đơn hàng · hiển thị{' '}
-              {formatNumber((result.page - 1) * result.pageSize + 1)}–
-              {formatNumber(Math.min(result.page * result.pageSize, result.totalCount))}
+              <strong>{formatNumber(result.totalCount)}</strong> đơn hàng · hiển thị{' '}
+              <strong>
+                {formatNumber((result.page - 1) * result.pageSize + 1)}–
+                {formatNumber(Math.min(result.page * result.pageSize, result.totalCount))}
+              </strong>
             </span>
 
             <div className="pagination__controls">
@@ -292,7 +294,7 @@ export function GoodsReceiptListPage() {
         {deleting && (
           <>
             <p>
-              Đơn <strong>{deleting.shoeCode}</strong> ({formatNumber(deleting.quantity)} đôi)
+              Đơn <strong>{deleting.shoeCode}</strong> (<strong>{formatNumber(deleting.quantity)} đôi</strong>)
               {deleting.hasImage && ' cùng ảnh mẫu'} sẽ bị xoá vĩnh viễn, không khôi phục được.
             </p>
             {deleteOrder.isError && <InlineError message={toUserMessage(deleteOrder.error)} />}

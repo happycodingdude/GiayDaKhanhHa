@@ -599,6 +599,24 @@ ol {
   font-size: 12px;
 }
 
+/* Chữ tự do như ghi chú: một dòng, dài thì cắt bằng "…". `width: 0` + `min-width: 100%` để nội dung
+   không góp vào bề rộng cột — thiếu nó, cột giãn theo đúng độ dài ghi chú (bảng cấm xuống dòng),
+   đẩy các cột sau ra ngoài khung và chẳng còn gì để cắt. Chia cột xong, `min-width` kéo khối rộng
+   đúng bằng ô rồi mới cắt. Vì vậy bề ngang của cột phải đến từ nội dung khác hoặc `.table__col--fill`. */
+.table__truncate {
+  display: block;
+  width: 0;
+  min-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Cột nhận hết phần bề ngang còn lại của bảng; các cột khác co về vừa nội dung. */
+.table__col--fill {
+  width: 100%;
+}
+
 .table__row--clickable {
   cursor: pointer;
 }
@@ -1174,10 +1192,12 @@ ol {
   font-weight: 600;
 }
 
+/* 500 chứ không phải 600: số liệu trong notice được in đậm bằng <strong>, mà font hệ thống trên macOS
+   (Helvetica Neue) không có nét 600 — 600 hiện ra y hệt 700, chữ đậm lẫn vào phần còn lại. */
 .notice {
   padding: 10px 12px;
   border-radius: var(--radius-sm);
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .notice--success {
@@ -1223,6 +1243,26 @@ ol {
 
 .strong {
   font-weight: 700;
+}
+
+/* Số liệu in đậm trong chữ phụ màu xám lấy màu chữ chính, giống giá trị ở khối tóm tắt: chỉ đậm mà
+   vẫn xám thì không đủ nổi. Notice không nằm trong danh sách — chữ đậm ở đó giữ màu của notice. */
+:is(
+    .muted,
+    .page__subtitle,
+    .card__description,
+    .modal__description,
+    .modal__status-time,
+    .field__hint,
+    .option__hint,
+    .stat__hint,
+    .day-stat__hint,
+    .entry-form__hints,
+    .pagination__info,
+    .state__text
+  )
+  strong {
+  color: var(--text);
 }
 
 .addon {
@@ -1645,7 +1685,11 @@ ol {
   z-index: 1;
 }
 
+/* Ghi chú là lời người nhập để lại, đáng đọc hơn dòng tên người ghi nhận ngay trên: màu chữ chính và
+   cỡ lớn hơn một chút để tách khỏi dòng xám đó; giữ nghiêng để vẫn đọc ra là lời ghi chú. */
 .entry-history__note {
+  color: var(--text);
+  font-size: 13px;
   font-style: italic;
 }
 

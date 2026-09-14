@@ -85,7 +85,11 @@ export function SettingsPage() {
             htmlFor="recordingInterval"
             required
             error={interval !== '' && intervalError ? intervalError : undefined}
-            hint="Bao lâu thì quản lý ghi nhận sản lượng một lần. Ví dụ: 60 phút."
+            hint={
+              <>
+                Bao lâu thì quản lý ghi nhận sản lượng một lần. Ví dụ: <strong>60 phút</strong>.
+              </>
+            }
           >
             <input
               id="recordingInterval"

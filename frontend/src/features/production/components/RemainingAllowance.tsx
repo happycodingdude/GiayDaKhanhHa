@@ -18,7 +18,7 @@ function StatCard({
   icon: ReactNode
   label: string
   value: string
-  hint?: string
+  hint?: ReactNode
 }) {
   return (
     <div className="day-stat">
@@ -66,7 +66,13 @@ export function RemainingAllowance({ day }: { day: ProductionCellDetailDto }) {
         icon={CalendarIcon}
         label="Kế hoạch ngày"
         value={`${formatNumber(day.plannedQuantity)} đôi`}
-        hint={day.addOnQuantity > 0 ? `Đã bù thêm ${formatNumber(day.addOnQuantity)} đôi` : undefined}
+        hint={
+          day.addOnQuantity > 0 ? (
+            <>
+              Đã bù thêm <strong>{formatNumber(day.addOnQuantity)} đôi</strong>
+            </>
+          ) : undefined
+        }
       />
 
       <StatCard
@@ -93,9 +99,14 @@ export function RemainingAllowance({ day }: { day: ProductionCellDetailDto }) {
           label="Còn được nhập"
           value={`${formatNumber(day.remainingAllowance)} đôi`}
           hint={
-            day.remainingAllowanceReason === 'OrderQuantity'
-              ? `Giới hạn bởi số lượng còn lại của đơn hàng (${formatNumber(day.orderRemainingQuantity)} đôi)`
-              : 'Giới hạn bởi kế hoạch của ngày'
+            day.remainingAllowanceReason === 'OrderQuantity' ? (
+              <>
+                Giới hạn bởi số lượng còn lại của đơn hàng (
+                <strong>{formatNumber(day.orderRemainingQuantity)} đôi</strong>)
+              </>
+            ) : (
+              'Giới hạn bởi kế hoạch của ngày'
+            )
           }
         />
       )}

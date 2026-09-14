@@ -10,7 +10,7 @@ import { useDeleteProductionEntry, useUpdateProductionEntry } from '../hooks/use
 import type { ProductionCellDetailDto, ProductionEntryDto } from '../types'
 
 /** Số lần ghi nhận nhìn thấy cùng lúc; nhiều hơn thì bảng tự cuộn thay vì kéo dài cả modal. */
-const VISIBLE_ENTRIES = 4
+const DEFAULT_VISIBLE_ENTRIES = 4
 
 /**
  * Lịch sử các lần nhập trong ngày — hiển thị sẵn, không cần bấm mở, mới nhất trên cùng (CR-01 §8.1).
@@ -21,9 +21,12 @@ const VISIBLE_ENTRIES = 4
 export function EntryHistoryTable({
   day,
   readOnly = false,
+  visibleEntries = DEFAULT_VISIBLE_ENTRIES,
 }: {
   day: ProductionCellDetailDto
   readOnly?: boolean
+  /** Bên dùng chọn theo chỗ còn trống của modal chứa bảng. */
+  visibleEntries?: number
 }) {
   const { showToast } = useToast()
   const updateEntry = useUpdateProductionEntry(day.orderId, day.productionDate, day.productionLineId)
@@ -37,7 +40,7 @@ export function EntryHistoryTable({
   const hasEntries = day.entries.length > 0
   const scrollRef = useRef<HTMLDivElement>(null)
 
-  // Trần chiều cao = tiêu đề + đúng VISIBLE_ENTRIES dòng đầu, đo từ dòng thật: dòng có ghi chú cao
+  // Trần chiều cao = tiêu đề + đúng `visibleEntries` dòng đầu, đo từ dòng thật: dòng có ghi chú cao
   // hơn dòng thường, nên một hằng số px sẽ cắt ngang dòng cuối hoặc để lộ nửa dòng kế tiếp. Hiệu
   // hai toạ độ không đổi khi bảng đang cuộn, vì bảng và dòng dịch cùng một khoảng.
   useLayoutEffect(() => {
@@ -47,20 +50,20 @@ export function EntryHistoryTable({
 
     const syncHeight = () => {
       const rows = table.tBodies[0]?.rows
-      const lastVisible = rows?.[VISIBLE_ENTRIES - 1]
+      const lastVisible = rows?.[visibleEntries - 1]
 
       scroller.style.maxHeight =
-        rows && rows.length > VISIBLE_ENTRIES && lastVisible
+        rows && rows.length > visibleEntries && lastVisible
           ? `${lastVisible.getBoundingClientRect().bottom - table.getBoundingClientRect().top}px`
           : ''
     }
 
     syncHeight()
-    // Thêm/xoá lần ghi nhận, đổi bề ngang làm ghi chú xuống dòng: bảng đổi kích thước là đo lại.
+    // Thêm/xoá lần ghi nhận, sửa làm một dòng có hoặc mất ghi chú: bảng đổi kích thước là đo lại.
     const observer = new ResizeObserver(syncHeight)
     observer.observe(table)
     return () => observer.disconnect()
-  }, [hasEntries])
+  }, [hasEntries, visibleEntries])
 
   const openEdit = (entry: ProductionEntryDto) => {
     setDraft({ quantity: String(entry.quantity), note: entry.note ?? '' })
@@ -106,9 +109,13 @@ export function EntryHistoryTable({
         icon="📝"
         title="Chưa ghi nhận lần nào trong ngày"
         description={
-          day.dayStatus === 'Closed'
-            ? 'Ngày này được xuất hàng với sản lượng 0.'
-            : 'Nhập số lượng ở khung phía trên để ghi nhận lần đầu tiên.'
+          day.dayStatus === 'Closed' ? (
+            <>
+              Ngày này được xuất hàng với sản lượng <strong>0</strong>.
+            </>
+          ) : (
+            'Nhập số lượng ở khung phía trên để ghi nhận lần đầu tiên.'
+          )
         }
       />
     )
@@ -131,20 +138,22 @@ export function EntryHistoryTable({
               <tr key={entry.id}>
                 <td>
                   <span className="table__strong">{formatTimestamp(entry.recordedAt)}</span>
-                  {/* Người ghi nhận và ghi chú xếp dưới mốc thời gian, để bảng giữ đúng ba cột số
-                      mà mắt cần quét: thời điểm, số lượng, lũy kế. */}
-                  {entry.recordedBy && <span className="table__sub">{entry.recordedBy}</span>}
-                  {entry.note && <span className="table__sub entry-history__note">{entry.note}</span>}
-                </td>
-                <td className="num table__strong">
-                  +{formatNumber(entry.quantity)}
                   {entry.isEdited && (
                     <>
                       {' '}
                       <Badge tone="neutral">Đã sửa</Badge>
                     </>
                   )}
+                  {/* Người ghi nhận và ghi chú xếp dưới mốc thời gian, để bảng giữ đúng ba cột số
+                      mà mắt cần quét: thời điểm, số lượng, lũy kế. */}
+                  {entry.recordedBy && <span className="table__sub">{entry.recordedBy}</span>}
+                  {entry.note && (
+                    <span className="table__sub table__truncate entry-history__note" title={entry.note}>
+                      {entry.note}
+                    </span>
+                  )}
                 </td>
+                <td className="num table__strong">+{formatNumber(entry.quantity)}</td>
                 <td className="num">{formatNumber(entry.runningTotal)}</td>
                 {editable && (
                   <td className="entry-history__actions">
@@ -265,7 +274,7 @@ export function EntryHistoryTable({
       >
         <p>
           Xoá lần ghi nhận <strong>{formatNumber(deleting?.quantity ?? 0)} đôi</strong> lúc{' '}
-          {deleting ? formatTimestamp(deleting.recordedAt) : ''}?
+          <strong>{deleting ? formatTimestamp(deleting.recordedAt) : ''}</strong>?
         </p>
         <p className="muted">
           Sản lượng của ngày sẽ giảm tương ứng. Lần ghi nhận này vẫn được lưu trong lịch sử hệ thống.

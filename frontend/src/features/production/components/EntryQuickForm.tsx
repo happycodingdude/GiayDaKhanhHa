@@ -146,7 +146,9 @@ export function EntryQuickForm({ day }: { day: ProductionCellDetailDto }) {
         </p>
       ) : (
         <div className="entry-form__hints">
-          <span>Còn được nhập: {formatNumber(day.remainingAllowance)} đôi</span>
+          <span>
+            Còn được nhập: <strong>{formatNumber(day.remainingAllowance)} đôi</strong>
+          </span>
           <span>Nhấn Enter để ghi nhận nhanh</span>
         </div>
       )}
