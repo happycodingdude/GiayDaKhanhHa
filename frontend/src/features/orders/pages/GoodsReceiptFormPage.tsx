@@ -5,9 +5,7 @@ import { Button, Card, Field, Input } from '../../../shared/components/ui'
 import { ImageUploader } from '../../../shared/components/ImageUploader'
 import { ErrorState, InlineError, LoadingState } from '../../../shared/feedback/QueryState'
 import { useToast } from '../../../shared/feedback/ToastProvider'
-import { formatNumber } from '../../../shared/lib/format'
-import { OrderStatusBadge } from '../components/OrderStatusBadge'
-import { ProductionLineTags } from '../components/ProductionLineTags'
+import { useDelayedFlag } from '../../../shared/hooks/useDelayedFlag'
 import { useOrder, useReceiveOrder, useUpdateOrder } from '../hooks/useOrders'
 
 const ImageIcon = (
@@ -165,6 +163,9 @@ export function EditGoodsReceiptPage() {
 
   const query = useOrder(orderId)
   const update = useUpdateOrder()
+  // Trạng thái "đang lưu" chỉ hiện khi request chạy lâu: lưu xong trong vài chục ms mà vẫn bật spinner
+  // và làm mờ form thì giao diện nháy lên rồi trở lại ngay. Chặn gửi trùng dựa vào update.isPending.
+  const saving = useDelayedFlag(update.isPending)
 
   const [shoeCode, setShoeCode] = useState('')
   const [quantity, setQuantity] = useState('')
@@ -207,6 +208,8 @@ export function EditGoodsReceiptPage() {
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault()
+    // Nút chưa bị khoá trong khoảng đầu của request (xem `saving`), nên phải tự chặn bấm lần hai.
+    if (update.isPending) return
 
     const next: Record<string, string> = {}
     if (!shoeCode.trim()) next.shoeCode = 'Vui lòng nhập mã giày.'
@@ -235,6 +238,7 @@ export function EditGoodsReceiptPage() {
     removeImage
 
   const discardChanges = () => {
+    if (update.isPending) return
     setShoeCode(order.shoeCode)
     setQuantity(String(order.quantity))
     setNewImage(null)
@@ -256,30 +260,10 @@ export function EditGoodsReceiptPage() {
           <Link to="/goods-receipt" className="back-link">
             ← Danh sách nhập hàng
           </Link>
-          <h1 className="page__title">
-            {order.shoeCode} <OrderStatusBadge status={order.status} />
-          </h1>
-          <p className="page__subtitle">
-            {formatNumber(order.quantity)} đôi
-            {order.productionLines.length > 0 && (
-              <>
-                {' · '}
-                <ProductionLineTags lines={order.productionLines} showAllocation />
-              </>
-            )}
-          </p>
+          {/* Chỉ còn mã giày: số lượng đã có ngay trong form bên dưới, và trạng thái, dây chuyền cùng
+              lối sang tiến độ thuộc về màn Tiến độ. */}
+          <h1 className="page__title">{order.shoeCode}</h1>
         </div>
-
-        {order.status === 'Pending' && (
-          <Link to="/progress/new" search={{ orderId: order.id }}>
-            <Button variant="primary">+ Lập tiến độ</Button>
-          </Link>
-        )}
-        {order.status !== 'Pending' && (
-          <Link to="/progress/$orderId" params={{ orderId: order.id }}>
-            <Button variant="primary">Xem tiến độ</Button>
-          </Link>
-        )}
       </header>
 
       {readOnly && (
@@ -295,7 +279,7 @@ export function EditGoodsReceiptPage() {
           <ImageUploader
             file={newImage}
             existingUrl={removeImage ? null : imageUrl}
-            disabled={update.isPending || readOnly}
+            disabled={saving || readOnly}
             onChange={(file) => {
               setNewImage(file)
               // Chọn ảnh mới thì ảnh cũ bị thay chứ không phải bị gỡ.
@@ -343,11 +327,11 @@ export function EditGoodsReceiptPage() {
               <Button
                 type="button"
                 onClick={discardChanges}
-                disabled={!dirty || update.isPending || readOnly}
+                disabled={!dirty || saving || readOnly}
               >
                 Huỷ thay đổi
               </Button>
-              <Button type="submit" variant="primary" loading={update.isPending} disabled={readOnly}>
+              <Button type="submit" variant="primary" loading={saving} disabled={readOnly}>
                 Lưu thay đổi
               </Button>
             </div>

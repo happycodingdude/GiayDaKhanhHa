@@ -201,4 +201,40 @@ public class OverdueOrderTests(ApiFactory factory) : IntegrationTestBase(factory
 
         (await PostEntryAsync(client, order.Id, days[0].ProductionDate, lineId, 60)).EnsureSuccessStatusCode();
     }
+
+    [Fact]
+    public async Task The_order_list_filters_overdue_orders_apart_from_orders_still_in_production()
+    {
+        var client = await ClientAsync();
+        var (overdue, _, _) = await CreateOrderAsync(client, 100);
+        var (inProduction, _, _) = await CreateOrderAsync(client, 100);
+        var (completed, completedLineId, completedDays) = await CreateOrderAsync(client, 10);
+        await RecordAndCloseAsync(client, completed.Id, completedDays[0].ProductionDate, completedLineId, 10);
+
+        await MakeOverdueAsync(overdue.Id);
+        // Đơn đã giao đủ thì không bao giờ quá hạn, dù ngày kết thúc đã qua.
+        await MakeOverdueAsync(completed.Id);
+
+        async Task<string> ListAsync(string status)
+        {
+            var response = await client.GetAsync($"/api/v1/orders?status={status}&pageSize=200");
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadAsStringAsync();
+        }
+
+        var overdueList = await ListAsync("Overdue");
+        Assert.Contains(overdue.ShoeCode, overdueList, StringComparison.Ordinal);
+        Assert.DoesNotContain(inProduction.ShoeCode, overdueList, StringComparison.Ordinal);
+        Assert.DoesNotContain(completed.ShoeCode, overdueList, StringComparison.Ordinal);
+
+        var inProductionList = await ListAsync("InProduction");
+        Assert.Contains(inProduction.ShoeCode, inProductionList, StringComparison.Ordinal);
+        Assert.DoesNotContain(overdue.ShoeCode, inProductionList, StringComparison.Ordinal);
+        Assert.DoesNotContain(completed.ShoeCode, inProductionList, StringComparison.Ordinal);
+
+        // "Incomplete" — tab Chưa hoàn thành — vẫn gồm cả đơn đang sản xuất lẫn đơn quá hạn.
+        var incompleteList = await ListAsync("Incomplete");
+        Assert.Contains(overdue.ShoeCode, incompleteList, StringComparison.Ordinal);
+        Assert.Contains(inProduction.ShoeCode, incompleteList, StringComparison.Ordinal);
+    }
 }

@@ -41,6 +41,8 @@ export interface OrderListItemDto {
   todayActualQuantity: number | null
   /** Có ô đã qua chưa Xuất hàng — việc bị treo (CR-01 §14.5). */
   hasUnclosedPastCell: boolean
+  /** Số ngày đã qua còn chưa Xuất hàng, đếm theo ngày. Luôn 0 với đơn không còn Chưa hoàn thành. */
+  unclosedPastDayCount: number
 }
 
 export interface OrderDetailDto {

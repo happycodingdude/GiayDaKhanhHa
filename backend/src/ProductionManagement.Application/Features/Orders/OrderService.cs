@@ -168,6 +168,7 @@ public sealed class OrderService(IAppDbContext db, IClock clock, IOrderImageStor
         pageSize = pageSize is < 1 or > 200 ? 20 : pageSize;
 
         var query = db.Orders.AsNoTracking();
+        var today = clock.Today;
 
         if (!string.IsNullOrWhiteSpace(status) && !string.Equals(status, "All", StringComparison.OrdinalIgnoreCase))
         {
@@ -177,6 +178,17 @@ public sealed class OrderService(IAppDbContext db, IClock clock, IOrderImageStor
             {
                 query = query.Where(o => o.Status != OrderStatus.Pending);
             }
+            // "Quá hạn" là trạng thái hiển thị riêng, tách "Incomplete" làm hai: đang sản xuất và quá hạn.
+            // Nó suy ra từ ngày kết thúc nên không lưu xuống; điều kiện viết lại đúng Order.IsOverdue ở
+            // dạng dịch được sang SQL. "Incomplete" vẫn gồm cả hai, cho tab "Chưa hoàn thành".
+            else if (string.Equals(status, "Overdue", StringComparison.OrdinalIgnoreCase))
+            {
+                query = query.Where(o => o.Status != OrderStatus.Completed && o.DueDate != null && o.DueDate < today);
+            }
+            else if (string.Equals(status, "InProduction", StringComparison.OrdinalIgnoreCase))
+            {
+                query = query.Where(o => o.Status == OrderStatus.Incomplete && (o.DueDate == null || o.DueDate >= today));
+            }
             else if (Enum.TryParse<OrderStatus>(status, ignoreCase: true, out var parsedStatus))
             {
                 query = query.Where(o => o.Status == parsedStatus);
@@ -185,7 +197,7 @@ public sealed class OrderService(IAppDbContext db, IClock clock, IOrderImageStor
             {
                 throw new ValidationException(
                     "status", "INVALID_VALUE",
-                    "Status must be 'Pending', 'Incomplete', 'Completed', 'Scheduled' or 'All'.");
+                    "Status must be 'Pending', 'Incomplete', 'InProduction', 'Overdue', 'Completed', 'Scheduled' or 'All'.");
             }
         }
 
@@ -216,7 +228,6 @@ public sealed class OrderService(IAppDbContext db, IClock clock, IOrderImageStor
         var linesByOrder = await OrderQueries.ProductionLinesAsync(db, orderIds, ct);
         var snapshots = await db.SnapshotsForOrdersAsync(orderIds, ct);
 
-        var today = clock.Today;
         var snapshotsByOrder = snapshots.ToLookup(d => d.OrderId);
 
         var items = orders.Select(order =>
@@ -238,13 +249,19 @@ public sealed class OrderService(IAppDbContext db, IClock clock, IOrderImageStor
                     new CellKey(c.ProductionDate, c.ProductionLineId), out var d) ? d.ActualQuantity : 0);
 
             // Chỉ đơn chưa hoàn thành mới cần cảnh báo ô treo: đơn đã xong thì phần thiếu còn lại
-            // không cần xử lý nữa (CR-01 §14.6).
-            var hasUnclosedPastCell = order.Status == OrderStatus.Incomplete
-                && cells.Any(c =>
-                    c.PlannedQuantity > 0
-                    && c.ProductionDate < today
-                    && !(actualByCell.TryGetValue(new CellKey(c.ProductionDate, c.ProductionLineId), out var d)
-                         && d.IsClosed));
+            // không cần xử lý nữa (CR-01 §14.6). Đếm theo ngày chứ không theo ô: Xuất hàng chốt sổ cả
+            // ngày một lượt, nên một ngày treo trên nhiều dây chuyền vẫn chỉ là một ngày phải xử lý.
+            var unclosedPastDayCount = order.Status == OrderStatus.Incomplete
+                ? cells
+                    .Where(c =>
+                        c.PlannedQuantity > 0
+                        && c.ProductionDate < today
+                        && !(actualByCell.TryGetValue(new CellKey(c.ProductionDate, c.ProductionLineId), out var d)
+                             && d.IsClosed))
+                    .Select(c => c.ProductionDate)
+                    .Distinct()
+                    .Count()
+                : 0;
 
             return new OrderListItemDto(
                 order.Id,
@@ -266,7 +283,8 @@ public sealed class OrderService(IAppDbContext db, IClock clock, IOrderImageStor
                 derived.IsOverdue,
                 todayPlanned,
                 todayActual,
-                hasUnclosedPastCell);
+                unclosedPastDayCount > 0,
+                unclosedPastDayCount);
         }).ToList();
 
         return new PagedResult<OrderListItemDto>(items, page, pageSize, totalCount);

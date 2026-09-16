@@ -1,14 +1,13 @@
 import { Link, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 import { Select } from '../../../shared/components/Select'
-import { Badge, Button, Card, ProgressBar } from '../../../shared/components/ui'
+import { Badge, Button, Card } from '../../../shared/components/ui'
 import { ScheduleStatusBadge } from '../../../shared/components/StatusBadges'
 import { EmptyState, ErrorState, LoadingState } from '../../../shared/feedback/QueryState'
 import { formatDate } from '../../../shared/lib/date'
-import { formatNumber, formatPercent } from '../../../shared/lib/format'
+import { formatNumber } from '../../../shared/lib/format'
 import { OrderStatusBadge } from '../../orders/components/OrderStatusBadge'
 import { OrderThumbnail } from '../../orders/components/OrderThumbnail'
-import { ProductionLineTags } from '../../orders/components/ProductionLineTags'
 import { useOrders } from '../../orders/hooks/useOrders'
 import { useProductionLines } from '../../production-lines/hooks/useProductionLines'
 
@@ -18,7 +17,9 @@ import { useProductionLines } from '../../production-lines/hooks/useProductionLi
  */
 const STATUS_FILTERS = [
   { value: 'Scheduled', label: 'Tất cả' },
+  // "Chưa hoàn thành" gồm cả đơn đang sản xuất lẫn đơn quá hạn; "Quá hạn" lọc riêng nhóm sau.
   { value: 'Incomplete', label: 'Chưa hoàn thành' },
+  { value: 'Overdue', label: 'Quá hạn' },
   { value: 'Completed', label: 'Hoàn thành' },
 ]
 
@@ -150,17 +151,30 @@ export function ProgressListPage() {
 
         {result && result.items.length > 0 && (
           <div className="table-wrapper table-wrapper--fill">
-            <table className="table">
+            <table className="table progress-table">
+              {/* Mã giày không khai báo độ rộng: cột này nhận toàn bộ phần còn lại. */}
+              <colgroup>
+                <col className="progress-table__col--image" />
+                <col />
+                <col className="progress-table__col--lines" />
+                <col className="progress-table__col--quantity" />
+                <col className="progress-table__col--quantity" />
+                <col className="progress-table__col--date" />
+                <col className="progress-table__col--date" />
+                <col className="progress-table__col--unclosed" />
+                <col className="progress-table__col--status" />
+                <col className="progress-table__col--schedule" />
+              </colgroup>
               <thead>
                 <tr>
                   <th>Ảnh</th>
-                  <th>Mã giày</th>
-                  <th>Dây chuyền</th>
+                  <th className="progress-table__code">Mã giày</th>
+                  <th className="num">Dây chuyền</th>
                   <th className="num">Tổng SL</th>
                   <th className="num">Đã làm</th>
                   <th>Ngày bắt đầu</th>
                   <th>Ngày kết thúc</th>
-                  <th>Tiến độ</th>
+                  <th className="num">Ngày chưa xuất hàng</th>
                   <th>Trạng thái</th>
                   <th>Tình trạng</th>
                 </tr>
@@ -177,42 +191,28 @@ export function ProgressListPage() {
                     <td>
                       <OrderThumbnail imageUrl={order.imageUrl} shoeCode={order.shoeCode} />
                     </td>
-                    <td className="table__strong">{order.shoeCode}</td>
-                    <td>
-                      <ProductionLineTags lines={order.productionLines} />
+                    <td className="table__strong progress-table__code">
+                      {/* Mã quá dài thì cắt bằng "…"; rê chuột vào để xem đủ mã. */}
+                      <span className="progress-table__code-text" title={order.shoeCode}>
+                        {order.shoeCode}
+                      </span>
                     </td>
+                    {/* Chỉ số dây chuyền; từng mã dây chuyền xem ở màn chi tiết. */}
+                    <td className="num">{formatNumber(order.productionLines.length)}</td>
                     <td className="num">{formatNumber(order.quantity)}</td>
                     <td className="num">{formatNumber(order.totalActual)}</td>
                     <td>{order.startDate ? formatDate(order.startDate) : '—'}</td>
-                    <td>
-                      {order.dueDate ? formatDate(order.dueDate) : '—'}
-                      {order.isOverdue && (
-                        <>
-                          {' '}
-                          <Badge tone="danger">Quá hạn</Badge>
-                        </>
-                      )}
-                      {order.hasUnclosedPastCell && (
-                        <span className="table__sub">
-                          <Badge tone="warning">Có ngày chưa xuất hàng</Badge>
-                        </span>
+                    <td>{order.dueDate ? formatDate(order.dueDate) : '—'}</td>
+                    <td className="num">
+                      {/* Ngày treo là việc cần xử lý nên vẫn nổi lên thành badge; không có thì chỉ là số. */}
+                      {order.unclosedPastDayCount > 0 ? (
+                        <Badge tone="warning">{formatNumber(order.unclosedPastDayCount)}</Badge>
+                      ) : (
+                        formatNumber(order.unclosedPastDayCount)
                       )}
                     </td>
-                    <td className="table__progress">
-                      <span>{formatPercent(order.progressPercentage)}</span>
-                      <ProgressBar
-                        value={order.progressPercentage}
-                        tone={
-                          order.scheduleStatus === 'Behind'
-                            ? 'danger'
-                            : order.status === 'Completed'
-                              ? 'success'
-                              : 'info'
-                        }
-                      />
-                    </td>
                     <td>
-                      <OrderStatusBadge status={order.status} />
+                      <OrderStatusBadge status={order.status} isOverdue={order.isOverdue} />
                     </td>
                     <td>
                       <ScheduleStatusBadge

@@ -1265,6 +1265,12 @@ ol {
   color: var(--text);
 }
 
+/* Badge nằm trong chữ phụ vẫn giữ màu của badge cho cả phần in đậm, như notice. Đặt sau quy tắc trên
+   để thắng nó (cùng độ ưu tiên). */
+.badge strong {
+  color: inherit;
+}
+
 .addon {
   color: var(--primary);
   font-weight: 700;
@@ -2447,11 +2453,13 @@ ol {
 /* ---------- CR-001: danh sách nhập hàng ---------- */
 
 /* Độ rộng cột lấy từ colgroup chứ không từ nội dung: mã giày dài ngắn khác nhau, dòng có 2 hay 3
-   nút thao tác, có hay không badge "Quá hạn" — đổi trang, đổi bộ lọc thì cột vẫn đứng yên.
-   min-width: màn hẹp thì bảng cuộn ngang trong khung, không bóp hai cột co giãn về gần bằng 0. */
+   nút thao tác — đổi trang, đổi bộ lọc thì cột vẫn đứng yên.
+   min-width: màn hẹp thì bảng cuộn ngang trong khung, không bóp cột mã giày về gần bằng 0. 860px là
+   bốn cột cố định (606px) cộng chỗ cho một mã giày dài nằm trên một dòng; đặt rộng hơn thì chỉ đẩy
+   cột Thao tác ra ngoài khung trên màn vừa phải. */
 .receipt-table {
   table-layout: fixed;
-  min-width: 1040px;
+  min-width: 860px;
 }
 
 .receipt-table__col--image {
@@ -2460,10 +2468,6 @@ ol {
 
 .receipt-table__col--quantity {
   width: 100px;
-}
-
-.receipt-table__col--period {
-  width: 130px;
 }
 
 .receipt-table__col--status {
@@ -2479,6 +2483,59 @@ ol {
 .receipt-table__wrap {
   white-space: normal;
   overflow-wrap: anywhere;
+}
+
+/* Danh sách tiến độ: cùng cách với bảng nhập hàng — độ rộng cột lấy từ colgroup chứ không từ nội
+   dung, nên đổi bộ lọc hay đổi trang thì header đứng yên. Mỗi độ rộng đủ cho nhãn header hoặc giá trị
+   dài nhất của cột đó, cái nào lớn hơn. min-width = tổng các cột cố định (1083px) + 160px: màn hẹp
+   thì bảng cuộn ngang trong khung, cột mã giày không bị bóp dưới 160px. */
+.progress-table {
+  table-layout: fixed;
+  min-width: 1243px;
+}
+
+.progress-table__col--image {
+  width: 68px;
+}
+
+.progress-table__col--lines {
+  width: 110px;
+}
+
+.progress-table__col--quantity {
+  width: 85px;
+}
+
+.progress-table__col--date {
+  width: 130px;
+}
+
+.progress-table__col--unclosed {
+  width: 185px;
+}
+
+.progress-table__col--status {
+  width: 130px;
+}
+
+.progress-table__col--schedule {
+  width: 160px;
+}
+
+/* Giá trị canh theo mép phải của header, trừ cột mã giày. Đặt sau `.table th, .table td` để thắng. */
+.progress-table th,
+.progress-table td {
+  text-align: right;
+}
+
+.progress-table .progress-table__code {
+  text-align: left;
+}
+
+.progress-table__code-text {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ---------- CR-001: màn nhập hàng ---------- */
@@ -2619,19 +2676,14 @@ ol {
 }
 
 /* Ảnh mẫu đứng cạnh tiêu đề ở màn chi tiết tiến độ. */
+/* Ảnh căn giữa theo chiều dọc với mã giày cùng hàng. */
 .page__heading-with-image {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 14px;
 }
 
 /* ---------- CR-001: dây chuyền ---------- */
-
-.line-tags {
-  display: inline-flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
 
 .line-picker {
   display: grid;
@@ -2738,12 +2790,6 @@ ol {
   box-shadow: inset 0 -1px 0 var(--border);
 }
 
-/* Hàng tiêu đề thứ hai nằm ngay dưới hàng đầu, nên offset đúng bằng chiều cao hàng đầu. Chiều cao
-   đó phụ thuộc nội dung nên được đo trong ProductionMatrix; 41px chỉ là giá trị dự phòng. */
-.matrix thead tr:nth-child(2) th {
-  top: var(--matrix-head-offset, 41px);
-}
-
 .matrix thead .matrix__date-col {
   z-index: 4;
 }
@@ -2765,18 +2811,67 @@ ol {
 }
 
 /*
- * Ma trận dữ liệu có hai hàng tiêu đề sticky nên dùng viền tách rời. Với border-collapse, viền do bảng
- * vẽ ở vị trí gốc chứ không đi theo ô sticky: khi cuộn, viền giữa hai hàng tiêu đề thành khe 1px cho
- * dòng dữ liệu lọt qua, và viền dọc của dòng dữ liệu vẽ đè lên header. Viền tách rời thì mỗi ô tự mang
- * viền của nó — viền dưới của `.table th` đã đi theo ô, không cần vẽ lại bằng shadow nữa.
+ * Ma trận dữ liệu dùng viền tách rời: mỗi ô tự mang viền của nó, nên bề rộng một ô đo ở bảng dữ liệu
+ * đúng bằng bề rộng cột, áp nguyên sang bảng tiêu đề là khớp. Viền dưới của `.table th` đã nằm trong
+ * ô, không cần vẽ lại bằng shadow.
  */
 .matrix--data {
   border-collapse: separate;
   border-spacing: 0;
 }
 
+/* Tiêu đề có nền riêng và chữ màu chính: chữ xám trên nền trắng như bảng thường thì chìm lẫn vào các
+   dòng số liệu ngay bên dưới. Viền đậm hơn để tách rõ tiêu đề khỏi phần dữ liệu. */
 .matrix--data thead th {
   box-shadow: none;
+  background: #e9eef5;
+  color: var(--text);
+  font-weight: 700;
+  border-bottom-color: var(--border-strong);
+}
+
+/*
+ * Tiêu đề ma trận dữ liệu nằm ngoài vùng cuộn dọc (xem ProductionMatrix): lăn chuột trên tiêu đề cuộn
+ * trang, và thanh cuộn dọc chỉ chạy dọc theo các dòng. Khung tiêu đề không tự cuộn, chỉ đi theo vị trí
+ * cuộn ngang của phần dữ liệu.
+ */
+.matrix-frame {
+  overflow: hidden;
+}
+
+/* Cả hai khung chừa cùng một rãnh cho thanh cuộn dọc, để bề rộng nhìn thấy và vị trí cuộn ngang tối đa
+   của chúng bằng nhau — không thì cuộn hết cỡ sang phải, tiêu đề lệch khỏi cột đúng bằng bề rộng rãnh. */
+.matrix-frame__head,
+.matrix-frame__body {
+  scrollbar-gutter: stable;
+}
+
+/* Cùng nền với ô tiêu đề, để rãnh thanh cuộn bên phải liền màu với tiêu đề. */
+.matrix-frame__head {
+  overflow: hidden;
+  background: #e9eef5;
+}
+
+.matrix-frame__head-table {
+  table-layout: fixed;
+}
+
+/* Giữ tổng chiều cao khung như khi tiêu đề còn nằm trong vùng cuộn. */
+.matrix-frame__body {
+  overflow: auto;
+  max-height: calc(60vh - var(--matrix-head-height, 0px));
+}
+
+/* Bảng dữ liệu vẫn giữ <thead> để cột đủ rộng cho tiêu đề; kéo nó lên khuất phía trên vùng cuộn, nơi
+   không cuộn tới được. */
+.matrix-frame__body > .matrix {
+  margin-top: calc(-1 * var(--matrix-head-height, 0px));
+}
+
+/* Không vùng nào còn cuộn dọc dưới tiêu đề nên bỏ dính dọc. Riêng <thead> của bảng dữ liệu mà còn dính
+   thì nó bị kéo ngược vào vùng cuộn, che mất dòng đầu. Cột ngày vẫn dính trái khi cuộn ngang. */
+.matrix-frame thead th {
+  top: auto;
 }
 
 /* Nhóm ba cột của một dây chuyền: đường kẻ dọc phân tách để mắt không đọc lẫn sang cột bên cạnh. */
@@ -2784,14 +2879,14 @@ ol {
   border-left: 1px solid var(--border-strong);
 }
 
-.matrix__line-head .table__sub {
-  font-weight: 400;
+/* Mã dây chuyền là mốc chính để dò cột nên lớn hơn các nhãn còn lại một cỡ. Cần tiền tố `.matrix--data`
+   để thắng cỡ chữ của `.table thead th`. */
+.matrix--data .matrix__line-head {
+  font-size: 13px;
 }
 
-.matrix__sub-head {
-  font-size: 11px;
-  color: var(--text-muted);
-  font-weight: 600;
+.matrix__line-head .table__sub {
+  font-weight: 400;
 }
 
 .matrix__empty {

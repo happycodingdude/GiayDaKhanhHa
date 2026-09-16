@@ -149,6 +149,14 @@ public sealed class StatisticsService(IAppDbContext db, IClock clock)
         var lineCodes = await db.ProductionLines.AsNoTracking()
             .ToDictionaryAsync(l => l.Id, l => l.Code, ct);
 
+        // Thời điểm lập tiến độ. Không dùng orders.created_at vì đó là lúc Nhập hàng, xảy ra trước và
+        // không cùng thứ tự với lúc lập tiến độ. Dây chuyền của đơn chỉ được tạo trong đúng một lần lập
+        // tiến độ và không bao giờ thêm về sau, nên thời điểm tạo của chúng chính là mốc cần tìm.
+        var scheduledAt = await db.OrderProductionLines.AsNoTracking()
+            .GroupBy(l => l.OrderId)
+            .Select(g => new { OrderId = g.Key, ScheduledAt = g.Max(l => l.CreatedAt) })
+            .ToDictionaryAsync(x => x.OrderId, x => x.ScheduledAt, ct);
+
         // Một kế hoạch nguồn tại một thời điểm chỉ có tối đa một điều chỉnh Applied (Step 4 §12);
         // phần thiếu đã có điều chỉnh thì không còn là việc phải xử lý.
         var handled = (await db.PlanAdjustments.AsNoTracking()
@@ -322,8 +330,10 @@ public sealed class StatisticsService(IAppDbContext db, IClock clock)
             Today: todayDto,
             // Nghiêm trọng nhất lên đầu để quản lý thấy vấn đề tệ nhất trước (dashboard spec §7).
             Alerts: alerts.OrderByDescending(a => a.BehindQuantity).ThenBy(a => a.DaysRemaining).ToList(),
-            TrackedOrders: trackedOrders.OrderBy(o => o.ScheduleStatus == ScheduleStatus.Behind ? 0 : 1)
-                .ThenByDescending(o => o.BehindQuantity)
+            // Tiến độ mới lập nằm trên cùng. Đơn chậm không còn được đẩy lên đầu: tình trạng chậm vẫn
+            // hiện ở cột Tình trạng của từng dòng.
+            TrackedOrders: trackedOrders
+                .OrderByDescending(o => scheduledAt.GetValueOrDefault(o.OrderId))
                 .ThenBy(o => o.ShoeCode)
                 .ToList(),
             TodayProduction: todayProduction.OrderBy(t => t.ShoeCode).ThenBy(t => t.ProductionLineCode).ToList(),

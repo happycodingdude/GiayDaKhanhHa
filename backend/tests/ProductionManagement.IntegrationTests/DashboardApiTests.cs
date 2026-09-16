@@ -127,6 +127,34 @@ public class DashboardApiTests(ApiFactory factory) : IntegrationTestBase(factory
     }
 
     [Fact]
+    public async Task Tracked_orders_put_the_most_recently_scheduled_order_first()
+    {
+        var client = await ClientAsync();
+        var line = await CreateLineAsync(client);
+
+        // Nhập hàng theo thứ tự A rồi B nhưng lập tiến độ theo thứ tự B rồi A, để thứ tự lập tiến độ
+        // khác thứ tự Nhập hàng. B bắt đầu từ hôm qua và chưa ghi nhận gì nên bị chậm: theo luật cũ,
+        // đơn chậm được đẩy lên đầu.
+        var earlierReceived = await ReceiveOrderAsync(client, 200);
+        var laterReceived = await ReceiveOrderAsync(client, 200);
+
+        (await PostScheduleAsync(
+            client, laterReceived.Id, Today.AddDays(-1), Today,
+            [(line.Id, 200, [100, 100])])).EnsureSuccessStatusCode();
+        (await PostScheduleAsync(
+            client, earlierReceived.Id, Today, Today.AddDays(1),
+            [(line.Id, 200, [100, 100])])).EnsureSuccessStatusCode();
+
+        var orderIds = (await DashboardAsync(client)).TrackedOrders.Select(o => o.OrderId).ToList();
+
+        Assert.Contains(earlierReceived.Id, orderIds);
+        Assert.Contains(laterReceived.Id, orderIds);
+        Assert.True(
+            orderIds.IndexOf(earlierReceived.Id) < orderIds.IndexOf(laterReceived.Id),
+            "Đơn vừa lập tiến độ phải nằm trên đơn lập tiến độ trước đó.");
+    }
+
+    [Fact]
     public async Task A_handled_shortage_leaves_the_open_shortage_list()
     {
         var client = await ClientAsync();

@@ -217,6 +217,43 @@ public class OrderApiTests(ApiFactory factory) : IntegrationTestBase(factory)
         Assert.DoesNotContain(other.ShoeCode, body, StringComparison.Ordinal);
     }
 
+    private sealed record ListedOrder(Guid Id, bool HasUnclosedPastCell, int UnclosedPastDayCount);
+
+    private sealed record OrderPage(IReadOnlyList<ListedOrder> Items);
+
+    [Fact]
+    public async Task The_order_list_counts_past_days_not_yet_shipped_per_day_not_per_line()
+    {
+        var client = await ClientAsync();
+        var lineA = await CreateLineAsync(client, 1);
+        var lineB = await CreateLineAsync(client, 2);
+        var order = await ReceiveOrderAsync(client, 600);
+        var start = Today.AddDays(-2);
+
+        // Hai dây chuyền, ba ngày: hai ngày đã qua (bốn ô), hôm nay chưa tính là treo.
+        (await PostScheduleAsync(
+            client, order.Id, start, Today,
+            [(lineA.Id, 300, [100, 100, 100]), (lineB.Id, 300, [100, 100, 100])])).EnsureSuccessStatusCode();
+
+        async Task<ListedOrder> ListedAsync()
+            => Assert.Single(
+                (await (await client.GetAsync($"/api/v1/orders?search={order.ShoeCode}")).ReadAsync<OrderPage>()).Items,
+                o => o.Id == order.Id);
+
+        var listed = await ListedAsync();
+        Assert.Equal(2, listed.UnclosedPastDayCount);
+        Assert.True(listed.HasUnclosedPastCell);
+
+        // Xuất hàng đóng cả ngày, nên cả hai dây chuyền của ngày đó cùng thôi treo.
+        (await CloseDayAsync(client, order.Id, start)).EnsureSuccessStatusCode();
+        Assert.Equal(1, (await ListedAsync()).UnclosedPastDayCount);
+
+        (await CloseDayAsync(client, order.Id, start.AddDays(1))).EnsureSuccessStatusCode();
+        listed = await ListedAsync();
+        Assert.Equal(0, listed.UnclosedPastDayCount);
+        Assert.False(listed.HasUnclosedPastCell);
+    }
+
     [Fact]
     public async Task Searching_matches_the_shoe_code()
     {

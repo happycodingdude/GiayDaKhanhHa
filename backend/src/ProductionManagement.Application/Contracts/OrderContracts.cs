@@ -60,7 +60,13 @@ public sealed record OrderListItemDto(
     int? TodayActualQuantity,
 
     /// <summary>Có ô đã qua chưa Xuất hàng — chỉ báo việc bị treo (CR-01 §14.5).</summary>
-    bool HasUnclosedPastCell);
+    bool HasUnclosedPastCell,
+
+    /// <summary>
+    /// Số ngày đã qua còn chưa Xuất hàng. Đếm theo ngày, không theo ô: Xuất hàng chốt sổ cả ngày một
+    /// lượt. Luôn bằng 0 với đơn không còn ở trạng thái Chưa hoàn thành, giống <see cref="HasUnclosedPastCell"/>.
+    /// </summary>
+    int UnclosedPastDayCount);
 
 public sealed record OrderDetailDto(
     Guid Id,

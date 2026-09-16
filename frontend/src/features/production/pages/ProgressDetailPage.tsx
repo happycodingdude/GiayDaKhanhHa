@@ -10,7 +10,6 @@ import { AdjustmentHistory } from '../../adjustments/components/AdjustmentHistor
 import { ShortageDialog } from '../../adjustments/components/ShortageDialog'
 import { OrderStatusBadge } from '../../orders/components/OrderStatusBadge'
 import { OrderThumbnail } from '../../orders/components/OrderThumbnail'
-import { ProductionLineTags } from '../../orders/components/ProductionLineTags'
 import { useOrder } from '../../orders/hooks/useOrders'
 import { OrderStatisticsPanel } from '../../statistics/components/OrderStatisticsPanel'
 import { CloseDayDialog } from '../components/CloseDayDialog'
@@ -81,7 +80,7 @@ export function ProgressDetailPage() {
               ← Danh sách tiến độ
             </Link>
             <h1 className="page__title">
-              {order.shoeCode} <OrderStatusBadge status={order.status} />
+              {order.shoeCode} <OrderStatusBadge status={order.status} isOverdue={order.isOverdue} />
             </h1>
           </div>
         </header>
@@ -117,28 +116,17 @@ export function ProgressDetailPage() {
   return (
     <div className="page">
       <header className="page__header">
-        <div className="page__heading-with-image">
-          <OrderThumbnail imageUrl={order.imageUrl} shoeCode={order.shoeCode} size={64} />
-          <div>
-            <Link to="/progress" className="back-link">
-              ← Danh sách tiến độ
-            </Link>
+        {/* Link quay lại nằm riêng một dòng phía trên, giống trang chi tiết nhập hàng; ảnh chỉ đi
+            cùng hàng với mã giày. */}
+        <div>
+          <Link to="/progress" className="back-link">
+            ← Danh sách tiến độ
+          </Link>
+          <div className="page__heading-with-image">
+            <OrderThumbnail imageUrl={order.imageUrl} shoeCode={order.shoeCode} size={64} />
             <h1 className="page__title">
-              {order.shoeCode} <OrderStatusBadge status={order.status} />
+              {order.shoeCode} <OrderStatusBadge status={order.status} isOverdue={order.isOverdue} />
             </h1>
-            <p className="page__subtitle">
-              {order.startDate && order.dueDate
-                ? `${formatDate(order.startDate)} → ${formatDate(order.dueDate)}`
-                : '—'}
-              {' · '}
-              <ProductionLineTags lines={order.productionLines} showAllocation />
-              {order.scheduleStatus === 'Behind' && (
-                <>
-                  {' · '}
-                  <Badge tone="danger">Chậm tiến độ: {formatNumber(order.behindQuantity)} đôi</Badge>
-                </>
-              )}
-            </p>
           </div>
         </div>
 
@@ -168,30 +156,21 @@ export function ProgressDetailPage() {
           <StatTile label="Tổng số lượng" value={`${formatNumber(order.quantity)} đôi`} />
           <StatTile label="Đã hoàn thành" value={`${formatNumber(order.totalActual)} đôi`} tone="success" />
           <StatTile label="Còn lại" value={`${formatNumber(order.remaining)} đôi`} />
+          <StatTile label="Ngày bắt đầu" value={order.startDate ? formatDate(order.startDate) : '—'} />
           <StatTile
             label="Ngày kết thúc"
             value={order.dueDate ? formatDate(order.dueDate) : '—'}
+            // Thời hạn còn lại là thứ quản lý cần thấy ngay, nên nổi lên thành badge thay vì chữ phụ.
             hint={
               order.isOverdue ? (
-                'Đã quá hạn'
+                <Badge tone="danger">Đã quá hạn</Badge>
               ) : (
-                <>
+                <Badge tone="info">
                   Còn <strong>{order.daysRemaining} ngày</strong>
-                </>
+                </Badge>
               )
             }
             tone={order.isOverdue ? 'danger' : 'neutral'}
-          />
-          <StatTile
-            label="Tổng kế hoạch"
-            value={`${formatNumber(order.totalPlan)} đôi`}
-            hint={
-              order.totalPlan > order.totalInitialPlan ? (
-                <>
-                  Gồm <strong>{formatNumber(order.totalPlan - order.totalInitialPlan)} đôi</strong> bù thêm
-                </>
-              ) : undefined
-            }
           />
         </div>
 
@@ -211,7 +190,7 @@ export function ProgressDetailPage() {
             }
           />
           <div className="summary-progress__badges">
-            <OrderStatusBadge status={order.status} />
+            <OrderStatusBadge status={order.status} isOverdue={order.isOverdue} />
             <ScheduleStatusBadge
               scheduleStatus={order.scheduleStatus}
               behindQuantity={order.behindQuantity}

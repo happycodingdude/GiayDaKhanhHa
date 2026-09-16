@@ -2,7 +2,7 @@ import { Link } from '@tanstack/react-router'
 import { useState } from 'react'
 import { toUserMessage } from '../../../api/errors'
 import { Select } from '../../../shared/components/Select'
-import { Badge, Button, Card } from '../../../shared/components/ui'
+import { Button, Card } from '../../../shared/components/ui'
 import { ConfirmDialog } from '../../../shared/dialogs/ConfirmDialog'
 import {
   EmptyState,
@@ -11,18 +11,18 @@ import {
   LoadingState,
 } from '../../../shared/feedback/QueryState'
 import { useToast } from '../../../shared/feedback/ToastProvider'
-import { formatDate } from '../../../shared/lib/date'
 import { formatNumber } from '../../../shared/lib/format'
 import { OrderStatusBadge } from '../components/OrderStatusBadge'
 import { OrderThumbnail } from '../components/OrderThumbnail'
-import { ProductionLineTags } from '../components/ProductionLineTags'
 import { useDeleteOrder, useOrders } from '../hooks/useOrders'
 import type { OrderListItemDto } from '../types'
 
 const STATUS_FILTERS = [
   { value: 'All', label: 'Tất cả' },
   { value: 'Pending', label: 'Chưa lập tiến độ' },
-  { value: 'Incomplete', label: 'Đang sản xuất' },
+  // Mỗi tab khớp đúng một giá trị ở cột Trạng thái: "Đang sản xuất" không gồm đơn đã quá hạn.
+  { value: 'InProduction', label: 'Đang sản xuất' },
+  { value: 'Overdue', label: 'Quá hạn' },
   { value: 'Completed', label: 'Hoàn thành' },
 ]
 
@@ -159,13 +159,11 @@ export function GoodsReceiptListPage() {
         {result && result.items.length > 0 && (
           <div className="table-wrapper table-wrapper--fill">
             <table className="table receipt-table">
-              {/* Mã giày và dây chuyền không khai báo độ rộng: hai cột này chia đều phần còn lại. */}
+              {/* Mã giày không khai báo độ rộng: cột này nhận toàn bộ phần còn lại. */}
               <colgroup>
                 <col className="receipt-table__col--image" />
                 <col />
                 <col className="receipt-table__col--quantity" />
-                <col />
-                <col className="receipt-table__col--period" />
                 <col className="receipt-table__col--status" />
                 <col className="receipt-table__col--actions" />
               </colgroup>
@@ -174,8 +172,6 @@ export function GoodsReceiptListPage() {
                   <th>Ảnh</th>
                   <th>Mã giày</th>
                   <th className="num">Số lượng</th>
-                  <th>Dây chuyền</th>
-                  <th>Thời gian</th>
                   <th>Trạng thái</th>
                   <th>Thao tác</th>
                 </tr>
@@ -188,33 +184,16 @@ export function GoodsReceiptListPage() {
                     </td>
                     <td className="table__strong receipt-table__wrap">{order.shoeCode}</td>
                     <td className="num">{formatNumber(order.quantity)}</td>
-                    <td>
-                      <ProductionLineTags lines={order.productionLines} />
-                    </td>
-                    <td>
-                      {order.startDate && order.dueDate ? (
-                        <>
-                          <span>{formatDate(order.startDate)}</span>
-                          <span className="table__sub">→ {formatDate(order.dueDate)}</span>
-                        </>
-                      ) : (
-                        <span className="muted">Chưa lên lịch</span>
-                      )}
-                    </td>
                     <td className="receipt-table__wrap">
-                      <OrderStatusBadge status={order.status} />
-                      {order.isOverdue && (
-                        <>
-                          {' '}
-                          <Badge tone="danger">Quá hạn</Badge>
-                        </>
-                      )}
+                      <OrderStatusBadge status={order.status} isOverdue={order.isOverdue} />
                     </td>
                     <td className="table__actions">
                       <div>
+                        {/* Cùng quy ước với mọi nút hành động trong app: nền xanh, riêng thao tác phá huỷ
+                            dùng nền đỏ — giống cột thao tác của danh sách dây chuyền. */}
                         {order.status === 'Pending' ? (
                           <Link to="/progress/new" search={{ orderId: order.id }}>
-                            <Button variant="primary">Lập tiến độ</Button>
+                            <Button>Lập tiến độ</Button>
                           </Link>
                         ) : (
                           <Link to="/progress/$orderId" params={{ orderId: order.id }}>
@@ -222,11 +201,11 @@ export function GoodsReceiptListPage() {
                           </Link>
                         )}
                         <Link to="/goods-receipt/$orderId" params={{ orderId: order.id }}>
-                          <Button variant="ghost">Sửa</Button>
+                          <Button>Sửa</Button>
                         </Link>
                         {order.status === 'Pending' && (
                           <Button
-                            variant="ghost"
+                            variant="danger"
                             onClick={() => {
                               deleteOrder.reset()
                               setDeleting(order)

@@ -46,24 +46,49 @@ export function ProductionMatrix({
   const lines = matrix.productionLines
   const dates =
     matrix.startDate && matrix.dueDate ? dateRange(matrix.startDate, matrix.dueDate) : []
-  const tableRef = useRef<HTMLTableElement>(null)
+  const frameRef = useRef<HTMLDivElement>(null)
+  const headScrollRef = useRef<HTMLDivElement>(null)
+  const headTableRef = useRef<HTMLTableElement>(null)
+  const bodyTableRef = useRef<HTMLTableElement>(null)
 
-  // Hàng tiêu đề KH/TT/Lệch phải dính ngay dưới hàng mã dây chuyền. Chiều cao hàng đó phụ thuộc
-  // nội dung (mã + dòng sản lượng) và font, nên đo thật thay vì đoán hằng số: đoán sai là hàng thứ
-  // hai dính lệch, chừa khe cho các dòng dữ liệu hiện xuyên qua khi cuộn.
+  /*
+   * Tiêu đề nằm ngoài vùng cuộn dọc: con trỏ ở trên tiêu đề thì lăn chuột cuộn trang chứ không cuộn
+   * bảng, và thanh cuộn dọc chỉ chạy dọc theo các dòng dữ liệu. Vì vậy tiêu đề là một bảng riêng, và
+   * phải có đúng bề rộng cột của bảng dữ liệu.
+   *
+   * Bề rộng cột do nội dung quyết định, nên bảng dữ liệu vẫn giữ nguyên <thead> của nó — kéo lên khuất
+   * phía trên vùng cuộn — để cột đủ rộng cho cả tiêu đề lẫn dữ liệu. Đo các ô tiêu đề đó rồi áp sang
+   * bảng tiêu đề. Theo dõi kích thước từng ô vì bề rộng cột đổi cả khi dữ liệu đổi, không chỉ khi
+   * khung đổi.
+   */
   useLayoutEffect(() => {
-    const table = tableRef.current
-    const firstRow = table?.tHead?.rows[0]
-    if (!table || !firstRow) return
+    const frame = frameRef.current
+    const headTable = headTableRef.current
+    const bodyTable = bodyTableRef.current
+    const bodyHead = bodyTable?.tHead
+    if (!frame || !headTable || !bodyTable || !bodyHead) return
 
-    const syncOffset = () =>
-      table.style.setProperty('--matrix-head-offset', `${firstRow.getBoundingClientRect().height}px`)
+    const [groupRow, leafRow] = Array.from(bodyHead.rows)
+    const cols = headTable.querySelectorAll('col')
 
-    syncOffset()
-    const observer = new ResizeObserver(syncOffset)
-    observer.observe(firstRow)
+    const syncHead = () => {
+      // Thứ tự cột lá: Ngày, bốn cột của từng dây chuyền, Tổng TT, Xuất hàng. Ngày, Tổng TT và Xuất
+      // hàng trải qua cả hai hàng tiêu đề nên nằm ở hàng đầu; cột con của dây chuyền ở hàng thứ hai.
+      const groupCells = Array.from(groupRow.cells)
+      const leafCells = [groupCells[0], ...Array.from(leafRow.cells), ...groupCells.slice(-2)]
+
+      leafCells.forEach((cell, index) => {
+        cols[index].style.width = `${cell.getBoundingClientRect().width}px`
+      })
+      headTable.style.width = `${bodyTable.getBoundingClientRect().width}px`
+      frame.style.setProperty('--matrix-head-height', `${bodyHead.getBoundingClientRect().height}px`)
+    }
+
+    syncHead()
+    const observer = new ResizeObserver(syncHead)
+    for (const cell of [...groupRow.cells, ...leafRow.cells]) observer.observe(cell)
     return () => observer.disconnect()
-  }, [])
+  }, [lines])
 
   // Tra cứu theo ô. Backend trả phẳng để không phải join phía client; ma trận dựng lại ở đây.
   const byCell = new Map(
@@ -79,6 +104,40 @@ export function ProductionMatrix({
   const rowHasAnyActual = (date: IsoDate) =>
     lines.some((line) => byCell.get(`${date}|${line.id}`)?.actualQuantity != null)
 
+  const head = (
+    <thead>
+      <tr>
+        <th className="matrix__date-col" rowSpan={2}>
+          Ngày
+        </th>
+        {lines.map((line) => (
+          <th key={line.id} colSpan={4} className="matrix__line-head matrix__group-start">
+            {line.code}
+            <span className="table__sub">
+              {formatNumber(line.actualQuantity)} / {formatNumber(line.currentPlanQuantity)}
+            </span>
+          </th>
+        ))}
+        <th rowSpan={2} className="num matrix__group-start">
+          Tổng TT
+        </th>
+        <th rowSpan={2} className="matrix__group-start matrix__day-action">
+          Xuất hàng
+        </th>
+      </tr>
+      <tr>
+        {lines.map((line) => (
+          <Fragment key={line.id}>
+            <th className="num matrix__sub-head matrix__group-start">KH</th>
+            <th className="num matrix__sub-head">TT</th>
+            <th className="num matrix__sub-head">Lệch</th>
+            <th className="matrix__sub-head" aria-label={`Thao tác ${line.code}`} />
+          </Fragment>
+        ))}
+      </tr>
+    </thead>
+  )
+
   return (
     <Card
       title="Tiến độ sản xuất theo ngày × dây chuyền"
@@ -89,139 +148,129 @@ export function ProductionMatrix({
         </>
       }
     >
-      <div className="table-wrapper matrix-scroll">
-        <table className="table matrix matrix--data" ref={tableRef}>
-          <thead>
-            <tr>
-              <th className="matrix__date-col" rowSpan={2}>
-                Ngày
-              </th>
-              {lines.map((line) => (
-                <th key={line.id} colSpan={4} className="matrix__line-head matrix__group-start">
-                  {line.code}
-                  <span className="table__sub">
-                    {formatNumber(line.actualQuantity)} / {formatNumber(line.currentPlanQuantity)}
-                  </span>
-                </th>
+      <div className="table-wrapper matrix-frame" ref={frameRef}>
+        {/* Bản sao chỉ để nhìn: trình đọc màn hình đọc <thead> gốc nằm cùng bảng với dữ liệu. */}
+        <div className="matrix-frame__head" ref={headScrollRef} aria-hidden="true">
+          <table className="table matrix matrix--data matrix-frame__head-table" ref={headTableRef}>
+            <colgroup>
+              {Array.from({ length: 1 + lines.length * 4 + 2 }, (_, index) => (
+                <col key={index} />
               ))}
-              <th rowSpan={2} className="num matrix__group-start">
-                Tổng TT
-              </th>
-              <th rowSpan={2} className="matrix__group-start matrix__day-action">
-                Xuất hàng
-              </th>
-            </tr>
-            <tr>
-              {lines.map((line) => (
-                <Fragment key={line.id}>
-                  <th className="num matrix__sub-head matrix__group-start">KH</th>
-                  <th className="num matrix__sub-head">TT</th>
-                  <th className="num matrix__sub-head">Lệch</th>
-                  <th className="matrix__sub-head" aria-label={`Thao tác ${line.code}`} />
-                </Fragment>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {dates.map((date) => {
-              const isToday = date === currentDate
-              const dayCells = lines.flatMap((line) => {
-                const cell = byCell.get(`${date}|${line.id}`)
-                return cell ? [{ line, cell }] : []
-              })
-              const openLines = dayCells
-                .filter(({ cell }) => cell.dayStatus === 'InProduction')
-                .map(({ line }) => line)
-              const allClosed =
-                dayCells.length > 0 && dayCells.every(({ cell }) => cell.dayStatus === 'Closed')
+            </colgroup>
+            {head}
+          </table>
+        </div>
 
-              return (
-                <tr key={date} className={isToday ? 'table__row--today' : ''}>
-                  <td className="matrix__date-col">
-                    <span className="table__strong">{formatShortDate(date)}</span>
-                    <span className="table__sub">
-                      {formatWeekday(date)}
-                      {isToday && ' · Hôm nay'}
-                    </span>
-                  </td>
+        <div
+          className="matrix-frame__body"
+          // Tiêu đề không tự cuộn được, nên đi theo vị trí cuộn ngang của phần dữ liệu.
+          onScroll={(event) => {
+            if (headScrollRef.current) headScrollRef.current.scrollLeft = event.currentTarget.scrollLeft
+          }}
+        >
+          <table className="table matrix matrix--data" ref={bodyTableRef}>
+            {head}
+            <tbody>
+              {dates.map((date) => {
+                const isToday = date === currentDate
+                const dayCells = lines.flatMap((line) => {
+                  const cell = byCell.get(`${date}|${line.id}`)
+                  return cell ? [{ line, cell }] : []
+                })
+                const openLines = dayCells
+                  .filter(({ cell }) => cell.dayStatus === 'InProduction')
+                  .map(({ line }) => line)
+                const allClosed =
+                  dayCells.length > 0 && dayCells.every(({ cell }) => cell.dayStatus === 'Closed')
 
-                  {lines.map((line) => {
-                    const cell = byCell.get(`${date}|${line.id}`)
+                return (
+                  <tr key={date} className={isToday ? 'table__row--today' : ''}>
+                    <td className="matrix__date-col">
+                      <span className="table__strong">{formatShortDate(date)}</span>
+                      <span className="table__sub">
+                        {formatWeekday(date)}
+                        {isToday && ' · Hôm nay'}
+                      </span>
+                    </td>
 
-                    if (!cell) {
+                    {lines.map((line) => {
+                      const cell = byCell.get(`${date}|${line.id}`)
+
+                      if (!cell) {
+                        return (
+                          <td key={line.id} colSpan={4} className="num muted matrix__empty matrix__group-start">
+                            —
+                          </td>
+                        )
+                      }
+
+                      const ref: CellRef = { productionDate: date, productionLineId: line.id, cell }
+                      // Ô còn mở chưa có chênh lệch chính thức (server trả null, CR-01 N-07), nhưng vẫn
+                      // cần thấy đang cách kế hoạch bao nhiêu: tính tạm đúng công thức của server, TT − KH,
+                      // gắn nhãn như cột TT. Không tô đỏ — ngày chưa chốt thì số hụt chưa phải phần thiếu.
+                      const provisionalDifference =
+                        cell.isProvisional && cell.actualQuantity !== null
+                          ? cell.actualQuantity - cell.plannedQuantity
+                          : null
+
                       return (
-                        <td key={line.id} colSpan={4} className="num muted matrix__empty matrix__group-start">
-                          —
-                        </td>
+                        <Fragment key={line.id}>
+                          <td className="num matrix__group-start">
+                            {formatNumber(cell.plannedQuantity)}
+                            {cell.addOnQuantity > 0 && (
+                              <span className="addon"> +{formatNumber(cell.addOnQuantity)}</span>
+                            )}
+                          </td>
+                          <td className="num">
+                            {formatQuantity(cell.actualQuantity)}
+                            {cell.isProvisional && cell.actualQuantity !== null && (
+                              <span className="table__sub">Tạm tính</span>
+                            )}
+                          </td>
+                          <td className={`num ${(cell.difference ?? 0) < 0 ? 'danger' : ''}`}>
+                            {formatDifference(cell.difference ?? provisionalDifference)}
+                            {provisionalDifference !== null && <span className="table__sub">Tạm tính</span>}
+                          </td>
+                          <td className="matrix__cell-actions">
+                            <CellActions
+                              cell={cell}
+                              lineCode={line.code}
+                              readOnly={readOnly}
+                              orderCompleted={orderCompleted}
+                              onRecord={() => onRecord(ref)}
+                              onView={() => onViewCell(ref)}
+                              onHandleShortage={() => onHandleShortage(ref)}
+                            />
+                          </td>
+                        </Fragment>
                       )
-                    }
+                    })}
 
-                    const ref: CellRef = { productionDate: date, productionLineId: line.id, cell }
-                    // Ô còn mở chưa có chênh lệch chính thức (server trả null, CR-01 N-07), nhưng vẫn
-                    // cần thấy đang cách kế hoạch bao nhiêu: tính tạm đúng công thức của server, TT − KH,
-                    // gắn nhãn như cột TT. Không tô đỏ — ngày chưa chốt thì số hụt chưa phải phần thiếu.
-                    const provisionalDifference =
-                      cell.isProvisional && cell.actualQuantity !== null
-                        ? cell.actualQuantity - cell.plannedQuantity
-                        : null
+                    <td className="num table__strong matrix__group-start">
+                      {rowHasAnyActual(date) ? formatNumber(rowActual(date)) : '—'}
+                    </td>
 
-                    return (
-                      <Fragment key={line.id}>
-                        <td className="num matrix__group-start">
-                          {formatNumber(cell.plannedQuantity)}
-                          {cell.addOnQuantity > 0 && (
-                            <span className="addon"> +{formatNumber(cell.addOnQuantity)}</span>
-                          )}
-                        </td>
-                        <td className="num">
-                          {formatQuantity(cell.actualQuantity)}
-                          {cell.isProvisional && cell.actualQuantity !== null && (
-                            <span className="table__sub">Tạm tính</span>
-                          )}
-                        </td>
-                        <td className={`num ${(cell.difference ?? 0) < 0 ? 'danger' : ''}`}>
-                          {formatDifference(cell.difference ?? provisionalDifference)}
-                          {provisionalDifference !== null && <span className="table__sub">Tạm tính</span>}
-                        </td>
-                        <td className="matrix__cell-actions">
-                          <CellActions
-                            cell={cell}
-                            lineCode={line.code}
-                            readOnly={readOnly}
-                            orderCompleted={orderCompleted}
-                            onRecord={() => onRecord(ref)}
-                            onView={() => onViewCell(ref)}
-                            onHandleShortage={() => onHandleShortage(ref)}
-                          />
-                        </td>
-                      </Fragment>
-                    )
-                  })}
-
-                  <td className="num table__strong matrix__group-start">
-                    {rowHasAnyActual(date) ? formatNumber(rowActual(date)) : '—'}
-                  </td>
-
-                  <td className="matrix__group-start matrix__day-action">
-                    {/* Đơn đã hoàn thành vẫn Xuất hàng được các ngày còn treo, để dọn sạch cảnh
-                        báo (CR-01 §14.6); chỉ đơn đã qua ngày kết thúc mới bị khoá. */}
-                    {openLines.length > 0 && !readOnly ? (
-                      <Button
-                        className="btn--sm"
-                        onClick={() => onCloseDay(date, openLines)}
-                        aria-label={`Xuất hàng ngày ${formatShortDate(date)}`}
-                      >
-                        Xuất hàng
-                      </Button>
-                    ) : allClosed ? (
-                      <span className="positive">✓ Đã xuất</span>
-                    ) : null}
-                  </td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
+                    <td className="matrix__group-start matrix__day-action">
+                      {/* Đơn đã hoàn thành vẫn Xuất hàng được các ngày còn treo, để dọn sạch cảnh
+                          báo (CR-01 §14.6); chỉ đơn đã qua ngày kết thúc mới bị khoá. */}
+                      {openLines.length > 0 && !readOnly ? (
+                        <Button
+                          className="btn--sm"
+                          onClick={() => onCloseDay(date, openLines)}
+                          aria-label={`Xuất hàng ngày ${formatShortDate(date)}`}
+                        >
+                          Xuất hàng
+                        </Button>
+                      ) : allClosed ? (
+                        <span className="positive">✓ Đã xuất</span>
+                      ) : null}
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
     </Card>
   )
