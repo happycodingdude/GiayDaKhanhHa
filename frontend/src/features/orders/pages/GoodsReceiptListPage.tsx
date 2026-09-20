@@ -193,11 +193,11 @@ export function GoodsReceiptListPage() {
                             dùng nền đỏ — giống cột thao tác của danh sách dây chuyền. */}
                         {order.status === 'Pending' ? (
                           <Link to="/progress/new" search={{ orderId: order.id }}>
-                            <Button>Lập tiến độ</Button>
+                            <Button className="receipt-table__action-main">Lập tiến độ</Button>
                           </Link>
                         ) : (
                           <Link to="/progress/$orderId" params={{ orderId: order.id }}>
-                            <Button>Xem tiến độ</Button>
+                            <Button className="receipt-table__action-main">Xem tiến độ</Button>
                           </Link>
                         )}
                         <Link to="/goods-receipt/$orderId" params={{ orderId: order.id }}>

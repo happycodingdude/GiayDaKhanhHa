@@ -1,4 +1,5 @@
 import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode, Ref } from 'react'
+import { formatDate } from '../lib/date'
 import { formatPercent } from '../lib/format'
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -117,6 +118,41 @@ export function Field({
 
 export function Input(props: InputHTMLAttributes<HTMLInputElement>) {
   return <input className="input" {...props} />
+}
+
+/**
+ * Ô chọn ngày. Vẫn là <input type="date"> để dùng lịch sẵn có của trình duyệt, nhưng phần chữ do ta
+ * vẽ đè lên: Chrome hiển thị ngày theo locale của trình duyệt (mm/dd/yyyy trên máy en-US) chứ không
+ * theo app, còn ở đây ngày luôn phải đọc là dd/mm/yyyy. Bấm vào bất kỳ đâu trong ô cũng mở lịch,
+ * không phải nhắm đúng icon.
+ */
+export function DateInput({
+  value,
+  className = '',
+  ...rest
+}: Omit<InputHTMLAttributes<HTMLInputElement>, 'type' | 'value'> & { value: string }) {
+  return (
+    <span className="date-input">
+      <input
+        className={`input date-input__control ${className}`}
+        type="date"
+        value={value}
+        onClick={(event) => {
+          // Trình duyệt cũ không có showPicker; khi đó vẫn còn icon lịch mặc định để bấm.
+          try {
+            event.currentTarget.showPicker()
+          } catch {
+            /* không mở được thì để trình duyệt xử lý như thường */
+          }
+        }}
+        {...rest}
+      />
+      {/* Trình đọc màn hình đọc giá trị của chính input, nên bản vẽ đè này ẩn với nó. */}
+      <span className="date-input__text" aria-hidden="true">
+        {value ? formatDate(value) : <span className="date-input__placeholder">dd/mm/yyyy</span>}
+      </span>
+    </span>
+  )
 }
 
 export function StatTile({

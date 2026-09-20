@@ -105,7 +105,7 @@ export function LineAllocationStep({
                     <span className="table__strong">{line.code}</span>
                     <span className="table__sub">{line.name}</span>
                   </td>
-                  <td className="num">
+                  <td className="num table__input-cell">
                     <input
                       className={`input input--number ${isEmpty && mode === 'Manual' ? 'input--invalid' : ''}`}
                       inputMode="numeric"

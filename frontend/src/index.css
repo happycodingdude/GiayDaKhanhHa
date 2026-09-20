@@ -233,6 +233,77 @@ ol {
   min-height: 0;
 }
 
+/*
+ * Cùng mục đích với `.page--fill` — cửa sổ không phải cuộn, nút bấm cuối thẻ luôn nhìn thấy — nhưng
+ * thẻ chỉ cao theo nội dung. Dùng cho wizard, nơi bước dài (danh sách đơn, ma trận ngày) và bước
+ * ngắn (vài ô nhập) dùng chung một khung: bước dài co lại và tự cuộn bên trong, bước ngắn giữ nguyên
+ * chiều cao thay vì bị kéo xuống tận đáy.
+ * `overflow: auto` chứ không phải `hidden`: một bước không có vùng cuộn riêng thì trang cuộn như
+ * trước, còn hơn bị cắt mất phần dưới.
+ */
+.page--fit {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+
+.page--fit .card {
+  display: flex;
+  flex-direction: column;
+  flex: 0 1 auto;
+  min-height: 0;
+}
+
+.page--fit .card__header {
+  flex: 0 0 auto;
+}
+
+.page--fit .card__body {
+  flex: 0 1 auto;
+  min-height: 0;
+}
+
+/* Trong thẻ, chỉ vùng có thanh cuộn riêng mới được co lại; ô tìm kiếm, phần tóm tắt và hàng nút luôn
+   hiện đủ. */
+.page--fit .card__body > * {
+  flex: 0 0 auto;
+}
+
+/* Vùng dài của mỗi bước — danh sách đơn, bảng phân bổ, ma trận ngày — tự cuộn thay vì đẩy cả
+   trang dài ra. `min-height` giữ cho chúng còn đọc được vài dòng: cửa sổ thấp hơn mức đó thì để cả
+   trang cuộn, còn hơn bóp danh sách xuống một dòng rưỡi. */
+.page--fit .order-picker,
+.page--fit .table-wrapper {
+  flex: 0 1 auto;
+  min-height: 132px;
+  max-height: none;
+}
+
+/* `.table-wrapper` vốn chỉ cuộn ngang; co lại mà không cho cuộn dọc thì mất hẳn mấy dòng cuối. */
+.page--fit .table-wrapper {
+  overflow-y: auto;
+}
+
+/*
+ * Ma trận ngày × dây chuyền phải hiện đúng cùng một số dòng ở bước "Kế hoạch theo ngày" và bước
+ * "Xem lại": bấm sang Xem lại là để đối chiếu, bảng dài thêm một dòng thì mất mốc so sánh. Dưới
+ * bảng, bước nhập còn một dòng ghi chú mà bước xem lại không có, nên nếu để flex chia nốt phần còn
+ * lại thì bước xem lại được nhiều hơn đúng một dòng.
+ * Chốt chung một trần tính theo cửa sổ: 374px là toàn bộ phần cố định quanh bảng ở bước nhập —
+ * bước chừa ít chỗ cho bảng hơn — nên trần này không bao giờ vượt quá chỗ trống của bước nào cả.
+ * Phải là `max-height` chứ không phải `height`: bảng ít ngày ngắn hơn trần thì khung co theo nội
+ * dung, không thì thừa ra một dải trống ở đáy bảng.
+ */
+.page--fit .matrix-scroll {
+  max-height: calc(100vh - 374px);
+}
+
+/* Viền của lựa chọn đầu và cuối không bị khung cuộn cắt mất. */
+.page--fit .order-picker {
+  padding: 2px;
+  margin: -2px;
+}
+
 .page__header {
   display: flex;
   align-items: flex-start;
@@ -280,6 +351,20 @@ ol {
   gap: 16px;
   padding: 16px 18px;
   border-bottom: 1px solid var(--border);
+}
+
+/* Tiêu đề liền mạch với nội dung ngay dưới, không có đường kẻ ngăn. Dùng khi thẻ mở đầu bằng một
+   bảng: bước Xem lại của wizard không có đường kẻ đó, nên bước nhập cũng không. Phần đệm dưới thu
+   lại cho bằng khoảng cách giữa các khối trong thân thẻ. */
+.card--flush .card__header {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+/* 16px — đúng khoảng cách giữa hai khối trong thân thẻ, để tiêu đề cách bảng y như phần tóm tắt
+   cách bảng ở bước Xem lại. */
+.card--flush .card__body {
+  padding-top: 16px;
 }
 
 .card__title {
@@ -396,6 +481,12 @@ ol {
   gap: 16px;
 }
 
+/* Ô chỉ chứa một giá trị ngắn — ngày, số — thì không cần trải hết nửa form: ô rỗng mênh mông làm
+   người dùng không nhận ra phải bấm vào đâu. Màn hẹp vẫn về một cột theo media query bên dưới. */
+.form__row--compact {
+  grid-template-columns: repeat(2, minmax(0, 220px));
+}
+
 .form__actions {
   display: flex;
   justify-content: flex-end;
@@ -434,6 +525,44 @@ ol {
   background: var(--surface);
   color: inherit;
   font: inherit;
+}
+
+/* Ô chọn ngày: phần chữ của trình duyệt bị ẩn, chữ dd/mm/yyyy do `.date-input__text` vẽ đè lên.
+   Icon lịch vẫn là icon mặc định nên ô vẫn nhìn ra ngay là chọn ngày. */
+.date-input {
+  position: relative;
+  display: block;
+}
+
+.date-input__control {
+  /* Cả ô là vùng bấm mở lịch, không riêng icon. */
+  cursor: pointer;
+}
+
+/* 12px = padding trái (11px) + viền (1px) của `.input`, để chữ nằm đúng chỗ chữ gốc. */
+.date-input__text {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  /* Mặc định tắt: chỉ bật ở nơi ẩn được phần chữ gốc, không thì hai lớp chữ chồng lên nhau. */
+  display: none;
+}
+
+/* Chromium và WebKit — trình duyệt dùng ở đây. Nơi khác giữ nguyên ô ngày mặc định của trình duyệt. */
+@supports selector(::-webkit-datetime-edit) {
+  .date-input__control::-webkit-datetime-edit {
+    opacity: 0;
+  }
+
+  .date-input__text {
+    display: block;
+  }
+}
+
+.date-input__placeholder {
+  color: var(--text-muted);
 }
 
 .input:focus {
@@ -1129,6 +1258,13 @@ ol {
   gap: 8px;
 }
 
+/* Khối tóm tắt mở đầu bước Xem lại của wizard lập tiến độ. Bước Kế hoạch theo ngày mở đầu bằng tiêu
+   đề thẻ cao hơn khối này 3,5px, nên bảng ở hai bước lệch nhau đúng ngần ấy khi bấm qua lại. Chốt
+   chiều cao để hai bảng nằm cùng một chỗ; chữ vẫn nằm nguyên ở trên, phần chênh rơi xuống dưới. */
+.summary-list--plan-head {
+  min-height: 43.5px;
+}
+
 .summary-list dt {
   color: var(--text-muted);
   font-size: 12px;
@@ -1289,21 +1425,50 @@ ol {
 
 .steps__item {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
   /* Chia đều bề rộng cả hàng — luồng trải kín container thay vì chừa khoảng trống bên phải, và
      nhãn dài sẽ co đoạn của chính nó lại thay vì làm cả hàng xuống dòng. */
   flex: 1 1 0;
   min-width: 0;
-  /* Đối xứng để nhãn căn giữa không bị phần chừa cho khấc đẩy lệch. */
-  padding: 9px 32px;
   background: #e7ebf2;
   color: var(--text-muted);
   font-weight: 600;
   /* Mũi nhọn bên phải và khấc lõm tương ứng bên trái, để hàng đọc ra thành luồng mũi tên.
      Hình bị clip nên phải dùng nền đặc thay vì viền. */
   clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 0 100%, 14px 50%);
+}
+
+/* Phần đệm và căn giữa nằm ở lớp trong chứ không ở `<li>`: bước quay lại được là một cái nút, và
+   vùng bấm phải phủ trọn mũi tên chứ không chỉ phần chữ. */
+.steps__control {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex: 1 1 auto;
+  min-width: 0;
+  /* Đối xứng để nhãn căn giữa không bị phần chừa cho khấc đẩy lệch. */
+  padding: 9px 32px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-weight: inherit;
+  text-align: center;
+}
+
+/* Chỉ bước đã qua mới bấm được để quay lại. */
+.steps__item--done .steps__control {
+  cursor: pointer;
+}
+
+.steps__item--done .steps__control:hover {
+  background: rgba(22, 122, 75, 0.12);
+}
+
+/* Viền focus phải nằm bên trong: mũi tên bị `clip-path` cắt nên outline vẽ ra ngoài sẽ mất. */
+.steps__control:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: -3px;
 }
 
 /* Hai đầu luồng để phẳng: không có gì chỉ vào bước đầu, không có gì nối sau bước cuối. */
@@ -1357,7 +1522,7 @@ ol {
   margin-bottom: 14px;
 }
 
-.steps--compact .steps__item {
+.steps--compact .steps__control {
   padding: 6px 26px;
   font-size: 13px;
 }
@@ -2454,12 +2619,12 @@ ol {
 
 /* Độ rộng cột lấy từ colgroup chứ không từ nội dung: mã giày dài ngắn khác nhau, dòng có 2 hay 3
    nút thao tác — đổi trang, đổi bộ lọc thì cột vẫn đứng yên.
-   min-width: màn hẹp thì bảng cuộn ngang trong khung, không bóp cột mã giày về gần bằng 0. 860px là
-   bốn cột cố định (606px) cộng chỗ cho một mã giày dài nằm trên một dòng; đặt rộng hơn thì chỉ đẩy
+   min-width: màn hẹp thì bảng cuộn ngang trong khung, không bóp cột mã giày về gần bằng 0. 868px là
+   bốn cột cố định (614px) cộng chỗ cho một mã giày dài nằm trên một dòng; đặt rộng hơn thì chỉ đẩy
    cột Thao tác ra ngoài khung trên màn vừa phải. */
 .receipt-table {
   table-layout: fixed;
-  min-width: 860px;
+  min-width: 868px;
 }
 
 .receipt-table__col--image {
@@ -2474,9 +2639,16 @@ ol {
   width: 170px;
 }
 
-/* Đủ cho dòng nhiều nút nhất: Lập tiến độ + Sửa + Xoá. */
+/* Đủ cho dòng nhiều nút nhất: nút tiến độ (112px) + Sửa + Xoá, kể cả hai khoảng cách 8px. */
 .receipt-table__col--actions {
-  width: 264px;
+  width: 272px;
+}
+
+/* "Lập tiến độ" (104px) và "Xem tiến độ" (110px) không bằng nhau, nên Sửa và Xoá của dòng đã lập
+   tiến độ bị đẩy lệch khỏi các dòng khác. Cố định bề rộng nút đầu theo nhãn dài hơn để ba nút của mọi
+   dòng nằm đúng một cột. */
+.receipt-table__action-main {
+  min-width: 112px;
 }
 
 /* Cột đã cố định thì nội dung dài phải xuống dòng trong cột của nó, không tràn sang cột bên cạnh. */
@@ -2774,6 +2946,16 @@ ol {
   overflow-y: auto;
 }
 
+/* Bảng kế hoạch ở bước nhập và ở bước xem lại chia cột theo cùng một công thức — mỗi cột số rộng
+   như nhau, cột Ngày nhận phần còn lại — để cột không nhảy chỗ khi chuyển giữa hai bước. */
+.matrix--plan {
+  table-layout: fixed;
+}
+
+.matrix--plan .num {
+  width: 140px;
+}
+
 .matrix__date-col {
   position: sticky;
   left: 0;
@@ -2802,12 +2984,25 @@ ol {
   box-shadow: inset 0 1px 0 var(--border);
 }
 
-.matrix tfoot .matrix__date-col {
-  z-index: 3;
+/*
+ * Chrome vẽ nền của ô ghim hụt vài pixel so với đáy khung cuộn — cuộn càng xa thì hụt càng nhiều —
+ * nên dòng nằm sau chân bảng hở ra thành một vệt ngay dưới dòng "Phân bổ". Vá bằng một vệt nền cùng
+ * màu vẽ tràn xuống dưới chân bảng, vượt quá thì bị khung cuộn cắt.
+ * Vệt này phải là `box-shadow` của một pseudo cao 0: hộp thật sẽ tính vào vùng cuộn và làm bảng dài
+ * thêm chục pixel, tức là lại thừa ra một dải trống ở đáy — đúng thứ vừa bỏ đi.
+ */
+.matrix tfoot th::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  height: 0;
+  box-shadow: 0 0 0 6px var(--surface);
 }
 
-.matrix__line-head {
-  text-align: center;
+.matrix tfoot .matrix__date-col {
+  z-index: 3;
 }
 
 /*
@@ -2883,6 +3078,8 @@ ol {
    để thắng cỡ chữ của `.table thead th`. */
 .matrix--data .matrix__line-head {
   font-size: 13px;
+  /* Cần cùng tiền tố để thắng `text-align: left` của `.table th`. */
+  text-align: center;
 }
 
 .matrix__line-head .table__sub {
@@ -2916,8 +3113,56 @@ ol {
   font-weight: 500;
 }
 
-.matrix .input--number {
-  width: 88px;
+/*
+ * Ô bảng chứa ô nhập. Ô nhập luôn có khung — ô nhập được thì phải nhìn ra ngay là nhập được, không
+ * đợi rê chuột — nhưng khung không được làm con số xê dịch so với bảng chỉ đọc ở bước Xem lại.
+ * Hai con số dưới đây giữ đúng điều đó, cho dòng cao 42px như mọi dòng bảng khác:
+ *   - ngang: 6px đệm ô + 1px viền khung + 5px đệm khung = 12px, đúng lề phải của một ô bảng;
+ *   - dọc:   4px + 1px + 5px + 21px chữ + 5px + 1px + 4px + 1px viền dòng = 42px.
+ * Cần tiền tố `.table` để thắng padding của `.table td`.
+ */
+.table td.table__input-cell {
+  padding: 4px 6px;
+}
+
+.table__input-cell .input {
+  display: block;
+  width: 100%;
+  /* Cột số của ma trận rộng 140px nên khung tự vừa ô. Ở bảng phân bổ dây chuyền, cột số ăn hết bề
+     ngang còn lại, nên phải chặn lại — không thì khung dài cả gang tay cho một con số ba chữ số.
+     Khung dạt về phải để con số vẫn nằm đúng lề cột như ở bảng chỉ đọc. */
+  max-width: 148px;
+  margin-left: auto;
+  padding: 5px;
+  border-color: var(--border-strong);
+  /* Nền xám nhạt trên nền dòng trắng: khối ô nhập nổi lên thành một vùng riêng, đọc ra ngay là chỗ
+     để gõ số chứ không phải con số in sẵn. */
+  background: var(--bg);
+  border-radius: var(--radius-sm);
+}
+
+.table__input-cell .input:hover:not(:disabled) {
+  border-color: var(--text-muted);
+  background: var(--surface);
+}
+
+/* Ô bị khoá — chế độ chia đều ở bước phân bổ — không được nhìn như ô nhập được: bỏ khung, trả về
+   đúng dáng một ô chỉ đọc. */
+.table__input-cell .input:disabled {
+  border-color: transparent;
+  background: transparent;
+}
+
+/* Cùng độ ưu tiên với rule hover ở trên và đứng sau nó, để lúc vừa bấm vào ô thì viền là màu đang
+   nhập chứ không phải màu rê chuột. */
+.table__input-cell .input:focus:not(:disabled) {
+  border-color: var(--primary);
+  background: var(--surface);
+}
+
+/* Giữ viền đỏ của ô nhập thiếu giá trị: nó phải thắng viền mặc định ở trên. */
+.table__input-cell .input--invalid {
+  border-color: var(--danger);
 }
 
 /* Ô nhập sai giá trị: viền đỏ để lỗi thấy được ngay trên chính ô đó. */

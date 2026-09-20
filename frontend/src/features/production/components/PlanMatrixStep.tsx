@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Button, Card } from '../../../shared/components/ui'
 import { ConfirmDialog } from '../../../shared/dialogs/ConfirmDialog'
-import { dateRange, formatShortDate, formatWeekday } from '../../../shared/lib/date'
+import { dateRange, formatDate } from '../../../shared/lib/date'
 import type { IsoDate } from '../../../shared/lib/date'
 import { formatNumber } from '../../../shared/lib/format'
 import type { ProductionLineDto } from '../../production-lines/types'
@@ -65,12 +65,13 @@ export function PlanMatrixStep({
 
   return (
     <Card
+      className="card--flush"
       title="Kế hoạch theo ngày"
-      description={`${formatShortDate(startDate)} → ${formatShortDate(dueDate)} · ${dates.length} ngày`}
+      description={`${formatDate(startDate)} → ${formatDate(dueDate)} · ${dates.length} ngày`}
       actions={<Button onClick={() => setConfirmingReset(true)}>Chia đều lại</Button>}
     >
       <div className="table-wrapper matrix-scroll">
-        <table className="table matrix">
+        <table className="table matrix matrix--plan">
           <thead>
             <tr>
               <th className="matrix__date-col">Ngày</th>
@@ -85,18 +86,15 @@ export function PlanMatrixStep({
           <tbody>
             {dates.map((date) => (
               <tr key={date}>
-                <td className="matrix__date-col">
-                  <span className="table__strong">{formatShortDate(date)}</span>
-                  <span className="table__sub">{formatWeekday(date)}</span>
-                </td>
+                <td className="matrix__date-col">{formatDate(date)}</td>
                 {lines.map((line) => (
-                  <td key={line.id} className="num">
+                  <td key={line.id} className="num table__input-cell">
                     <input
                       className="input input--number"
                       inputMode="numeric"
                       placeholder="0"
                       value={matrix[cellKey(line.id, date)] ?? ''}
-                      aria-label={`Kế hoạch ${line.code} ngày ${formatShortDate(date)}`}
+                      aria-label={`Kế hoạch ${line.code} ngày ${formatDate(date)}`}
                       onChange={(event) => {
                         const next = event.target.value
                         if (next !== '' && !/^\d+$/.test(next)) return
@@ -109,17 +107,13 @@ export function PlanMatrixStep({
               </tr>
             ))}
           </tbody>
+          {/*
+            * Một dòng như chân bảng ở bước Xem lại. Mọi ô trong tfoot đều dính đáy khung cuộn nên hai
+            * dòng sẽ vẽ đè lên nhau; gộp lại cũng là cách giữ cả hai con số cùng nhìn thấy. Cột đã
+            * khớp mốc phân bổ của bước 3 chỉ hiện mốc kèm dấu ✓ — tổng đang nhập bằng đúng mốc nên
+            * không cần lặp lại; cột lệch mới hiện "đang nhập / mốc" kèm số chênh (BR-N08b).
+            */}
           <tfoot>
-            <tr>
-              <th className="matrix__date-col">Tổng</th>
-              {lines.map((line) => (
-                <th key={line.id} className="num">
-                  {formatNumber(columnTotal(line.id))}
-                </th>
-              ))}
-              <th className="num">{formatNumber(grandTotal)}</th>
-            </tr>
-            {/* Dòng mốc từ bước 3: đây là con số mà mỗi cột phải khớp (BR-N08b). */}
             <tr>
               <th className="matrix__date-col">Phân bổ</th>
               {lines.map((line) => {
@@ -129,20 +123,23 @@ export function PlanMatrixStep({
 
                 return (
                   <th key={line.id} className={`num ${gap === 0 ? 'positive' : 'danger'}`}>
-                    {formatNumber(allocated)}
                     {gap === 0 ? (
-                      ' ✓'
+                      `${formatNumber(allocated)} ✓`
                     ) : (
-                      <span className="matrix__gap">
-                        {gap < 0 ? `thiếu ${formatNumber(-gap)}` : `vượt ${formatNumber(gap)}`}
-                      </span>
+                      <>
+                        {formatNumber(actual)} / {formatNumber(allocated)}
+                        <span className="matrix__gap">
+                          {gap < 0 ? `thiếu ${formatNumber(-gap)}` : `vượt ${formatNumber(gap)}`}
+                        </span>
+                      </>
                     )}
                   </th>
                 )
               })}
               <th className={`num ${everyColumnMatches ? 'positive' : 'danger'}`}>
-                {formatNumber(allocatedTotal)}
-                {everyColumnMatches && ' ✓'}
+                {everyColumnMatches
+                  ? `${formatNumber(allocatedTotal)} ✓`
+                  : `${formatNumber(grandTotal)} / ${formatNumber(allocatedTotal)}`}
               </th>
             </tr>
           </tfoot>

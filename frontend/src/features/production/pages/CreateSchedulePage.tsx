@@ -1,7 +1,7 @@
 import { Link, useNavigate, useSearch } from '@tanstack/react-router'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { toUserMessage } from '../../../api/errors'
-import { Button, Card, Field, Input } from '../../../shared/components/ui'
+import { Button, Card, DateInput, Field } from '../../../shared/components/ui'
 import { Stepper, type Step as StepDefinition } from '../../../shared/components/Stepper'
 import { EmptyState, ErrorState, InlineError, LoadingState } from '../../../shared/feedback/QueryState'
 import { useToast } from '../../../shared/feedback/ToastProvider'
@@ -300,22 +300,18 @@ export function CreateSchedulePage() {
   }
 
   return (
-    <div className="page">
+    <div className="page page--fit">
       <header className="page__header">
         <div>
           <Link to="/progress" className="back-link">
             ← Danh sách tiến độ
           </Link>
           <h1 className="page__title">Lập tiến độ</h1>
-          {order && (
-            <p className="page__subtitle">
-              {order.shoeCode} · {formatNumber(order.quantity)} đôi
-            </p>
-          )}
         </div>
       </header>
 
-      <Stepper steps={STEPS} current={step} />
+      {/* Bước đã qua bấm được để quay lại; dữ liệu của các bước sau vẫn còn nguyên trong state. */}
+      <Stepper steps={STEPS} current={step} onStepClick={(id) => setStep(id as Step)} />
 
       {step === 'order' && (
         <OrderPickerStep orders={orders} selectedId={orderId} onSelect={setOrderId} onNext={() => setStep('setup')} />
@@ -355,11 +351,10 @@ export function CreateSchedulePage() {
               </div>
             </Field>
 
-            <div className="form__row">
+            <div className="form__row form__row--compact">
               <Field label="Ngày bắt đầu" htmlFor="startDate" required error={setupErrors.startDate}>
-                <Input
+                <DateInput
                   id="startDate"
-                  type="date"
                   value={startDate}
                   onChange={(event) => setStartDate(event.target.value)}
                 />
@@ -370,17 +365,21 @@ export function CreateSchedulePage() {
                 htmlFor="dueDate"
                 required
                 error={setupErrors.dueDate}
+                /* Luôn có dòng này, kể cả khi chưa chọn đủ ngày: để nó hiện ra sau khi chọn thì cả
+                   biểu mẫu bị đẩy xuống ngay lúc vừa chọn xong. */
                 hint={
-                  startDate && dueDate && startDate <= dueDate ? (
-                    <>
-                      Số ngày sản xuất: <strong>{countDays(startDate, dueDate)} ngày</strong>
-                    </>
-                  ) : undefined
+                  <>
+                    Số ngày sản xuất:{' '}
+                    <strong>
+                      {startDate && dueDate && startDate <= dueDate
+                        ? `${countDays(startDate, dueDate)} ngày`
+                        : '—'}
+                    </strong>
+                  </>
                 }
               >
-                <Input
+                <DateInput
                   id="dueDate"
-                  type="date"
                   value={dueDate}
                   onChange={(event) => setDueDate(event.target.value)}
                 />
@@ -446,8 +445,10 @@ export function CreateSchedulePage() {
       )}
 
       {step === 'review' && order && (
-        <Card title="Xác nhận lập tiến độ">
-          <dl className="summary-list">
+        <Card>
+          {/* Khối tóm tắt này cao bằng đúng tiêu đề thẻ ở bước 4 (xem `.summary-list--plan-head`),
+              để bảng bên dưới nằm cùng một chỗ khi chuyển qua lại giữa hai bước. */}
+          <dl className="summary-list summary-list--plan-head">
             <div>
               <dt>Mã giày</dt>
               <dd>{order.shoeCode}</dd>
@@ -469,7 +470,7 @@ export function CreateSchedulePage() {
           </dl>
 
           <div className="table-wrapper matrix-scroll">
-            <table className="table matrix">
+            <table className="table matrix matrix--plan">
               <thead>
                 <tr>
                   <th className="matrix__date-col">Ngày</th>
