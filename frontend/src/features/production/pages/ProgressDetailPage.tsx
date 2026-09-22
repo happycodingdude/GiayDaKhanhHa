@@ -79,9 +79,7 @@ export function ProgressDetailPage() {
             <Link to="/progress" className="back-link">
               ← Danh sách tiến độ
             </Link>
-            <h1 className="page__title">
-              {order.shoeCode} <OrderStatusBadge status={order.status} isOverdue={order.isOverdue} />
-            </h1>
+            <h1 className="page__title">{order.shoeCode}</h1>
           </div>
         </header>
         <Card>
@@ -124,9 +122,7 @@ export function ProgressDetailPage() {
           </Link>
           <div className="page__heading-with-image">
             <OrderThumbnail imageUrl={order.imageUrl} shoeCode={order.shoeCode} size={64} />
-            <h1 className="page__title">
-              {order.shoeCode} <OrderStatusBadge status={order.status} isOverdue={order.isOverdue} />
-            </h1>
+            <h1 className="page__title">{order.shoeCode}</h1>
           </div>
         </div>
 
