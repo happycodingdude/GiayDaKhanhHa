@@ -99,9 +99,9 @@ public sealed class OrderImageService(IAppDbContext db, IClock clock, IOrderImag
         var lines = (await OrderQueries.ProductionLinesAsync(db, [order.Id], ct))[order.Id].ToList();
 
         var derived = OrderDerivedCalculator.Compute(
-            order.Quantity, order.Status, order.DueDate,
+            order.Quantity, order.Status, order.DueDate, order.IsScheduleConfirmed,
             cells, snapshots.Select(d => d.ToActualCell()).ToList(), clock.Today);
 
-        return OrderService.ToDetailDto(order, lines, derived);
+        return OrderService.ToDetailDto(order, lines, derived, clock.Today);
     }
 }

@@ -311,6 +311,12 @@ ol {
   gap: 16px;
 }
 
+.page__actions {
+  display: flex;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
 .page__title {
   font-size: 24px;
   font-weight: 700;

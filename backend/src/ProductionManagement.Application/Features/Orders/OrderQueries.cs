@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using ProductionManagement.Application.Abstractions;
 using ProductionManagement.Application.Common;
 using ProductionManagement.Application.Contracts;
+using ProductionManagement.Domain;
 using ProductionManagement.Domain.Entities;
 
 namespace ProductionManagement.Application.Features.Orders;
@@ -17,6 +18,15 @@ public static class OrderQueries
     /// </summary>
     public static string? ImageUrlFor(Order order)
         => order.HasImage ? $"/api/v1/orders/{order.Id}/image/content" : null;
+
+    /// <summary>
+    /// Đơn "Đang sản xuất": đã chốt tiến độ, đã tới ngày bắt đầu, chưa qua ngày kết thúc và chưa hoàn
+    /// thành — đúng nghĩa của badge "Đang sản xuất". Bộ lọc danh sách và luật ngừng dây chuyền dùng
+    /// chung điều kiện này để hai nơi không hiểu "đang sản xuất" khác nhau.
+    /// </summary>
+    public static IQueryable<Order> InProductionOn(this IQueryable<Order> orders, DateOnly today)
+        => orders.Where(o => o.Status == OrderStatus.Incomplete && o.ScheduleConfirmedAt != null
+                             && o.StartDate <= today && (o.DueDate == null || o.DueDate >= today));
 
     /// <summary>Các ô kế hoạch của một tập đơn hàng, dạng đã sẵn sàng cho OrderDerivedCalculator.</summary>
     public static async Task<ILookup<Guid, PlanCell>> PlanCellsAsync(

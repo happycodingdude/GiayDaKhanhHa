@@ -212,13 +212,23 @@ export function ProgressListPage() {
                       )}
                     </td>
                     <td>
-                      <OrderStatusBadge status={order.status} isOverdue={order.isOverdue} />
+                      <OrderStatusBadge
+                        status={order.status}
+                        isOverdue={order.isOverdue}
+                        isScheduleConfirmed={order.isScheduleConfirmed}
+                        isBeforeStartDate={order.isBeforeStartDate}
+                      />
                     </td>
                     <td>
-                      <ScheduleStatusBadge
-                        scheduleStatus={order.scheduleStatus}
-                        behindQuantity={order.behindQuantity}
-                      />
+                      {/* Tiến độ chưa chốt chưa được sản xuất nên không đánh giá chậm hay đúng tiến độ. */}
+                      {order.isScheduleConfirmed ? (
+                        <ScheduleStatusBadge
+                          scheduleStatus={order.scheduleStatus}
+                          behindQuantity={order.behindQuantity}
+                        />
+                      ) : (
+                        '—'
+                      )}
                     </td>
                   </tr>
                 ))}

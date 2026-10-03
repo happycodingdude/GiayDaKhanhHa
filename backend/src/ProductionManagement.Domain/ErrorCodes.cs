@@ -28,6 +28,12 @@ public static class ErrorCodes
     // Lập tiến độ (CR-001 §6.6, §6.10)
     public const string OrderScheduleAlreadyExists = "ORDER_SCHEDULE_ALREADY_EXISTS";
     public const string OrderNotScheduled = "ORDER_NOT_SCHEDULED";
+
+    /// <summary>Tiến độ đã chốt thì không sửa được nữa.</summary>
+    public const string ScheduleAlreadyConfirmed = "SCHEDULE_ALREADY_CONFIRMED";
+
+    /// <summary>Tiến độ chưa chốt thì chưa ghi nhận sản lượng hay Xuất hàng được.</summary>
+    public const string ScheduleNotConfirmed = "SCHEDULE_NOT_CONFIRMED";
     public const string LineAllocationMismatch = "LINE_ALLOCATION_MISMATCH";
     public const string LinePlanTotalMismatch = "LINE_PLAN_TOTAL_MISMATCH";
 
@@ -36,6 +42,9 @@ public static class ErrorCodes
     public const string ProductionLineInactive = "PRODUCTION_LINE_INACTIVE";
     public const string ProductionLineCodeAlreadyExists = "PRODUCTION_LINE_CODE_ALREADY_EXISTS";
     public const string ProductionLineEmptyAllocation = "PRODUCTION_LINE_EMPTY_ALLOCATION";
+
+    /// <summary>Dây chuyền đang có đơn "Đang sản xuất" thì không ngừng hoạt động được.</summary>
+    public const string ProductionLineInProduction = "PRODUCTION_LINE_IN_PRODUCTION";
 
     // Kế hoạch sản xuất
     public const string ProductionPlanNotFound = "PRODUCTION_PLAN_NOT_FOUND";

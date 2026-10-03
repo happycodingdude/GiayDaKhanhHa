@@ -142,6 +142,15 @@ public sealed record DashboardOpenShortageDto(
     string ProductionLineCode,
     int ShortageQuantity);
 
+/// <summary>Một đơn chờ chốt tiến độ, cho khối riêng của dashboard.</summary>
+public sealed record DashboardAwaitingConfirmationDto(
+    Guid OrderId,
+    string ShoeCode,
+    int Quantity,
+    DateOnly StartDate,
+    DateOnly DueDate,
+    string? ImageUrl);
+
 public sealed record DashboardStatisticsDto(
     DateOnly Date,
     int TotalOrders,
@@ -160,4 +169,7 @@ public sealed record DashboardStatisticsDto(
     IReadOnlyList<DashboardOrderDto> TrackedOrders,
     IReadOnlyList<DashboardTodayProductionDto> TodayProduction,
     IReadOnlyList<DashboardUnclosedDayDto> UnclosedPastCells,
-    IReadOnlyList<DashboardOpenShortageDto> OpenShortages);
+    IReadOnlyList<DashboardOpenShortageDto> OpenShortages,
+
+    /// <summary>Đơn đã lập tiến độ nhưng chưa chốt: chưa sản xuất được, nên tách khỏi mọi số liệu tiến độ.</summary>
+    IReadOnlyList<DashboardAwaitingConfirmationDto> AwaitingConfirmation);

@@ -128,6 +128,16 @@ export interface DashboardOpenShortageDto {
   shortageQuantity: number
 }
 
+/** Đơn đã lập tiến độ nhưng chưa chốt — chưa sản xuất được, nên không có trong số liệu tiến độ nào. */
+export interface DashboardAwaitingConfirmationDto {
+  orderId: string
+  shoeCode: string
+  quantity: number
+  startDate: IsoDate
+  dueDate: IsoDate
+  imageUrl: string | null
+}
+
 export interface DashboardStatisticsDto {
   date: IsoDate
   totalOrders: number
@@ -146,4 +156,6 @@ export interface DashboardStatisticsDto {
   todayProduction: DashboardTodayProductionDto[]
   unclosedPastCells: DashboardUnclosedDayDto[]
   openShortages: DashboardOpenShortageDto[]
+  /** Mới lập tiến độ lên đầu. */
+  awaitingConfirmation: DashboardAwaitingConfirmationDto[]
 }

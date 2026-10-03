@@ -9,6 +9,8 @@ export interface ProductionLineDto {
   note: string | null
   /** Đã được gán cho ít nhất một đơn hàng — dùng để ẩn hành động xoá (CR-001 BR-N15). */
   inUse: boolean
+  /** Số đơn "Đang sản xuất" trên dây chuyền. Lớn hơn 0 thì không ngừng hoạt động được. */
+  inProductionOrderCount: number
 }
 
 export interface ProductionLineListDto {

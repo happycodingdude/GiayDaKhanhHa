@@ -18,7 +18,10 @@ public sealed class OrderProductionLine
     public Guid ProductionLineId { get; private set; }
     public ProductionLine ProductionLine { get; private set; } = null!;
 
-    /// <summary>Bất biến sau khi tạo tiến độ. Adjustment không bao giờ đụng tới nó (BR-N18).</summary>
+    /// <summary>
+    /// Chỉ đổi được khi sửa tiến độ chưa chốt; đã chốt thì bất biến. Adjustment không bao giờ đụng
+    /// tới nó (BR-N18).
+    /// </summary>
     public int AllocatedQuantity { get; private set; }
 
     public DateTimeOffset CreatedAt { get; private set; }
@@ -32,4 +35,7 @@ public sealed class OrderProductionLine
             AllocatedQuantity = allocatedQuantity,
             CreatedAt = now
         };
+
+    /// <summary>Chỉ <see cref="Order.Reschedule"/> gọi, khi tiến độ còn chưa chốt.</summary>
+    internal void ChangeAllocation(int allocatedQuantity) => AllocatedQuantity = allocatedQuantity;
 }

@@ -62,7 +62,7 @@ public sealed class OrderService(IAppDbContext db, IClock clock, IOrderImageStor
             throw;
         }
 
-        return ToDetailDto(order, [], EmptyDerived(order));
+        return ToDetailDto(order, [], EmptyDerived(order), clock.Today);
     }
 
     /// <summary>
@@ -181,13 +181,16 @@ public sealed class OrderService(IAppDbContext db, IClock clock, IOrderImageStor
             // "Quá hạn" là trạng thái hiển thị riêng, tách "Incomplete" làm hai: đang sản xuất và quá hạn.
             // Nó suy ra từ ngày kết thúc nên không lưu xuống; điều kiện viết lại đúng Order.IsOverdue ở
             // dạng dịch được sang SQL. "Incomplete" vẫn gồm cả hai, cho tab "Chưa hoàn thành".
+            // Đơn chưa chốt tiến độ hiện "Chờ chốt", đơn đã chốt mà chưa tới ngày bắt đầu hiện "Chưa sản
+            // xuất" — cả hai đều không thuộc "Đang sản xuất" hay "Quá hạn".
             else if (string.Equals(status, "Overdue", StringComparison.OrdinalIgnoreCase))
             {
-                query = query.Where(o => o.Status != OrderStatus.Completed && o.DueDate != null && o.DueDate < today);
+                query = query.Where(o => o.Status != OrderStatus.Completed && o.ScheduleConfirmedAt != null
+                                         && o.DueDate != null && o.DueDate < today);
             }
             else if (string.Equals(status, "InProduction", StringComparison.OrdinalIgnoreCase))
             {
-                query = query.Where(o => o.Status == OrderStatus.Incomplete && (o.DueDate == null || o.DueDate >= today));
+                query = query.InProductionOn(today);
             }
             else if (Enum.TryParse<OrderStatus>(status, ignoreCase: true, out var parsedStatus))
             {
@@ -237,7 +240,7 @@ public sealed class OrderService(IAppDbContext db, IClock clock, IOrderImageStor
             var actualByCell = orderSnapshots.ToDictionary(d => d.Key);
 
             var derived = OrderDerivedCalculator.Compute(
-                order.Quantity, order.Status, order.DueDate,
+                order.Quantity, order.Status, order.DueDate, order.IsScheduleConfirmed,
                 cells, orderSnapshots.Select(d => d.ToActualCell()).ToList(), today);
 
             // Vị thế hôm nay gộp mọi dây chuyền: danh sách chỉ cần một con số để liếc qua.
@@ -249,9 +252,10 @@ public sealed class OrderService(IAppDbContext db, IClock clock, IOrderImageStor
                     new CellKey(c.ProductionDate, c.ProductionLineId), out var d) ? d.ActualQuantity : 0);
 
             // Chỉ đơn chưa hoàn thành mới cần cảnh báo ô treo: đơn đã xong thì phần thiếu còn lại
-            // không cần xử lý nữa (CR-01 §14.6). Đếm theo ngày chứ không theo ô: Xuất hàng chốt sổ cả
+            // không cần xử lý nữa (CR-01 §14.6); đơn chưa chốt tiến độ thì chưa sản xuất được nên cũng
+            // không có ô nào treo. Đếm theo ngày chứ không theo ô: Xuất hàng chốt sổ cả
             // ngày một lượt, nên một ngày treo trên nhiều dây chuyền vẫn chỉ là một ngày phải xử lý.
-            var unclosedPastDayCount = order.Status == OrderStatus.Incomplete
+            var unclosedPastDayCount = order.Status == OrderStatus.Incomplete && order.IsScheduleConfirmed
                 ? cells
                     .Where(c =>
                         c.PlannedQuantity > 0
@@ -281,6 +285,8 @@ public sealed class OrderService(IAppDbContext db, IClock clock, IOrderImageStor
                 derived.BehindQuantity,
                 derived.DaysRemaining,
                 derived.IsOverdue,
+                order.IsScheduleConfirmed,
+                order.IsBeforeStartDateOn(today),
                 todayPlanned,
                 todayActual,
                 unclosedPastDayCount > 0,
@@ -298,7 +304,7 @@ public sealed class OrderService(IAppDbContext db, IClock clock, IOrderImageStor
         var derived = await ComputeDerivedAsync(order, ct);
         var lines = (await OrderQueries.ProductionLinesAsync(db, [orderId], ct))[orderId].ToList();
 
-        return ToDetailDto(order, lines, derived);
+        return ToDetailDto(order, lines, derived, clock.Today);
     }
 
     /// <summary>
@@ -377,12 +383,12 @@ public sealed class OrderService(IAppDbContext db, IClock clock, IOrderImageStor
         var snapshots = await db.SnapshotsForOrderAsync(order.Id, ct);
 
         return OrderDerivedCalculator.Compute(
-            order.Quantity, order.Status, order.DueDate,
+            order.Quantity, order.Status, order.DueDate, order.IsScheduleConfirmed,
             cells, snapshots.Select(d => d.ToActualCell()).ToList(), clock.Today);
     }
 
     internal static OrderDetailDto ToDetailDto(
-        Order order, IReadOnlyList<OrderProductionLineDto> lines, OrderDerivedValues derived)
+        Order order, IReadOnlyList<OrderProductionLineDto> lines, OrderDerivedValues derived, DateOnly today)
         => new(
             order.Id,
             order.ShoeCode,
@@ -404,12 +410,15 @@ public sealed class OrderService(IAppDbContext db, IClock clock, IOrderImageStor
             derived.DaysRemaining,
             derived.IsOverdue,
             derived.IsPastDueDate,
+            order.IsScheduleConfirmed,
+            order.IsBeforeStartDateOn(today),
             order.CreatedAt,
             order.UpdatedAt);
 
     /// <summary>Đơn vừa nhập hàng chưa có ô nào, nên mọi giá trị suy ra tính từ tập rỗng.</summary>
     private OrderDerivedValues EmptyDerived(Order order)
-        => OrderDerivedCalculator.Compute(order.Quantity, order.Status, order.DueDate, [], [], clock.Today);
+        => OrderDerivedCalculator.Compute(
+            order.Quantity, order.Status, order.DueDate, order.IsScheduleConfirmed, [], [], clock.Today);
 
     private async Task<string> SaveImageAsync(Order order, ValidatedImage image, CancellationToken ct)
     {

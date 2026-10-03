@@ -8,6 +8,9 @@ namespace ProductionManagement.Application.Common;
 /// áp cho cả đơn đã hoàn thành — yếu tố quyết định là lịch, không phải trạng thái. Mọi use case ghi
 /// vào một đơn hàng đã tồn tại đều đi qua guard này, nên không thể lách luật bằng cách gọi
 /// endpoint khác.
+///
+/// Ngoại lệ duy nhất: sửa và xoá tiến độ chưa chốt. Tiến độ chưa chốt chưa có dữ liệu sản xuất nào
+/// để giữ nguyên, nên đơn chưa chốt đã quá hạn vẫn dời ngày hoặc lập lại được. Chốt thì vẫn bị chặn.
 /// </summary>
 public static class OrderMutationGuard
 {

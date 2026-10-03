@@ -8,7 +8,7 @@ import { useToast } from '../../../shared/feedback/ToastProvider'
 import { countDays, dateRange, formatDate, today, type IsoDate } from '../../../shared/lib/date'
 import { formatNumber } from '../../../shared/lib/format'
 import { OrderThumbnail } from '../../orders/components/OrderThumbnail'
-import { useCreateSchedule, useOrders } from '../../orders/hooks/useOrders'
+import { useCreateSchedule, useOrders, useUpdateSchedule } from '../../orders/hooks/useOrders'
 import type { AllocationMode, OrderListItemDto } from '../../orders/types'
 import { useProductionLines } from '../../production-lines/hooks/useProductionLines'
 import { LineAllocationStep, OverwriteAllocationConfirm } from '../components/LineAllocationStep'
@@ -75,42 +75,91 @@ function clearDraft() {
   }
 }
 
+/** Tiến độ hiện có của một đơn, để wizard mở ra ở chế độ sửa với dữ liệu điền sẵn. */
+export interface ScheduleEdit {
+  order: Pick<OrderListItemDto, 'id' | 'shoeCode' | 'quantity'>
+  selectedLineIds: string[]
+  startDate: IsoDate
+  dueDate: IsoDate
+  mode: AllocationMode
+  allocations: Record<string, string>
+  matrix: Record<string, string>
+  /**
+   * Dây chuyền có trong tiến độ hiện có nhưng đã ngừng hoạt động. Dây chuyền ngừng không được chọn
+   * vào tiến độ mới (BR-N06), nên chúng bị bỏ ra và phần đã phân bổ cho chúng phải chia lại.
+   */
+  inactiveLines: { code: string; allocatedQuantity: number }[]
+}
+
+/** Các giá trị mà ma trận kế hoạch được dựng từ đó. Chúng không đổi thì ma trận đã nhập vẫn đúng. */
+function matrixBasis(
+  selectedLineIds: string[],
+  startDate: IsoDate,
+  dueDate: IsoDate,
+  allocations: Record<string, string>,
+) {
+  const lineIds = [...selectedLineIds].sort()
+  return JSON.stringify({
+    lineIds,
+    startDate,
+    dueDate,
+    allocations: lineIds.map((id) => toQuantity(allocations[id])),
+  })
+}
+
 /**
  * Lập tiến độ — luồng 5 bước phản ánh đúng hai tầng phân bổ (CR-001 §7.6).
  *
  * Trang chặn ngay từ đầu khi chưa có dây chuyền `Active` nào: không có dây chuyền thì không bước
  * nào phía sau đi được, và bắt quản lý phát hiện điều đó ở bước 3 là quá muộn (§7.11).
+ *
+ * Có `edit` thì đây là Sửa tiến độ của một đơn chưa chốt: bỏ bước chọn đơn, điền sẵn tiến độ hiện
+ * có và lưu đè lên nó. Chế độ sửa không dùng bản nháp — reload thì điền lại từ server.
  */
-export function CreateSchedulePage() {
+export function CreateSchedulePage({ edit }: { edit?: ScheduleEdit } = {}) {
   const navigate = useNavigate()
   const { showToast } = useToast()
-  const search = useSearch({ from: '/authenticated/progress/new' })
+  // Không strict: chế độ sửa chạy dưới route khác, không có query string này.
+  const search: { orderId?: string } = useSearch({ strict: false })
 
   // Chỉ đơn Pending mới lập tiến độ được (BR-N05). pageSize lớn vì đây là dropdown chọn, không phân trang.
   const pendingQuery = useOrders({ status: 'Pending', pageSize: 200 })
   const linesQuery = useProductionLines('Active')
   const createSchedule = useCreateSchedule()
+  const updateSchedule = useUpdateSchedule()
+  const saveSchedule = edit ? updateSchedule : createSchedule
 
   // Chỉ đọc một lần lúc mount: bản nháp dùng để khởi tạo state, sau đó state là nguồn duy nhất.
-  const [restoredDraft] = useState(() => readDraft(search.orderId ?? null))
+  const [restoredDraft] = useState(() => (edit ? null : readDraft(search.orderId ?? null)))
 
-  const [step, setStep] = useState<Step>(restoredDraft?.step ?? 'order')
+  const [step, setStep] = useState<Step>(edit ? 'setup' : (restoredDraft?.step ?? 'order'))
   const [orderId, setOrderId] = useState<string | null>(
     restoredDraft ? restoredDraft.orderId : (search.orderId ?? null),
   )
-  const [selectedLineIds, setSelectedLineIds] = useState<string[]>(restoredDraft?.selectedLineIds ?? [])
-  const [startDate, setStartDate] = useState<IsoDate>(restoredDraft?.startDate ?? today())
-  const [dueDate, setDueDate] = useState<IsoDate>(restoredDraft?.dueDate ?? '')
+  const [selectedLineIds, setSelectedLineIds] = useState<string[]>(
+    edit?.selectedLineIds ?? restoredDraft?.selectedLineIds ?? [],
+  )
+  const [startDate, setStartDate] = useState<IsoDate>(edit?.startDate ?? restoredDraft?.startDate ?? today())
+  const [dueDate, setDueDate] = useState<IsoDate>(edit?.dueDate ?? restoredDraft?.dueDate ?? '')
   const [setupErrors, setSetupErrors] = useState<Record<string, string>>({})
-  const [mode, setMode] = useState<AllocationMode>(restoredDraft?.mode ?? 'Even')
-  const [allocations, setAllocations] = useState<Record<string, string>>(restoredDraft?.allocations ?? {})
-  const [matrix, setMatrix] = useState<Record<string, string>>(restoredDraft?.matrix ?? {})
+  const [mode, setMode] = useState<AllocationMode>(edit?.mode ?? restoredDraft?.mode ?? 'Even')
+  const [allocations, setAllocations] = useState<Record<string, string>>(
+    edit?.allocations ?? restoredDraft?.allocations ?? {},
+  )
+  const [matrix, setMatrix] = useState<Record<string, string>>(edit?.matrix ?? restoredDraft?.matrix ?? {})
   const [confirmingOverwrite, setConfirmingOverwrite] = useState(false)
+
+  // Chế độ sửa: ma trận hiện có ứng với bộ giá trị nào. Chỉ dựng lại ma trận khi bộ đó đổi, để đi
+  // qua các bước mà không sửa gì thì không mất kế hoạch đang có.
+  const builtMatrixBasis = useRef(
+    edit ? matrixBasis(edit.selectedLineIds, edit.startDate, edit.dueDate, edit.allocations) : null,
+  )
 
   const orders = pendingQuery.data?.items ?? []
   const activeLines = linesQuery.data?.items ?? []
-  const order = orders.find((candidate) => candidate.id === orderId) ?? null
-  const isLoading = pendingQuery.isPending || linesQuery.isPending
+  const order = edit ? edit.order : (orders.find((candidate) => candidate.id === orderId) ?? null)
+  const isLoading = (!edit && pendingQuery.isPending) || linesQuery.isPending
+  const steps = edit ? STEPS.filter((s) => s.id !== 'order') : STEPS
 
   // Vào từ nút "Lập tiến độ" thì đơn đã được chọn sẵn; bỏ qua luôn bước 1 (§7.6 bước 1).
   // Khôi phục sau reload thì giữ nguyên bước đang làm, kể cả khi quản lý đã chủ động quay lại bước 1.
@@ -140,7 +189,7 @@ export function CreateSchedulePage() {
   // Lưu nháp sau mỗi thay đổi. Lúc đang tải, state vẫn là giá trị khởi tạo (bước tự bỏ qua chọn đơn
   // chưa chạy) — ghi lúc này có thể đè mất bản nháp đúng nếu người dùng reload thêm lần nữa.
   useEffect(() => {
-    if (isLoading) return
+    if (isLoading || edit) return
     writeDraft({
       entryOrderId: search.orderId ?? null,
       step,
@@ -152,7 +201,7 @@ export function CreateSchedulePage() {
       allocations,
       matrix,
     })
-  }, [isLoading, search.orderId, step, orderId, selectedLineIds, startDate, dueDate, mode, allocations, matrix])
+  }, [edit, isLoading, search.orderId, step, orderId, selectedLineIds, startDate, dueDate, mode, allocations, matrix])
 
   // Rời màn này bằng điều hướng trong app (về danh sách, tạo xong, bấm menu…) là kết thúc lần lập
   // tiến độ nên xoá nháp. Reload không chạy cleanup của React, nên bản nháp còn nguyên cho lần mount sau.
@@ -176,11 +225,11 @@ export function CreateSchedulePage() {
     )
   }
 
-  if (pendingQuery.isError || linesQuery.isError) {
+  if ((!edit && pendingQuery.isError) || linesQuery.isError) {
     return (
       <div className="page">
         <ErrorState
-          error={pendingQuery.error ?? linesQuery.error}
+          error={(edit ? null : pendingQuery.error) ?? linesQuery.error}
           onRetry={() => {
             void pendingQuery.refetch()
             void linesQuery.refetch()
@@ -196,7 +245,7 @@ export function CreateSchedulePage() {
     return (
       <div className="page">
         <header className="page__header">
-          <h1 className="page__title">Lập tiến độ</h1>
+          <h1 className="page__title">{edit ? 'Sửa tiến độ' : 'Lập tiến độ'}</h1>
         </header>
         <Card>
           <EmptyState
@@ -214,7 +263,7 @@ export function CreateSchedulePage() {
     )
   }
 
-  if (orders.length === 0) {
+  if (!edit && orders.length === 0) {
     return (
       <div className="page">
         <header className="page__header">
@@ -247,6 +296,17 @@ export function CreateSchedulePage() {
     setSetupErrors(next)
     if (Object.keys(next).length > 0 || !order) return
 
+    // Sửa tiến độ mà giữ nguyên bộ dây chuyền thì giữ luôn phân bổ đang có, không chia đều lại.
+    const allocatedLineIds = Object.keys(allocations)
+    if (
+      edit &&
+      allocatedLineIds.length === selectedLineIds.length &&
+      selectedLineIds.every((id) => allocatedLineIds.includes(id))
+    ) {
+      setStep('lines')
+      return
+    }
+
     // Mặc định là chia đều: đó là lựa chọn đúng trong đa số trường hợp, và nó cho quản lý một điểm
     // xuất phát cụ thể thay vì một bảng trống.
     const shares = splitEvenly(order.quantity, selectedLineIds.length)
@@ -258,6 +318,13 @@ export function CreateSchedulePage() {
   }
 
   const goToMatrix = () => {
+    const basis = matrixBasis(selectedLineIds, startDate, dueDate, allocations)
+    if (edit && builtMatrixBasis.current === basis) {
+      setStep('matrix')
+      return
+    }
+    builtMatrixBasis.current = basis
+
     const dates = dateRange(startDate, dueDate)
     const next: Record<string, string> = {}
 
@@ -278,7 +345,7 @@ export function CreateSchedulePage() {
 
     const dates = dateRange(startDate, dueDate)
 
-    const created = await createSchedule.mutateAsync({
+    const saved = await saveSchedule.mutateAsync({
       orderId: order.id,
       request: {
         startDate,
@@ -295,23 +362,29 @@ export function CreateSchedulePage() {
       },
     })
 
-    showToast(`Đã lập tiến độ cho ${created.shoeCode}.`)
-    await navigate({ to: '/progress/$orderId', params: { orderId: created.id } })
+    showToast(edit ? `Đã cập nhật tiến độ cho ${saved.shoeCode}.` : `Đã lập tiến độ cho ${saved.shoeCode}.`)
+    await navigate({ to: '/progress/$orderId', params: { orderId: saved.id } })
   }
 
   return (
     <div className="page page--fit">
       <header className="page__header">
         <div>
-          <Link to="/progress" className="back-link">
-            ← Danh sách tiến độ
-          </Link>
-          <h1 className="page__title">Lập tiến độ</h1>
+          {edit ? (
+            <Link to="/progress/$orderId" params={{ orderId: edit.order.id }} className="back-link">
+              ← Chi tiết tiến độ
+            </Link>
+          ) : (
+            <Link to="/progress" className="back-link">
+              ← Danh sách tiến độ
+            </Link>
+          )}
+          <h1 className="page__title">{edit ? 'Sửa tiến độ' : 'Lập tiến độ'}</h1>
         </div>
       </header>
 
       {/* Bước đã qua bấm được để quay lại; dữ liệu của các bước sau vẫn còn nguyên trong state. */}
-      <Stepper steps={STEPS} current={step} onStepClick={(id) => setStep(id as Step)} />
+      <Stepper steps={steps} current={step} onStepClick={(id) => setStep(id as Step)} />
 
       {step === 'order' && (
         <OrderPickerStep orders={orders} selectedId={orderId} onSelect={setOrderId} onNext={() => setStep('setup')} />
@@ -323,6 +396,19 @@ export function CreateSchedulePage() {
           description={`${order.shoeCode} · ${formatNumber(order.quantity)} đôi`}
         >
           <div className="form">
+            {edit && edit.inactiveLines.length > 0 && (
+              <p className="notice notice--warning">
+                {edit.inactiveLines.map((line, index) => (
+                  <span key={line.code}>
+                    {index > 0 && ', '}
+                    <strong>{line.code}</strong> (<strong>{formatNumber(line.allocatedQuantity)} đôi</strong>)
+                  </span>
+                ))}{' '}
+                đã ngừng hoạt động nên được bỏ khỏi tiến độ. Hãy phân bổ lại số lượng này cho các dây chuyền
+                còn lại.
+              </p>
+            )}
+
             <Field label="Dây chuyền sản xuất" required error={setupErrors.lines}>
               <div className="line-picker">
                 {activeLines.map((line) => {
@@ -356,7 +442,11 @@ export function CreateSchedulePage() {
                 <DateInput
                   id="startDate"
                   value={startDate}
-                  onChange={(event) => setStartDate(event.target.value)}
+                  onChange={(event) => {
+                    // Ngày kết thúc chọn theo ngày bắt đầu, nên đổi ngày bắt đầu là phải chọn lại ngày kết thúc.
+                    setStartDate(event.target.value)
+                    setDueDate('')
+                  }}
                 />
               </Field>
 
@@ -381,13 +471,20 @@ export function CreateSchedulePage() {
                 <DateInput
                   id="dueDate"
                   value={dueDate}
+                  min={startDate || undefined}
                   onChange={(event) => setDueDate(event.target.value)}
                 />
               </Field>
             </div>
 
             <div className="form__actions">
-              <Button onClick={() => setStep('order')}>Quay lại</Button>
+              {edit ? (
+                <Link to="/progress/$orderId" params={{ orderId: edit.order.id }}>
+                  <Button>Quay lại</Button>
+                </Link>
+              ) : (
+                <Button onClick={() => setStep('order')}>Quay lại</Button>
+              )}
               <Button variant="primary" onClick={goToLines}>
                 Tiếp tục
               </Button>
@@ -516,14 +613,14 @@ export function CreateSchedulePage() {
             </table>
           </div>
 
-          {createSchedule.isError && <InlineError message={toUserMessage(createSchedule.error)} />}
+          {saveSchedule.isError && <InlineError message={toUserMessage(saveSchedule.error)} />}
 
           <div className="form__actions">
-            <Button onClick={() => setStep('matrix')} disabled={createSchedule.isPending}>
+            <Button onClick={() => setStep('matrix')} disabled={saveSchedule.isPending}>
               Quay lại
             </Button>
-            <Button variant="primary" loading={createSchedule.isPending} onClick={() => void submit()}>
-              Tạo tiến độ
+            <Button variant="primary" loading={saveSchedule.isPending} onClick={() => void submit()}>
+              {edit ? 'Lưu tiến độ' : 'Tạo tiến độ'}
             </Button>
           </div>
         </Card>

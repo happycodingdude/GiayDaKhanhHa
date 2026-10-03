@@ -1,8 +1,10 @@
 import { Link, useParams } from '@tanstack/react-router'
 import { useState } from 'react'
+import { toUserMessage } from '../../../api/errors'
 import { Badge, Button, Card, ProgressBar, StatTile } from '../../../shared/components/ui'
 import { ScheduleStatusBadge } from '../../../shared/components/StatusBadges'
-import { ErrorState, LoadingState } from '../../../shared/feedback/QueryState'
+import { ConfirmDialog } from '../../../shared/dialogs/ConfirmDialog'
+import { ErrorState, InlineError, LoadingState } from '../../../shared/feedback/QueryState'
 import { useToast } from '../../../shared/feedback/ToastProvider'
 import { formatDate, formatShortDate, today, type IsoDate } from '../../../shared/lib/date'
 import { formatNumber, formatPercent } from '../../../shared/lib/format'
@@ -10,7 +12,7 @@ import { AdjustmentHistory } from '../../adjustments/components/AdjustmentHistor
 import { ShortageDialog } from '../../adjustments/components/ShortageDialog'
 import { OrderStatusBadge } from '../../orders/components/OrderStatusBadge'
 import { OrderThumbnail } from '../../orders/components/OrderThumbnail'
-import { useOrder } from '../../orders/hooks/useOrders'
+import { useConfirmSchedule, useDeleteSchedule, useOrder } from '../../orders/hooks/useOrders'
 import { OrderStatisticsPanel } from '../../statistics/components/OrderStatisticsPanel'
 import { CloseDayDialog } from '../components/CloseDayDialog'
 import { ProductionCellDialog } from '../components/ProductionCellDialog'
@@ -25,6 +27,10 @@ export function ProgressDetailPage() {
   const { showToast } = useToast()
   const orderQuery = useOrder(orderId)
   const matrixQuery = useProductionMatrix(orderId)
+  const confirmSchedule = useConfirmSchedule()
+  const [confirming, setConfirming] = useState(false)
+  const deleteSchedule = useDeleteSchedule()
+  const [deleting, setDeleting] = useState(false)
 
   // Bốn dialog của luồng sản xuất, mở từ các nút trên ma trận.
   const [recording, setRecording] = useState<CellRef | null>(null)
@@ -101,6 +107,23 @@ export function ProgressDetailPage() {
   // này (ORDER_OVERDUE); phần này chỉ để ẩn các thao tác đã vô nghĩa.
   const readOnly = order.isPastDueDate
 
+  // Tiến độ chưa chốt còn sửa được, nên chưa sản xuất theo nó được. Server cũng chặn
+  // (SCHEDULE_NOT_CONFIRMED); ở đây chỉ ẩn các thao tác sản xuất.
+  const awaitingConfirmation = !order.isScheduleConfirmed
+
+  const confirm = async () => {
+    await confirmSchedule.mutateAsync(order.id)
+    setConfirming(false)
+    showToast(`Đã chốt tiến độ cho ${order.shoeCode}.`)
+  }
+
+  // Xoá xong đơn về Pending, nên màn này tự chuyển sang trạng thái "chưa lập tiến độ" kèm nút lập lại.
+  const removeSchedule = async () => {
+    await deleteSchedule.mutateAsync(order.id)
+    setDeleting(false)
+    showToast(`Đã xoá tiến độ của ${order.shoeCode}.`)
+  }
+
   // Ngày đã qua mà chưa Xuất hàng là việc bị treo: số liệu của nó vẫn chỉ là tạm tính (CR-01 N-09).
   // Gom theo ngày vì Xuất hàng chốt sổ cả ngày một lượt.
   const unclosedPastDates = [
@@ -126,19 +149,56 @@ export function ProgressDetailPage() {
           </div>
         </div>
 
-        <Link to="/goods-receipt/$orderId" params={{ orderId: order.id }}>
-          <Button>Thông tin nhập hàng</Button>
-        </Link>
+        <div className="page__actions">
+          {/* Đã chốt thì không sửa, xoá hay chốt lại được nữa, nên các nút này biến mất. Tiến độ chưa
+              chốt thì vẫn sửa/xoá được kể cả khi đã qua ngày kết thúc; riêng chốt thì server từ chối
+              (ORDER_OVERDUE), vì chốt xong đơn bị đóng băng ngay. */}
+          {awaitingConfirmation && (
+            <>
+              <Link to="/progress/$orderId/edit" params={{ orderId: order.id }}>
+                <Button>Sửa tiến độ</Button>
+              </Link>
+              <Button
+                variant="danger"
+                onClick={() => {
+                  deleteSchedule.reset()
+                  setDeleting(true)
+                }}
+              >
+                Xoá tiến độ
+              </Button>
+              {!readOnly && <Button onClick={() => setConfirming(true)}>Chốt tiến độ</Button>}
+            </>
+          )}
+          <Link to="/goods-receipt/$orderId" params={{ orderId: order.id }}>
+            <Button>Thông tin nhập hàng</Button>
+          </Link>
+        </div>
       </header>
 
-      {readOnly && (
+      {awaitingConfirmation && !readOnly && (
+        <p className="notice notice--warning">
+          Tiến độ chưa chốt nên chưa thể nhập sản lượng hay xuất hàng. Kiểm tra lại kế hoạch rồi bấm{' '}
+          <strong>Chốt tiến độ</strong> — sau khi chốt sẽ không sửa được nữa.
+        </p>
+      )}
+
+      {awaitingConfirmation && readOnly && (
+        <p className="notice notice--warning">
+          Tiến độ chưa chốt và đã qua ngày kết thúc (
+          <strong>{order.dueDate ? formatDate(order.dueDate) : '—'}</strong>) nên không chốt được nữa. Bấm{' '}
+          <strong>Sửa tiến độ</strong> để dời ngày rồi chốt, hoặc <strong>Xoá tiến độ</strong> để lập lại từ đầu.
+        </p>
+      )}
+
+      {readOnly && !awaitingConfirmation && (
         <p className="notice notice--danger">
           🔒 Đơn hàng đã qua ngày kết thúc (<strong>{order.dueDate ? formatDate(order.dueDate) : '—'}</strong>) nên
           chỉ được xem lại. Không thể nhập, sửa sản lượng hay bù sản lượng thiếu.
         </p>
       )}
 
-      {unclosedPastDates.length > 0 && !readOnly && (
+      {unclosedPastDates.length > 0 && !readOnly && !awaitingConfirmation && (
         <p className="notice notice--warning">
           ⚠ <strong>{unclosedPastDates.length} ngày</strong> đã qua chưa xuất hàng (
           {unclosedPastDates.slice(0, 3).map(formatShortDate).join(', ')}
@@ -186,18 +246,26 @@ export function ProgressDetailPage() {
             }
           />
           <div className="summary-progress__badges">
-            <OrderStatusBadge status={order.status} isOverdue={order.isOverdue} />
-            <ScheduleStatusBadge
-              scheduleStatus={order.scheduleStatus}
-              behindQuantity={order.behindQuantity}
+            <OrderStatusBadge
+              status={order.status}
+              isOverdue={order.isOverdue}
+              isScheduleConfirmed={order.isScheduleConfirmed}
+              isBeforeStartDate={order.isBeforeStartDate}
             />
+            {/* Tiến độ chưa chốt không được đánh giá chậm hay đúng tiến độ: chưa được sản xuất. */}
+            {!awaitingConfirmation && (
+              <ScheduleStatusBadge
+                scheduleStatus={order.scheduleStatus}
+                behindQuantity={order.behindQuantity}
+              />
+            )}
           </div>
         </div>
       </Card>
 
       <ProductionMatrix
         matrix={matrix}
-        readOnly={readOnly}
+        readOnly={readOnly || awaitingConfirmation}
         orderCompleted={order.status === 'Completed'}
         onRecord={setRecording}
         onCloseDay={(date, lines) => setClosing({ date, lines })}
@@ -253,6 +321,45 @@ export function ProgressDetailPage() {
           }}
         />
       )}
+
+      <ConfirmDialog
+        open={confirming}
+        title="Chốt tiến độ?"
+        confirmLabel="Chốt tiến độ"
+        loading={confirmSchedule.isPending}
+        onCancel={() => {
+          setConfirming(false)
+          confirmSchedule.reset()
+        }}
+        onConfirm={() => void confirm()}
+      >
+        <p>
+          Chốt tiến độ của <strong>{order.shoeCode}</strong> (
+          <strong>{order.startDate ? formatDate(order.startDate) : '—'}</strong> →{' '}
+          <strong>{order.dueDate ? formatDate(order.dueDate) : '—'}</strong>). Sau khi chốt, tiến độ không
+          sửa được nữa và đơn hàng bắt đầu nhập được sản lượng.
+        </p>
+        {confirmSchedule.isError && <InlineError message={toUserMessage(confirmSchedule.error)} />}
+      </ConfirmDialog>
+
+      <ConfirmDialog
+        open={deleting}
+        title="Xoá tiến độ?"
+        confirmLabel="Xoá tiến độ"
+        tone="danger"
+        loading={deleteSchedule.isPending}
+        onCancel={() => setDeleting(false)}
+        onConfirm={() => void removeSchedule()}
+      >
+        <p>
+          Tiến độ của <strong>{order.shoeCode}</strong> (
+          <strong>{order.startDate ? formatDate(order.startDate) : '—'}</strong> →{' '}
+          <strong>{order.dueDate ? formatDate(order.dueDate) : '—'}</strong>,{' '}
+          <strong>{formatNumber(order.productionLines.length)} dây chuyền</strong>) sẽ bị xoá. Đơn hàng quay về{' '}
+          <strong>Chưa lập tiến độ</strong>; mã giày, số lượng và ảnh mẫu được giữ nguyên để lập lại.
+        </p>
+        {deleteSchedule.isError && <InlineError message={toUserMessage(deleteSchedule.error)} />}
+      </ConfirmDialog>
 
       <ShortageDialog
         open={shortage !== null}

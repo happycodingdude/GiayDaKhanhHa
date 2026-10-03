@@ -35,6 +35,9 @@ public static class OrderDerivedCalculator
     /// Null với đơn chưa lập tiến độ: chưa có ngày kết thúc thì không có "còn bao nhiêu ngày", không
     /// trễ, và không bị đóng băng (CR-001 BR-N04).
     /// </param>
+    /// <param name="isScheduleConfirmed">
+    /// Tiến độ chưa chốt thì chưa sản xuất được, nên không ô nào tới hạn và đơn không bị tính chậm.
+    /// </param>
     /// <param name="cells">Các ô kế hoạch của đơn hàng.</param>
     /// <param name="actuals">
     /// Sản lượng của các ô đã có dữ liệu. <c>ActualQuantity</c> là tổng các lần ghi nhận chưa xoá —
@@ -45,6 +48,7 @@ public static class OrderDerivedCalculator
         int orderQuantity,
         OrderStatus orderStatus,
         DateOnly? dueDate,
+        bool isScheduleConfirmed,
         IReadOnlyCollection<PlanCell> cells,
         IReadOnlyCollection<ActualCell> actuals,
         DateOnly today)
@@ -63,13 +67,16 @@ public static class OrderDerivedCalculator
         //
         // Xét theo từng ô chứ không theo cả ngày: dây chuyền A đã xuất hàng hôm nay thì phần của nó
         // được tính, dây chuyền B chưa xuất thì chưa (CR-001 §2 QĐ-3).
+        //
+        // Tiến độ chưa chốt thì không ô nào tới hạn, dù ngày đã qua: chưa chốt là chưa được sản xuất,
+        // nên không có gì để chậm.
         var closedToday = actuals
             .Where(d => d.ProductionDate == today && d.IsClosed)
             .Select(d => d.ProductionLineId)
             .ToHashSet();
 
         bool IsDue(DateOnly date, Guid lineId)
-            => date < today || (date == today && closedToday.Contains(lineId));
+            => isScheduleConfirmed && (date < today || (date == today && closedToday.Contains(lineId)));
 
         var cumulativePlanToDate = cells
             .Where(p => IsDue(p.ProductionDate, p.ProductionLineId))

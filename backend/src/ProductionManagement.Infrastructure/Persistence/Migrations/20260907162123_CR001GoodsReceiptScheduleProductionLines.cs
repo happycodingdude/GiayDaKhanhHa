@@ -21,13 +21,13 @@ namespace ProductionManagement.Infrastructure.Persistence.Migrations
             //
             // users và system_settings được giữ nguyên: tài khoản đăng nhập và cấu hình vận hành
             // không liên quan gì tới thay đổi này.
-            migrationBuilder.Sql("DELETE FROM plan_adjustment_items");
-            migrationBuilder.Sql("DELETE FROM plan_adjustments");
-            migrationBuilder.Sql("DELETE FROM production_entry_logs");
-            migrationBuilder.Sql("DELETE FROM production_entries");
-            migrationBuilder.Sql("DELETE FROM production_days");
-            migrationBuilder.Sql("DELETE FROM production_plans");
-            migrationBuilder.Sql("DELETE FROM orders");
+            migrationBuilder.Sql("DELETE FROM plan_adjustment_items;");
+            migrationBuilder.Sql("DELETE FROM plan_adjustments;");
+            migrationBuilder.Sql("DELETE FROM production_entry_logs;");
+            migrationBuilder.Sql("DELETE FROM production_entries;");
+            migrationBuilder.Sql("DELETE FROM production_days;");
+            migrationBuilder.Sql("DELETE FROM production_plans;");
+            migrationBuilder.Sql("DELETE FROM orders;");
 
             migrationBuilder.DropIndex(
                 name: "uq_production_plans_order_date",
@@ -115,8 +115,8 @@ namespace ProductionManagement.Infrastructure.Persistence.Migrations
             // EF sinh ADD COLUMN ... NOT NULL DEFAULT '000...' để lấp dòng cũ, nhưng không tự gỡ
             // DEFAULT sau đó. Bảng đang rỗng nên default không lấp gì cả — để lại thì một dòng
             // thiếu production_line_id sẽ lặng lẽ nhận Guid rỗng thay vì bị database từ chối.
-            migrationBuilder.Sql("ALTER TABLE production_plans ALTER COLUMN production_line_id DROP DEFAULT");
-            migrationBuilder.Sql("ALTER TABLE production_days ALTER COLUMN production_line_id DROP DEFAULT");
+            migrationBuilder.Sql("ALTER TABLE production_plans ALTER COLUMN production_line_id DROP DEFAULT;");
+            migrationBuilder.Sql("ALTER TABLE production_days ALTER COLUMN production_line_id DROP DEFAULT;");
 
             migrationBuilder.CreateTable(
                 name: "production_lines",

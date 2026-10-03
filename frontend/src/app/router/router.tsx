@@ -16,6 +16,7 @@ import {
 import { GoodsReceiptListPage } from '../../features/orders/pages/GoodsReceiptListPage'
 import { ProductionLinesPage } from '../../features/production-lines/pages/ProductionLinesPage'
 import { CreateSchedulePage } from '../../features/production/pages/CreateSchedulePage'
+import { EditSchedulePage } from '../../features/production/pages/EditSchedulePage'
 import { ProgressDetailPage } from '../../features/production/pages/ProgressDetailPage'
 import { ProgressListPage } from '../../features/production/pages/ProgressListPage'
 import { SettingsPage } from '../../features/settings/pages/SettingsPage'
@@ -118,6 +119,13 @@ const progressDetailRoute = createRoute({
   component: ProgressDetailPage,
 })
 
+// Sửa tiến độ chưa chốt: cùng wizard với Lập tiến độ, điền sẵn tiến độ hiện có.
+const editScheduleRoute = createRoute({
+  getParentRoute: () => authenticatedRoute,
+  path: '/progress/$orderId/edit',
+  component: EditSchedulePage,
+})
+
 // --- Cấu hình ---------------------------------------------------------------------------------
 
 const settingsRoute = createRoute({
@@ -172,6 +180,7 @@ const routeTree = rootRoute.addChildren([
     progressRoute,
     createScheduleRoute,
     progressDetailRoute,
+    editScheduleRoute,
     settingsRoute,
     productionLinesRoute,
     legacyOrdersRoute,

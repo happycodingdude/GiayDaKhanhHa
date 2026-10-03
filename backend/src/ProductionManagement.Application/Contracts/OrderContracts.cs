@@ -52,6 +52,12 @@ public sealed record OrderListItemDto(
     int DaysRemaining,
     bool IsOverdue,
 
+    /// <summary>Đã chốt tiến độ — chỉ khi đó mới sản xuất được. Luôn false với đơn chưa lập tiến độ.</summary>
+    bool IsScheduleConfirmed,
+
+    /// <summary>Chưa tới ngày bắt đầu sản xuất. Luôn false với đơn chưa lập tiến độ.</summary>
+    bool IsBeforeStartDate,
+
     /// <summary>
     /// Vị thế của hôm nay, gộp mọi dây chuyền, để danh sách trả lời được "hôm nay đơn nào đang chạy
     /// tới đâu" mà không phải mở từng đơn (CR-01 §8, MH1). Null khi hôm nay không có kế hoạch.
@@ -90,6 +96,8 @@ public sealed record OrderDetailDto(
     bool IsOverdue,
     /// <summary>Kỳ sản xuất đã kết thúc nên đơn hàng chỉ đọc. Đúng với cả đơn đã hoàn thành.</summary>
     bool IsPastDueDate,
+    bool IsScheduleConfirmed,
+    bool IsBeforeStartDate,
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt);
 

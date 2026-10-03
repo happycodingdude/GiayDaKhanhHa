@@ -52,4 +52,16 @@ export const ordersApi = {
   /** Lập tiến độ: dây chuyền + khoảng ngày + phân bổ 2 tầng, một lần duy nhất (BR-N05). */
   createSchedule: (orderId: string, request: CreateProductionScheduleRequest) =>
     apiClient.post<OrderDetailDto>(`/orders/${orderId}/production-schedule`, request),
+
+  /** Sửa tiến độ chưa chốt: body giống lúc lập, bộ mới thay toàn bộ bộ cũ. */
+  updateSchedule: (orderId: string, request: CreateProductionScheduleRequest) =>
+    apiClient.put<OrderDetailDto>(`/orders/${orderId}/production-schedule`, request),
+
+  /** Xoá tiến độ chưa chốt: đơn quay về "Chưa lập tiến độ". Trả về đơn sau khi xoá. */
+  deleteSchedule: (orderId: string) =>
+    apiClient.delete<OrderDetailDto>(`/orders/${orderId}/production-schedule`),
+
+  /** Chốt tiến độ. Một chiều: không bỏ chốt được. */
+  confirmSchedule: (orderId: string) =>
+    apiClient.post<OrderDetailDto>(`/orders/${orderId}/production-schedule/confirm`),
 }

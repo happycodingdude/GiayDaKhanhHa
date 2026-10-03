@@ -21,6 +21,11 @@ public sealed class OrderConfiguration : IEntityTypeConfiguration<Order>
                 + " OR (status <> 'Pending' AND start_date IS NOT NULL AND due_date IS NOT NULL"
                 + " AND start_date <= due_date)");
 
+            // Chưa lập tiến độ thì không có gì để chốt.
+            t.HasCheckConstraint(
+                "ck_orders_schedule_confirmed",
+                "status <> 'Pending' OR schedule_confirmed_at IS NULL");
+
             // Bốn cột ảnh đi cùng nhau: có tất cả, hoặc không có gì.
             t.HasCheckConstraint(
                 "ck_orders_image",
@@ -47,6 +52,7 @@ public sealed class OrderConfiguration : IEntityTypeConfiguration<Order>
         // Ngày nghiệp vụ là giá trị chỉ có ngày, không gắn múi giờ (Step 3 §8).
         builder.Property(o => o.StartDate).HasColumnName("start_date").HasColumnType("date");
         builder.Property(o => o.DueDate).HasColumnName("due_date").HasColumnType("date");
+        builder.Property(o => o.ScheduleConfirmedAt).HasColumnName("schedule_confirmed_at");
 
         builder.Property(o => o.Status)
             .HasColumnName("status")

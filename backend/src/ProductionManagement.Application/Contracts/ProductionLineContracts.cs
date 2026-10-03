@@ -11,7 +11,10 @@ public sealed record ProductionLineDto(
     string Status,
     int SortOrder,
     string? Note,
-    bool InUse);
+    bool InUse,
+
+    /// <summary>Số đơn "Đang sản xuất" trên dây chuyền. Lớn hơn 0 thì không ngừng hoạt động được.</summary>
+    int InProductionOrderCount);
 
 public sealed record ProductionLineListDto(IReadOnlyList<ProductionLineDto> Items);
 

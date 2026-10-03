@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.DataProtection;
 using ProductionManagement.Api.Auth;
 using ProductionManagement.Api.Errors;
 using ProductionManagement.Api.Setup;
@@ -48,6 +49,15 @@ builder.Services
             context.Response, StatusCodes.Status403Forbidden,
             "FORBIDDEN", "You are not allowed to perform this action.");
     });
+
+// Cookie đăng nhập được mã hoá bằng khoá DataProtection. Mặc định khoá nằm trong thư mục profile của
+// tiến trình; trong container đó là filesystem tạm, nên mỗi lần tạo lại container mọi phiên đăng nhập
+// đều mất. Đặt DataProtection:KeysPath (một volume) để khoá sống qua các lần deploy.
+var dataProtectionKeysPath = builder.Configuration["DataProtection:KeysPath"];
+if (!string.IsNullOrWhiteSpace(dataProtectionKeysPath))
+{
+    builder.Services.AddDataProtection().PersistKeysToFileSystem(new DirectoryInfo(dataProtectionKeysPath));
+}
 
 // Mọi endpoint nghiệp vụ đều yêu cầu xác thực; chỉ action login/logout được miễn.
 builder.Services.AddAuthorization(options =>

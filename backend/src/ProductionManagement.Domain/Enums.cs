@@ -11,8 +11,8 @@ public enum UserStatus
 
 /// <summary>
 /// Vòng đời đơn hàng sau CR-001: nhập hàng xong là <c>Pending</c> (chưa lập tiến độ), lập tiến độ
-/// xong chuyển <c>Incomplete</c>, đủ sản lượng thì <c>Completed</c>. Không bao giờ quay lại
-/// <c>Pending</c> (CR-001 §4.1).
+/// xong chuyển <c>Incomplete</c>, đủ sản lượng thì <c>Completed</c>. Chỉ quay lại
+/// <c>Pending</c> khi xoá một tiến độ chưa chốt (CR-001 §4.1).
 /// </summary>
 public enum OrderStatus
 {

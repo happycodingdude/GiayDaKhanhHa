@@ -117,6 +117,22 @@ public sealed class OrdersController(
         Guid orderId, CreateProductionScheduleRequest request, CancellationToken ct)
         => Ok(await productionScheduleService.CreateAsync(orderId, request, ct));
 
+    /// <summary>Sửa tiến độ chưa chốt: body giống lúc lập, bộ mới thay toàn bộ bộ cũ.</summary>
+    [HttpPut("{orderId:guid}/production-schedule")]
+    public async Task<ActionResult<OrderDetailDto>> UpdateProductionSchedule(
+        Guid orderId, CreateProductionScheduleRequest request, CancellationToken ct)
+        => Ok(await productionScheduleService.UpdateAsync(orderId, request, ct));
+
+    /// <summary>Xoá tiến độ chưa chốt: đơn quay về "Chưa lập tiến độ" và trả về đơn sau khi xoá.</summary>
+    [HttpDelete("{orderId:guid}/production-schedule")]
+    public async Task<ActionResult<OrderDetailDto>> DeleteProductionSchedule(Guid orderId, CancellationToken ct)
+        => Ok(await productionScheduleService.DeleteAsync(orderId, ct));
+
+    /// <summary>Chốt tiến độ. Một chiều: không có endpoint bỏ chốt.</summary>
+    [HttpPost("{orderId:guid}/production-schedule/confirm")]
+    public async Task<ActionResult<OrderDetailDto>> ConfirmProductionSchedule(Guid orderId, CancellationToken ct)
+        => Ok(await productionScheduleService.ConfirmAsync(orderId, ct));
+
     /// <summary>Ma trận ngày × dây chuyền: kế hoạch, thực tế và phần thiếu/chênh lệch suy ra.</summary>
     [HttpGet("{orderId:guid}/production-plans")]
     public async Task<ActionResult<ProductionMatrixDto>> GetProductionMatrix(Guid orderId, CancellationToken ct)

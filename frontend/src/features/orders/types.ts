@@ -36,6 +36,10 @@ export interface OrderListItemDto {
   behindQuantity: number
   daysRemaining: number
   isOverdue: boolean
+  /** Đã chốt tiến độ — chỉ khi đó mới sản xuất được. */
+  isScheduleConfirmed: boolean
+  /** Chưa tới ngày bắt đầu sản xuất. */
+  isBeforeStartDate: boolean
   /** Vị thế hôm nay, gộp mọi dây chuyền. null khi hôm nay không có kế hoạch. */
   todayPlannedQuantity: number | null
   todayActualQuantity: number | null
@@ -67,6 +71,10 @@ export interface OrderDetailDto {
   isOverdue: boolean
   /** Kỳ sản xuất đã kết thúc nên đơn hàng chỉ đọc. Đúng với cả đơn đã hoàn thành. */
   isPastDueDate: boolean
+  /** Đã chốt tiến độ: không sửa được nữa, và chỉ khi đó mới sản xuất được. */
+  isScheduleConfirmed: boolean
+  /** Chưa tới ngày bắt đầu sản xuất. */
+  isBeforeStartDate: boolean
   createdAt: string
   updatedAt: string
 }

@@ -45,7 +45,7 @@ public sealed class StatisticsService(IAppDbContext db, IClock clock)
             .ToList();
 
         var derived = OrderDerivedCalculator.Compute(
-            order.Quantity, order.Status, order.DueDate,
+            order.Quantity, order.Status, order.DueDate, order.IsScheduleConfirmed,
             cells, snapshots.Select(d => d.ToActualCell()).ToList(), today);
 
         // --- Đường xu hướng theo ngày, gộp mọi dây chuyền -------------------------------------
@@ -150,11 +150,13 @@ public sealed class StatisticsService(IAppDbContext db, IClock clock)
             .ToDictionaryAsync(l => l.Id, l => l.Code, ct);
 
         // Thời điểm lập tiến độ. Không dùng orders.created_at vì đó là lúc Nhập hàng, xảy ra trước và
-        // không cùng thứ tự với lúc lập tiến độ. Dây chuyền của đơn chỉ được tạo trong đúng một lần lập
-        // tiến độ và không bao giờ thêm về sau, nên thời điểm tạo của chúng chính là mốc cần tìm.
+        // không cùng thứ tự với lúc lập tiến độ. Dây chuyền của đơn được tạo lúc lập tiến độ; Sửa tiến độ
+        // giữ nguyên dòng của dây chuyền còn lại và chỉ tạo dòng mới cho dây chuyền thêm vào. Vì vậy lấy
+        // dòng tạo SỚM NHẤT: sửa tiến độ không đẩy đơn lên đầu. Chỉ khi mọi dây chuyền cũ đều bị thay
+        // thì mốc này mới thành lúc sửa — khi đó tiến độ coi như được lập lại.
         var scheduledAt = await db.OrderProductionLines.AsNoTracking()
             .GroupBy(l => l.OrderId)
-            .Select(g => new { OrderId = g.Key, ScheduledAt = g.Max(l => l.CreatedAt) })
+            .Select(g => new { OrderId = g.Key, ScheduledAt = g.Min(l => l.CreatedAt) })
             .ToDictionaryAsync(x => x.OrderId, x => x.ScheduledAt, ct);
 
         // Một kế hoạch nguồn tại một thời điểm chỉ có tối đa một điều chỉnh Applied (Step 4 §12);
@@ -172,6 +174,7 @@ public sealed class StatisticsService(IAppDbContext db, IClock clock)
         var todayProduction = new List<DashboardTodayProductionDto>();
         var unclosedPastCells = new List<DashboardUnclosedDayDto>();
         var openShortages = new List<DashboardOpenShortageDto>();
+        var awaitingConfirmation = new List<DashboardAwaitingConfirmationDto>();
 
         var totalOrderQuantity = 0;
         var totalActualQuantity = 0;
@@ -192,6 +195,7 @@ public sealed class StatisticsService(IAppDbContext db, IClock clock)
                 order.Quantity,
                 order.Status,
                 order.DueDate,
+                order.IsScheduleConfirmed,
                 orderPlans
                     .Select(p => new PlanCell(p.ProductionDate, p.ProductionLineId, p.PlannedQuantity, p.InitialPlannedQuantity))
                     .ToList(),
@@ -201,6 +205,16 @@ public sealed class StatisticsService(IAppDbContext db, IClock clock)
             totalOrderQuantity += order.Quantity;
             totalActualQuantity += derived.TotalActual;
             totalRemainingQuantity += derived.Remaining;
+
+            // Tiến độ chưa chốt chưa sản xuất được, nên chưa tham gia số liệu sản xuất nào: nó nằm ở khối
+            // "Chờ chốt tiến độ" riêng. Số lượng vẫn được cộng vào tổng như đơn chưa lập tiến độ.
+            if (order.IsScheduled && !order.IsScheduleConfirmed)
+            {
+                awaitingConfirmation.Add(new DashboardAwaitingConfirmationDto(
+                    order.Id, order.ShoeCode, order.Quantity, order.StartDate!.Value, order.DueDate!.Value,
+                    OrderQueries.ImageUrlFor(order)));
+                continue;
+            }
 
             var todayCells = orderPlans.Where(p => p.ProductionDate == today).ToList();
             todayPlanned += todayCells.Sum(c => c.PlannedQuantity);
@@ -321,7 +335,7 @@ public sealed class StatisticsService(IAppDbContext db, IClock clock)
             Date: today,
             TotalOrders: orders.Count,
             PendingOrderCount: orders.Count(o => o.Status == OrderStatus.Pending),
-            IncompleteOrders: orders.Count(o => o.Status == OrderStatus.Incomplete),
+            IncompleteOrders: orders.Count(o => o.Status == OrderStatus.Incomplete && o.IsScheduleConfirmed),
             CompletedOrders: orders.Count(o => o.Status == OrderStatus.Completed),
             BehindOrders: behindOrders,
             TotalOrderQuantity: totalOrderQuantity,
@@ -341,6 +355,11 @@ public sealed class StatisticsService(IAppDbContext db, IClock clock)
             UnclosedPastCells: unclosedPastCells
                 .OrderBy(d => d.ProductionDate).ThenBy(d => d.ShoeCode).ThenBy(d => d.ProductionLineCode).ToList(),
             OpenShortages: openShortages
-                .OrderByDescending(s => s.ShortageQuantity).ThenBy(s => s.ProductionDate).ToList());
+                .OrderByDescending(s => s.ShortageQuantity).ThenBy(s => s.ProductionDate).ToList(),
+            // Mới lập lên đầu, giống timeline.
+            AwaitingConfirmation: awaitingConfirmation
+                .OrderByDescending(o => scheduledAt.GetValueOrDefault(o.OrderId))
+                .ThenBy(o => o.ShoeCode)
+                .ToList());
     }
 }

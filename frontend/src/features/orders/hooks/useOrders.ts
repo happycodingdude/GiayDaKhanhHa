@@ -77,19 +77,54 @@ export function useDeleteOrder() {
  * trận kế hoạch (CR-001 §7.10).
  */
 export function useCreateSchedule() {
-  const queryClient = useQueryClient()
+  const onScheduleChanged = useScheduleChanged()
 
   return useMutation({
     mutationFn: ({ orderId, request }: { orderId: string; request: CreateProductionScheduleRequest }) =>
       ordersApi.createSchedule(orderId, request),
-    onSuccess: async (order) => {
-      queryClient.setQueryData(queryKeys.order(order.id), order)
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: queryKeys.ordersList }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.orderProductionPlans(order.id) }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.orderStatistics(order.id) }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.dashboard }),
-      ])
-    },
+    onSuccess: onScheduleChanged,
   })
+}
+
+export function useUpdateSchedule() {
+  const onScheduleChanged = useScheduleChanged()
+
+  return useMutation({
+    mutationFn: ({ orderId, request }: { orderId: string; request: CreateProductionScheduleRequest }) =>
+      ordersApi.updateSchedule(orderId, request),
+    onSuccess: onScheduleChanged,
+  })
+}
+
+export function useDeleteSchedule() {
+  const onScheduleChanged = useScheduleChanged()
+
+  return useMutation({
+    mutationFn: (orderId: string) => ordersApi.deleteSchedule(orderId),
+    onSuccess: onScheduleChanged,
+  })
+}
+
+export function useConfirmSchedule() {
+  const onScheduleChanged = useScheduleChanged()
+
+  return useMutation({
+    mutationFn: (orderId: string) => ordersApi.confirmSchedule(orderId),
+    onSuccess: onScheduleChanged,
+  })
+}
+
+/** Lập, sửa, xoá hay chốt tiến độ đều đổi trạng thái đơn, kế hoạch và mọi con số suy ra từ nó. */
+function useScheduleChanged() {
+  const queryClient = useQueryClient()
+
+  return async (order: OrderDetailDto) => {
+    queryClient.setQueryData(queryKeys.order(order.id), order)
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: queryKeys.ordersList }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.orderProductionPlans(order.id) }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.orderStatistics(order.id) }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard }),
+    ])
+  }
 }

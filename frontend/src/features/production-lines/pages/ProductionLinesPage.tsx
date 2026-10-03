@@ -4,6 +4,7 @@ import { Badge, Button, Card } from '../../../shared/components/ui'
 import { ConfirmDialog } from '../../../shared/dialogs/ConfirmDialog'
 import { EmptyState, ErrorState, LoadingState } from '../../../shared/feedback/QueryState'
 import { useToast } from '../../../shared/feedback/ToastProvider'
+import { formatNumber } from '../../../shared/lib/format'
 import { ProductionLineDialog } from '../components/ProductionLineDialog'
 import { useChangeProductionLineStatus, useProductionLines } from '../hooks/useProductionLines'
 import type { ProductionLineDto } from '../types'
@@ -107,12 +108,29 @@ export function ProductionLinesPage() {
                         <Badge tone="neutral">○ Ngừng hoạt động</Badge>
                       )}
                     </td>
-                    <td>{line.inUse ? <Badge tone="info">Có</Badge> : <span className="muted">Không</span>}</td>
+                    <td>
+                      {/* Đơn đang sản xuất là lý do nút "Ngừng" bị khoá, nên nói rõ số đơn thay vì chỉ "Có". */}
+                      {line.inProductionOrderCount > 0 ? (
+                        <Badge tone="info">{formatNumber(line.inProductionOrderCount)} đơn đang sản xuất</Badge>
+                      ) : line.inUse ? (
+                        <Badge tone="info">Có</Badge>
+                      ) : (
+                        <span className="muted">Không</span>
+                      )}
+                    </td>
                     <td className="table__actions">
                       <div>
                         <Button onClick={() => setEditing(line)}>Sửa</Button>
+                        {/* Dây chuyền đang có đơn sản xuất thì không ngừng được; server cũng chặn
+                            (PRODUCTION_LINE_IN_PRODUCTION). */}
                         <Button
                           variant={line.status === 'Active' ? 'danger' : 'primary'}
+                          disabled={line.status === 'Active' && line.inProductionOrderCount > 0}
+                          title={
+                            line.status === 'Active' && line.inProductionOrderCount > 0
+                              ? `Đang có ${formatNumber(line.inProductionOrderCount)} đơn sản xuất trên dây chuyền này nên chưa ngừng được`
+                              : undefined
+                          }
                           onClick={() => setConfirming(line)}
                         >
                           {line.status === 'Active' ? 'Ngừng' : 'Bật lại'}
@@ -142,7 +160,8 @@ export function ProductionLinesPage() {
         {confirming?.status === 'Active' ? (
           <p>
             Dây chuyền <strong>{confirming.code}</strong> sẽ không còn xuất hiện khi lập tiến độ mới.
-            {confirming.inUse && ' Các đơn hàng đang chạy trên dây chuyền này không bị ảnh hưởng.'}
+            {/* Tới được đây thì dây chuyền không còn đơn nào đang sản xuất (nút đã bị khoá nếu có). */}
+            {confirming.inUse && ' Dữ liệu của các đơn hàng đã dùng dây chuyền này vẫn giữ nguyên.'}
           </p>
         ) : (
           <p>

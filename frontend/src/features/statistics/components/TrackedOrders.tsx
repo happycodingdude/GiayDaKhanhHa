@@ -66,11 +66,16 @@ function dayTitle(day: DashboardOrderDayDto, mark: DayMark): string {
 export function TrackedOrders({
   orders,
   today,
+  pendingCount,
+  awaitingConfirmationCount,
   onOpenOrder,
 }: {
   orders: DashboardOrderDto[]
   /** Ngày nghiệp vụ do backend chốt, không phải ngày của trình duyệt. */
   today: IsoDate
+  /** Đơn chưa lập tiến độ và đơn chờ chốt: không nằm trong timeline nhưng cũng chưa hoàn thành. */
+  pendingCount: number
+  awaitingConfirmationCount: number
   onOpenOrder: (orderId: string) => void
 }) {
   const [view, setView] = useState<'timeline' | 'list'>('timeline')
@@ -79,10 +84,25 @@ export function TrackedOrders({
   // gì cả. Đếm số lần bấm để timeline vẫn nhận được tín hiệu và căn lại về cột hôm nay.
   const [focusToday, setFocusToday] = useState(0)
 
+  // Timeline chỉ gồm đơn đã chốt tiến độ mà chưa hoàn thành. Nó trống trong khi vẫn còn đơn chưa lập
+  // hoặc chưa chốt tiến độ thì không được nói "tất cả đã hoàn thành".
   if (orders.length === 0) {
     return (
       <Card title="Đơn hàng đang theo dõi">
-        <EmptyState icon="✓" title="Tất cả đơn hàng đã hoàn thành" />
+        {pendingCount + awaitingConfirmationCount === 0 ? (
+          <EmptyState icon="✓" title="Tất cả đơn hàng đã hoàn thành" />
+        ) : (
+          <EmptyState
+            title="Chưa có đơn hàng nào đang sản xuất"
+            description={
+              <>
+                Đơn hàng chỉ hiện ở đây sau khi đã lập và chốt tiến độ. Hiện còn{' '}
+                <strong>{formatNumber(pendingCount)} đơn</strong> chưa lập tiến độ và{' '}
+                <strong>{formatNumber(awaitingConfirmationCount)} đơn</strong> chờ chốt tiến độ.
+              </>
+            }
+          />
+        )}
       </Card>
     )
   }

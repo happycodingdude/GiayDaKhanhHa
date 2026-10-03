@@ -185,7 +185,12 @@ export function GoodsReceiptListPage() {
                     <td className="table__strong receipt-table__wrap">{order.shoeCode}</td>
                     <td className="num">{formatNumber(order.quantity)}</td>
                     <td className="receipt-table__wrap">
-                      <OrderStatusBadge status={order.status} isOverdue={order.isOverdue} />
+                      <OrderStatusBadge
+                        status={order.status}
+                        isOverdue={order.isOverdue}
+                        isScheduleConfirmed={order.isScheduleConfirmed}
+                        isBeforeStartDate={order.isBeforeStartDate}
+                      />
                     </td>
                     <td className="table__actions">
                       <div>

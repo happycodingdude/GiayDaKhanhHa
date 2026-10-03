@@ -37,6 +37,17 @@ public sealed class ProductionPlan
     }
 
     /// <summary>
+    /// Đặt lại kế hoạch ban đầu khi sửa tiến độ chưa chốt. Chỉ <see cref="Order.Reschedule"/> gọi:
+    /// tiến độ chưa chốt thì chưa có khoản bù nào, nên kế hoạch hiện tại luôn bằng kế hoạch ban đầu.
+    /// </summary>
+    internal void Replan(int plannedQuantity, DateTimeOffset now)
+    {
+        InitialPlannedQuantity = plannedQuantity;
+        PlannedQuantity = plannedQuantity;
+        UpdatedAt = now;
+    }
+
+    /// <summary>
     /// Áp dụng khoản bù từ một điều chỉnh kế hoạch. Điều chỉnh chỉ làm tăng kế hoạch; không bao giờ
     /// giảm kế hoạch của ngày khác (master summary §8 Rule 3).
     /// </summary>

@@ -276,6 +276,14 @@ public sealed class ProductionDayService(IAppDbContext db, IClock clock, ICurren
                 "This order has no production schedule yet, so no production can be recorded for it.");
         }
 
+        // Tiến độ chưa chốt còn có thể bị sửa, nên chưa được sản xuất theo nó.
+        if (!order.IsScheduleConfirmed)
+        {
+            throw new BusinessRuleException(
+                ErrorCodes.ScheduleNotConfirmed,
+                "This order's production schedule is not confirmed yet, so no production can be recorded for it.");
+        }
+
         // Đơn hàng đã qua ngày kết thúc bị đóng băng — luật cũ, CR-001 không đụng tới.
         OrderMutationGuard.EnsureEditable(order, clock.Today);
 

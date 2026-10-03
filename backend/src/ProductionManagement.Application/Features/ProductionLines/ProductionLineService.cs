@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using ProductionManagement.Application.Abstractions;
 using ProductionManagement.Application.Contracts;
+using ProductionManagement.Application.Features.Orders;
 using ProductionManagement.Domain;
 using ProductionManagement.Domain.Entities;
 
@@ -28,21 +29,27 @@ public sealed class ProductionLineService(IAppDbContext db, IClock clock)
         }
 
         // Cùng thứ tự với thứ tự chia đều ở tầng 1, để bảng cấu hình và ma trận phân bổ đọc khớp nhau.
-        var items = await query
+        var lines = await query
             .OrderBy(l => l.SortOrder)
             .ThenBy(l => l.Code)
-            .Select(l => new ProductionLineDto(
-                l.Id,
-                l.Code,
-                l.Name,
-                l.Status.ToString(),
-                l.SortOrder,
-                l.Note,
+            .Select(l => new
+            {
+                Line = l,
                 // Đã được gán cho ít nhất một đơn hàng — frontend dùng để ẩn hành động xoá (BR-N15).
-                db.OrderProductionLines.Any(o => o.ProductionLineId == l.Id)))
+                InUse = db.OrderProductionLines.Any(o => o.ProductionLineId == l.Id),
+            })
             .ToListAsync(ct);
 
-        return new ProductionLineListDto(items);
+        var inProduction = await db.Orders.AsNoTracking()
+            .InProductionOn(clock.Today)
+            .SelectMany(o => o.ProductionLines)
+            .GroupBy(l => l.ProductionLineId)
+            .Select(g => new { ProductionLineId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.ProductionLineId, x => x.Count, ct);
+
+        return new ProductionLineListDto(lines
+            .Select(x => ToDto(x.Line, x.InUse, inProduction.GetValueOrDefault(x.Line.Id)))
+            .ToList());
     }
 
     public async Task<ProductionLineDto> CreateAsync(SaveProductionLineRequest request, CancellationToken ct = default)
@@ -54,7 +61,7 @@ public sealed class ProductionLineService(IAppDbContext db, IClock clock)
         db.ProductionLines.Add(line);
         await SaveAsync(line.Code, ct);
 
-        return ToDto(line, inUse: false);
+        return ToDto(line, inUse: false, inProductionOrderCount: 0);
     }
 
     public async Task<ProductionLineDto> UpdateAsync(
@@ -67,12 +74,15 @@ public sealed class ProductionLineService(IAppDbContext db, IClock clock)
         await GuardCodeAvailableAsync(line.Code, productionLineId, ct);
         await SaveAsync(line.Code, ct);
 
-        return ToDto(line, await IsInUseAsync(productionLineId, ct));
+        return ToDto(
+            line, await IsInUseAsync(productionLineId, ct), (await OrdersInProductionAsync(productionLineId, ct)).Count);
     }
 
     /// <summary>
-    /// Bật/tắt dây chuyền. Chuyển sang Inactive luôn được phép, kể cả khi đang được dùng — nó chỉ
-    /// ảnh hưởng tới lựa chọn mới, dữ liệu lịch sử vẫn hiển thị bình thường (CR-001 §6.3, BR-N14).
+    /// Bật/tắt dây chuyền. Ngừng hoạt động bị chặn khi dây chuyền đang được gán cho đơn "Đang sản
+    /// xuất" — đơn đó sẽ mất chỗ sản xuất giữa chừng. Ngoài trường hợp đó, ngừng vẫn được phép kể cả
+    /// khi dây chuyền đã được dùng: nó chỉ ảnh hưởng tới lựa chọn mới, dữ liệu lịch sử vẫn hiển thị
+    /// bình thường (CR-001 §6.3, BR-N14).
     /// </summary>
     public async Task<ProductionLineDto> ChangeStatusAsync(
         Guid productionLineId, UpdateProductionLineStatusRequest request, CancellationToken ct = default)
@@ -83,11 +93,20 @@ public sealed class ProductionLineService(IAppDbContext db, IClock clock)
         }
 
         var line = await FindAsync(productionLineId, ct);
+        var inProduction = await OrdersInProductionAsync(productionLineId, ct);
+
+        if (status == ProductionLineStatus.Inactive && inProduction.Count > 0)
+        {
+            throw new ConflictException(
+                ErrorCodes.ProductionLineInProduction,
+                $"Production line '{line.Code}' is used by {inProduction.Count} order(s) in production "
+                + $"({string.Join(", ", inProduction)}) and cannot be deactivated.");
+        }
 
         line.ChangeStatus(status, clock.UtcNow);
         await db.SaveChangesAsync(ct);
 
-        return ToDto(line, await IsInUseAsync(productionLineId, ct));
+        return ToDto(line, await IsInUseAsync(productionLineId, ct), inProduction.Count);
     }
 
     private async Task<ProductionLine> FindAsync(Guid productionLineId, CancellationToken ct)
@@ -96,6 +115,15 @@ public sealed class ProductionLineService(IAppDbContext db, IClock clock)
 
     private Task<bool> IsInUseAsync(Guid productionLineId, CancellationToken ct)
         => db.OrderProductionLines.AnyAsync(o => o.ProductionLineId == productionLineId, ct);
+
+    /// <summary>Mã giày của các đơn "Đang sản xuất" trên dây chuyền.</summary>
+    private Task<List<string>> OrdersInProductionAsync(Guid productionLineId, CancellationToken ct)
+        => db.Orders.AsNoTracking()
+            .InProductionOn(clock.Today)
+            .Where(o => o.ProductionLines.Any(l => l.ProductionLineId == productionLineId))
+            .OrderBy(o => o.ShoeCode)
+            .Select(o => o.ShoeCode)
+            .ToListAsync(ct);
 
     private async Task GuardCodeAvailableAsync(string code, Guid? exceptId, CancellationToken ct)
     {
@@ -124,6 +152,7 @@ public sealed class ProductionLineService(IAppDbContext db, IClock clock)
         }
     }
 
-    private static ProductionLineDto ToDto(ProductionLine line, bool inUse)
-        => new(line.Id, line.Code, line.Name, line.Status.ToString(), line.SortOrder, line.Note, inUse);
+    private static ProductionLineDto ToDto(ProductionLine line, bool inUse, int inProductionOrderCount)
+        => new(line.Id, line.Code, line.Name, line.Status.ToString(), line.SortOrder, line.Note, inUse,
+            inProductionOrderCount);
 }

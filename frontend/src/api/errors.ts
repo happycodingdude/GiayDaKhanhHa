@@ -58,6 +58,9 @@ const MESSAGES: Record<string, string> = {
   ORDER_SCHEDULE_ALREADY_EXISTS:
     'Đơn hàng này đã có tiến độ. Mỗi đơn chỉ lập tiến độ được một lần.',
   ORDER_NOT_SCHEDULED: 'Đơn hàng này chưa được lập tiến độ nên chưa có kế hoạch sản xuất.',
+  SCHEDULE_ALREADY_CONFIRMED: 'Tiến độ của đơn hàng này đã được chốt nên không thể sửa hay xoá nữa.',
+  SCHEDULE_NOT_CONFIRMED:
+    'Tiến độ của đơn hàng này chưa được chốt nên chưa thể nhập sản lượng hay xuất hàng.',
   LINE_ALLOCATION_MISMATCH:
     'Tổng phân bổ cho các dây chuyền phải bằng đúng số lượng của đơn hàng.',
   LINE_PLAN_TOTAL_MISMATCH:
@@ -70,6 +73,8 @@ const MESSAGES: Record<string, string> = {
   PRODUCTION_LINE_CODE_ALREADY_EXISTS: 'Mã dây chuyền đã tồn tại. Vui lòng chọn mã khác.',
   PRODUCTION_LINE_EMPTY_ALLOCATION:
     'Dây chuyền đã chọn phải được phân bổ số lượng lớn hơn 0.',
+  PRODUCTION_LINE_IN_PRODUCTION:
+    'Dây chuyền đang có đơn hàng sản xuất nên chưa thể ngừng hoạt động.',
 
   PRODUCTION_PLAN_NOT_FOUND: 'Không tìm thấy kế hoạch sản xuất.',
   PRODUCTION_ENTRY_NOT_FOUND: 'Không tìm thấy lần ghi nhận sản lượng này.',

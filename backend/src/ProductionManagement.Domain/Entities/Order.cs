@@ -17,7 +17,7 @@ public readonly record struct ScheduleLine(
 ///   Nhập hàng   — mã giày + số lượng + tối đa 1 ảnh. Trạng thái <c>Pending</c>, chưa có ngày,
 ///                 chưa có dây chuyền, chưa có kế hoạch.
 ///   Lập tiến độ — chọn dây chuyền, khoảng ngày và phân bổ 2 tầng. Chuyển sang <c>Incomplete</c>.
-/// Lập tiến độ là thao tác một lần; đơn không bao giờ quay lại <c>Pending</c> (CR-001 §4.1, BR-N05).
+/// Lập tiến độ là thao tác một lần; đơn chỉ quay lại <c>Pending</c> khi xoá tiến độ chưa chốt (CR-001 §4.1, BR-N05).
 /// </summary>
 public sealed class Order
 {
@@ -45,6 +45,13 @@ public sealed class Order
     public DateOnly? StartDate { get; private set; }
 
     public DateOnly? DueDate { get; private set; }
+
+    /// <summary>
+    /// Thời điểm quản lý chốt tiến độ. Null khi chưa chốt: tiến độ còn sửa được nhưng chưa sản xuất
+    /// được. Chốt là một chiều — đã chốt thì không sửa tiến độ được nữa.
+    /// </summary>
+    public DateTimeOffset? ScheduleConfirmedAt { get; private set; }
+
     public OrderStatus Status { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
     public DateTimeOffset UpdatedAt { get; private set; }
@@ -57,6 +64,11 @@ public sealed class Order
 
     /// <summary>Đã lập tiến độ hay chưa. Đơn chưa lập tiến độ không có ngày, dây chuyền, kế hoạch.</summary>
     public bool IsScheduled => Status != OrderStatus.Pending;
+
+    public bool IsScheduleConfirmed => ScheduleConfirmedAt is not null;
+
+    /// <summary>Chưa tới ngày bắt đầu sản xuất. Đơn chưa lập tiến độ chưa có ngày nên luôn là false.</summary>
+    public bool IsBeforeStartDateOn(DateOnly today) => StartDate is not null && today < StartDate;
 
     public bool HasImage => ImagePath is not null;
 
@@ -173,6 +185,8 @@ public sealed class Order
     /// <summary>
     /// Lập tiến độ: chốt dây chuyền, khoảng thời gian và phân bổ hai tầng
     /// (đơn → dây chuyền → ngày). Thao tác một lần, chỉ áp dụng cho đơn <c>Pending</c> (BR-N05).
+    /// Tiến độ vừa lập ở trạng thái chưa chốt: còn sửa được bằng <see cref="Reschedule"/>, và chưa
+    /// sản xuất được cho tới khi <see cref="ConfirmSchedule"/>.
     ///
     /// Bên gọi chịu trách nhiệm kiểm dây chuyền có tồn tại và đang Active hay không — đó là dữ liệu
     /// ngoài aggregate. Mọi bất biến về con số nằm ở đây.
@@ -186,6 +200,151 @@ public sealed class Order
                 $"Order '{ShoeCode}' already has a production schedule.");
         }
 
+        ValidateSchedule(startDate, dueDate, lines);
+
+        StartDate = startDate;
+        DueDate = dueDate;
+        Status = OrderStatus.Incomplete;
+        UpdatedAt = now;
+
+        foreach (var line in lines)
+        {
+            _productionLines.Add(OrderProductionLine.Create(this, line.ProductionLineId, line.AllocatedQuantity, now));
+
+            // Ô bằng 0 nghĩa là dây chuyền đó nghỉ ngày đó, và cố ý KHÔNG tạo dòng plan: ô không có
+            // kế hoạch thì không nhập được sản lượng, nhất quán với BR-N10 (CR-001 §6.6b, §7.6).
+            foreach (var (date, planned) in line.Plans.Where(p => p.PlannedQuantity > 0).OrderBy(p => p.ProductionDate))
+            {
+                _productionPlans.Add(ProductionPlan.Create(this, line.ProductionLineId, date, planned, now));
+            }
+        }
+    }
+
+    /// <summary>
+    /// Sửa tiến độ chưa chốt: thay toàn bộ dây chuyền, khoảng ngày và phân bổ hai tầng bằng bộ mới,
+    /// với đúng các bất biến như lúc lập. Tiến độ chưa chốt thì chưa có sản lượng hay điều chỉnh bù
+    /// nào, nên thay kế hoạch không làm mất dữ liệu sản xuất.
+    ///
+    /// Dòng nào còn trong bộ mới thì được cập nhật tại chỗ thay vì xoá rồi tạo lại (khoá của dây
+    /// chuyền trong tiến độ là cặp đơn hàng + dây chuyền).
+    /// </summary>
+    /// <returns>Các dòng đã gỡ khỏi aggregate, để bên gọi xoá chúng khỏi database.</returns>
+    public (IReadOnlyList<OrderProductionLine> RemovedLines, IReadOnlyList<ProductionPlan> RemovedPlans) Reschedule(
+        DateOnly startDate, DateOnly dueDate, IReadOnlyList<ScheduleLine> lines, DateTimeOffset now)
+    {
+        EnsureScheduleNotConfirmed();
+        ValidateSchedule(startDate, dueDate, lines);
+
+        StartDate = startDate;
+        DueDate = dueDate;
+        UpdatedAt = now;
+
+        var allocations = lines.ToDictionary(l => l.ProductionLineId, l => l.AllocatedQuantity);
+
+        var removedLines = _productionLines.Where(l => !allocations.ContainsKey(l.ProductionLineId)).ToList();
+        foreach (var line in removedLines)
+        {
+            _productionLines.Remove(line);
+        }
+
+        foreach (var (lineId, allocated) in allocations)
+        {
+            var existing = _productionLines.FirstOrDefault(l => l.ProductionLineId == lineId);
+            if (existing is null)
+            {
+                _productionLines.Add(OrderProductionLine.Create(this, lineId, allocated, now));
+            }
+            else
+            {
+                existing.ChangeAllocation(allocated);
+            }
+        }
+
+        // Như lúc lập: ô bằng 0 không có dòng plan.
+        var planned = lines
+            .SelectMany(l => l.Plans
+                .Where(p => p.PlannedQuantity > 0)
+                .Select(p => (Key: (l.ProductionLineId, p.ProductionDate), p.PlannedQuantity)))
+            .ToDictionary(x => x.Key, x => x.PlannedQuantity);
+
+        var removedPlans = _productionPlans
+            .Where(p => !planned.ContainsKey((p.ProductionLineId, p.ProductionDate)))
+            .ToList();
+        foreach (var plan in removedPlans)
+        {
+            _productionPlans.Remove(plan);
+        }
+
+        foreach (var ((lineId, date), quantity) in planned.OrderBy(x => x.Key.ProductionDate))
+        {
+            var existing = _productionPlans.FirstOrDefault(p => p.ProductionLineId == lineId && p.ProductionDate == date);
+            if (existing is null)
+            {
+                _productionPlans.Add(ProductionPlan.Create(this, lineId, date, quantity, now));
+            }
+            else
+            {
+                existing.Replan(quantity, now);
+            }
+        }
+
+        return (removedLines, removedPlans);
+    }
+
+    /// <summary>
+    /// Xoá tiến độ chưa chốt: đơn quay về <c>Pending</c> như lúc vừa nhập hàng, để lập lại từ đầu.
+    /// Tiến độ chưa chốt chưa có sản lượng hay điều chỉnh bù nào, nên không mất dữ liệu sản xuất.
+    /// Đây là đường duy nhất để một đơn quay lại <c>Pending</c>.
+    /// </summary>
+    /// <returns>Các dòng đã gỡ khỏi aggregate, để bên gọi xoá chúng khỏi database.</returns>
+    public (IReadOnlyList<OrderProductionLine> RemovedLines, IReadOnlyList<ProductionPlan> RemovedPlans) Unschedule(
+        DateTimeOffset now)
+    {
+        EnsureScheduleNotConfirmed();
+
+        var removedLines = _productionLines.ToList();
+        var removedPlans = _productionPlans.ToList();
+        _productionLines.Clear();
+        _productionPlans.Clear();
+
+        StartDate = null;
+        DueDate = null;
+        Status = OrderStatus.Pending;
+        UpdatedAt = now;
+
+        return (removedLines, removedPlans);
+    }
+
+    /// <summary>
+    /// Chốt tiến độ. Một chiều: từ đây tiến độ không sửa được nữa và đơn bắt đầu sản xuất được.
+    /// </summary>
+    public void ConfirmSchedule(DateTimeOffset now)
+    {
+        EnsureScheduleNotConfirmed();
+
+        ScheduleConfirmedAt = now;
+        UpdatedAt = now;
+    }
+
+    private void EnsureScheduleNotConfirmed()
+    {
+        if (!IsScheduled)
+        {
+            throw new BusinessRuleException(
+                ErrorCodes.OrderNotScheduled,
+                $"Order '{ShoeCode}' has no production schedule yet.");
+        }
+
+        if (IsScheduleConfirmed)
+        {
+            throw new ConflictException(
+                ErrorCodes.ScheduleAlreadyConfirmed,
+                $"The production schedule of order '{ShoeCode}' is already confirmed and can no longer be changed.");
+        }
+    }
+
+    private void ValidateSchedule(DateOnly startDate, DateOnly dueDate, IReadOnlyList<ScheduleLine> lines)
+    {
         var failures = new List<ValidationFailure>();
 
         if (startDate > dueDate)
@@ -280,23 +439,6 @@ public sealed class Order
                 mismatched.Select(x => new ValidationFailure(
                     x.Line.ProductionLineId.ToString(), "LINE_PLAN_TOTAL_MISMATCH",
                     $"{x.Total}/{x.Line.AllocatedQuantity}")).ToList());
-        }
-
-        StartDate = startDate;
-        DueDate = dueDate;
-        Status = OrderStatus.Incomplete;
-        UpdatedAt = now;
-
-        foreach (var line in lines)
-        {
-            _productionLines.Add(OrderProductionLine.Create(this, line.ProductionLineId, line.AllocatedQuantity, now));
-
-            // Ô bằng 0 nghĩa là dây chuyền đó nghỉ ngày đó, và cố ý KHÔNG tạo dòng plan: ô không có
-            // kế hoạch thì không nhập được sản lượng, nhất quán với BR-N10 (CR-001 §6.6b, §7.6).
-            foreach (var (date, planned) in line.Plans.Where(p => p.PlannedQuantity > 0).OrderBy(p => p.ProductionDate))
-            {
-                _productionPlans.Add(ProductionPlan.Create(this, line.ProductionLineId, date, planned, now));
-            }
         }
     }
 

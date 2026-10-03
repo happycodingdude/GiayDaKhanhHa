@@ -3,13 +3,15 @@ import { Button, Card, StatTile } from '../../../shared/components/ui'
 import { EmptyState, ErrorState, LoadingState } from '../../../shared/feedback/QueryState'
 import { formatDate } from '../../../shared/lib/date'
 import { formatNumber } from '../../../shared/lib/format'
+import { AwaitingConfirmation } from '../components/AwaitingConfirmation'
 import { TrackedOrders } from '../components/TrackedOrders'
 import { useDashboardStatistics } from '../hooks/useStatistics'
 
 /**
- * Dashboard gồm đúng hai khối: số tổng toàn hệ thống, rồi timeline các đơn hàng đang theo dõi.
- * Mọi thao tác lên một ô sản xuất đều nằm ở màn hình chi tiết tiến độ, nên dashboard chỉ để
- * nhìn — không phải nơi bắt đầu một hành động.
+ * Dashboard gồm hai khối chính: số tổng toàn hệ thống, rồi timeline các đơn hàng đang theo dõi.
+ * Bên dưới là khối đơn chờ chốt tiến độ, chỉ hiện khi có đơn như vậy. Mọi thao tác lên một ô sản
+ * xuất đều nằm ở màn hình chi tiết tiến độ, nên dashboard chỉ để nhìn — không phải nơi bắt đầu một
+ * hành động.
  */
 export function DashboardPage() {
   const navigate = useNavigate()
@@ -85,7 +87,16 @@ export function DashboardPage() {
           </div>
 
           {/* Timeline đơn hàng */}
-          <TrackedOrders orders={data.trackedOrders} today={data.date} onOpenOrder={openOrder} />
+          <TrackedOrders
+            orders={data.trackedOrders}
+            today={data.date}
+            pendingCount={data.pendingOrderCount}
+            awaitingConfirmationCount={data.awaitingConfirmation.length}
+            onOpenOrder={openOrder}
+          />
+
+          {/* Đơn chờ chốt tiến độ — chưa sản xuất được nên không có trong timeline */}
+          <AwaitingConfirmation orders={data.awaitingConfirmation} today={data.date} onOpenOrder={openOrder} />
         </>
       )}
     </div>
