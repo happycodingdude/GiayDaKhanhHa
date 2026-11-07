@@ -1,0 +1,55 @@
+services:
+  api:
+    build:
+      context: ./backend
+    container_name: giayda-api
+    restart: unless-stopped
+    # Migration chạy ngay lúc khởi động nên phải đợi Postgres healthy, không chỉ đợi container start.
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_URLS: http://+:5080
+      # Cookie xác thực chỉ chấp nhận HTTP thuần khi environment là Development (xem Program.cs).
+      ASPNETCORE_ENVIRONMENT: Development
+      # Database là service postgres của docker-compose.yml — luôn chạy kèm file đó:
+      #   docker compose -f docker-compose.yml -f docker-compose.local.yml --env-file .env.local up -d
+      ConnectionStrings__Default: >-
+        Host=${POSTGRES_HOST:?POSTGRES_HOST chưa được đặt — đặt bằng tên service postgres trong .env.local};Port=${POSTGRES_PORT:-5432};Database=${POSTGRES_DB:-production_management};Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD chưa được đặt}
+      # Để true thì mỗi lần khởi động api sẽ tự migrate database.
+      Database__AutoMigrate: ${Database__AutoMigrate:-true}
+      Bootstrap__Username: ${Bootstrap__Username:-manager}
+      Bootstrap__Password: ${Bootstrap__Password:-}
+      Business__TimeZone: ${Business__TimeZone:-Asia/Ho_Chi_Minh}
+      # Ảnh mẫu của đơn hàng nằm trên disk của server (CR-001 §2 QĐ-6); volume để chúng sống qua
+      # các lần rebuild image.
+      Storage__OrderImagesPath: /app/App_Data/order-images
+      # Seed vài dây chuyền mẫu cho môi trường dev. Mặc định TẮT ở nơi khác (CR-001 §5.8).
+      Bootstrap__SeedProductionLines: ${Bootstrap__SeedProductionLines:-true}
+      # Khoá mã hoá cookie đăng nhập; nằm trên volume thì rebuild/restart api không đăng xuất mọi người.
+      DataProtection__KeysPath: /app/App_Data/dataprotection-keys
+    volumes:
+      - order-images:/app/App_Data/order-images
+      - dataprotection-keys:/app/App_Data/dataprotection-keys
+    ports:
+      - "5080:5080"
+
+  web:
+    build:
+      context: ./frontend
+    container_name: giayda-web
+    restart: unless-stopped
+    depends_on:
+      - api
+    environment:
+      VITE_API_PROXY_TARGET: http://api:5080
+    volumes:
+      # Mount mã nguồn để HMR hoạt động; node_modules giữ nguyên bản cài trong image.
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "5173:5173"
+
+volumes:
+  order-images:
+  dataprotection-keys:
