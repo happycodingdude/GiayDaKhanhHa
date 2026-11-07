@@ -3,109 +3,190 @@
     "Bộ dữ liệu mẫu để xem đủ mọi trạng thái UI đã thiết kế.",
     "Ngày được tính tương đối theo 'hôm nay' (dayOffset = 0 là hôm nay, -1 là hôm qua),",
     "nên bộ dữ liệu luôn hợp lệ dù chạy vào ngày nào.",
-    "Tổng số lượng đơn = tổng kế hoạch, script tự tính nên không bao giờ lệch."
+    "lines[].plan là kế hoạch từng ngày của dây chuyền, bắt đầu từ startOffset; 0 = dây chuyền nghỉ ngày đó.",
+    "Số phân bổ của dây chuyền = tổng plan của nó, số lượng đơn = tổng mọi dây chuyền — script tự tính nên không bao giờ lệch.",
+    "Đơn không có lines là đơn mới nhập hàng, chưa lập tiến độ: phải khai báo quantity.",
+    "confirmed = false thì tiến độ đã lập nhưng chưa chốt (mặc định là đã chốt); tiến độ chưa chốt không có sản lượng.",
+    "cells[].entries là các lần ghi nhận trong ô; close = true thì Xuất hàng cả ngày đó (mọi dây chuyền) sau khi ghi nhận.",
+    "productionLines là danh mục dây chuyền mẫu, trùng với dây chuyền backend tự tạo ở môi trường dev."
+  ],
+
+  "productionLines": [
+    { "code": "DC-01", "name": "Dây chuyền 1" },
+    { "code": "DC-02", "name": "Dây chuyền 2" },
+    { "code": "DC-03", "name": "Dây chuyền 3" }
   ],
 
   "orders": [
     {
-      "orderCode": "ORD-2026-001",
-      "label": "Đúng tiến độ — đã sản xuất đủ kế hoạch 3 ngày đầu",
-      "uiState": "Order list: 🟢 Đúng tiến độ. Dashboard: không nằm trong Cần xử lý.",
+      "shoeCode": "ORD-2026-001",
+      "label": "Đúng tiến độ — đủ kế hoạch 3 ngày đầu, hôm nay DC-01 đang sản xuất dở",
+      "uiState": "scheduleStatus OnSchedule. Hôm nay: DC-01 đã ghi nhận 25/60 (tạm tính, chưa Xuất hàng), DC-02 chưa ghi nhận.",
       "startOffset": -3,
-      "plan": [100, 100, 100, 100, 100, 100, 100, 100],
-      "actuals": [
-        { "dayOffset": -3, "quantity": 100 },
-        { "dayOffset": -2, "quantity": 100 },
-        { "dayOffset": -1, "quantity": 100 }
+      "lines": [
+        { "code": "DC-01", "plan": [60, 60, 60, 60, 60, 60, 60, 60] },
+        { "code": "DC-02", "plan": [40, 40, 40, 40, 40, 40, 40, 40] }
+      ],
+      "cells": [
+        { "line": "DC-01", "dayOffset": -3, "entries": [30, 30], "close": true },
+        { "line": "DC-02", "dayOffset": -3, "entries": [20, 20], "close": true },
+        { "line": "DC-01", "dayOffset": -2, "entries": [35, 25], "close": true },
+        { "line": "DC-02", "dayOffset": -2, "entries": [40], "close": true },
+        { "line": "DC-01", "dayOffset": -1, "entries": [20, 20, 20], "close": true },
+        { "line": "DC-02", "dayOffset": -1, "entries": [25, 15], "close": true },
+        { "line": "DC-01", "dayOffset": 0, "entries": [25] }
       ],
       "adjustments": []
     },
 
     {
-      "orderCode": "ORD-2026-002",
-      "label": "Chậm tiến độ — còn thiếu 30 đôi chưa xử lý",
-      "uiState": "Timeline: nút 'Xử lý thiếu' hiện ở ngày hôm qua. Dashboard: nằm trong ⚠ Cần xử lý.",
+      "shoeCode": "ORD-2026-002",
+      "label": "Chậm tiến độ — DC-01 hôm qua thiếu 30 đôi, đã Xuất hàng nhưng chưa xử lý thiếu",
+      "uiState": "scheduleStatus Behind 30. Ô DC-01 hôm qua có nút Xử lý thiếu. Dashboard: nằm trong cảnh báo chậm và danh sách thiếu chưa xử lý.",
       "startOffset": -2,
-      "plan": [100, 100, 100, 100, 100, 100],
-      "actuals": [
-        { "dayOffset": -2, "quantity": 100 },
-        { "dayOffset": -1, "quantity": 70 }
+      "lines": [
+        { "code": "DC-01", "plan": [60, 60, 60, 60, 60, 60] },
+        { "code": "DC-02", "plan": [40, 40, 40, 40, 40, 40] }
+      ],
+      "cells": [
+        { "line": "DC-01", "dayOffset": -2, "entries": [60], "close": true },
+        { "line": "DC-02", "dayOffset": -2, "entries": [40], "close": true },
+        { "line": "DC-01", "dayOffset": -1, "entries": [30], "close": true },
+        { "line": "DC-02", "dayOffset": -1, "entries": [40], "close": true }
       ],
       "adjustments": []
     },
 
     {
-      "orderCode": "ORD-2026-003",
-      "label": "Đã bù bằng Option 1 — chọn 1 ngày nhận toàn bộ phần thiếu",
-      "uiState": "Timeline: cột 'Bù thêm' có +20. Lịch sử: 1 mục 'Đang áp dụng', loại 'Chọn ngày để bù'.",
+      "shoeCode": "ORD-2026-003",
+      "label": "Đã bù bằng Option 1 — dồn 20 đôi thiếu vào 1 ngày; hôm qua quên Xuất hàng",
+      "uiState": "Ô ngày mai có Bù thêm +20, lịch sử 1 mục Đang áp dụng. Ô hôm qua đã ghi nhận 60 nhưng chưa Xuất hàng → hasUnclosedPastCell.",
       "startOffset": -2,
-      "plan": [100, 100, 100, 100, 100],
-      "actuals": [{ "dayOffset": -2, "quantity": 80 }],
+      "lines": [
+        { "code": "DC-01", "plan": [100, 100, 100, 100, 100] }
+      ],
+      "cells": [
+        { "line": "DC-01", "dayOffset": -2, "entries": [50, 30], "close": true },
+        { "line": "DC-01", "dayOffset": -1, "entries": [60] }
+      ],
       "adjustments": [
-        { "type": "Manual", "sourceDayOffset": -2, "targetDayOffset": 1 }
+        { "type": "Manual", "line": "DC-01", "sourceDayOffset": -2, "targetDayOffset": 1 }
       ]
     },
 
     {
-      "orderCode": "ORD-2026-004",
+      "shoeCode": "ORD-2026-004",
       "label": "Đã bù tự động, có cả lịch sử hoàn tác — thiếu 23 chia cho 4 ngày",
-      "uiState": "Lịch sử: 1 mục 'Đã hoàn tác' (chia đều 6/6/6/5) + 1 mục 'Đang áp dụng' (dồn 1 ngày).",
+      "uiState": "Lịch sử: 1 mục Đã hoàn tác (chia đều 6/6/6/5) + 1 mục Đang áp dụng (dồn +23 vào ngày kia).",
       "startOffset": -1,
-      "plan": [100, 120, 200, 250, 330],
-      "actuals": [{ "dayOffset": -1, "quantity": 77 }],
+      "lines": [
+        { "code": "DC-02", "plan": [100, 120, 200, 250, 330] }
+      ],
+      "cells": [
+        { "line": "DC-02", "dayOffset": -1, "entries": [77], "close": true }
+      ],
       "adjustments": [
-        { "type": "Automatic", "sourceDayOffset": -1, "thenReverse": true },
-        { "type": "Manual", "sourceDayOffset": -1, "targetDayOffset": 2 }
+        { "type": "Automatic", "line": "DC-02", "sourceDayOffset": -1, "thenReverse": true },
+        { "type": "Manual", "line": "DC-02", "sourceDayOffset": -1, "targetDayOffset": 2 }
       ]
     },
 
     {
-      "orderCode": "ORD-2026-005",
-      "label": "Hoàn thành — tổng thực tế đạt đúng tổng đơn",
-      "uiState": "Badge 'Hoàn thành', tiến độ 100%, timeline chỉ còn nút 'Sửa sản lượng'.",
+      "shoeCode": "ORD-2026-005",
+      "label": "Hoàn thành — mọi ô đã Xuất hàng đủ kế hoạch, kể cả hôm nay",
+      "uiState": "status Completed, tiến độ 100%, không nhập thêm được.",
       "startOffset": -4,
-      "plan": [60, 60, 60, 60, 60],
-      "actuals": [
-        { "dayOffset": -4, "quantity": 60 },
-        { "dayOffset": -3, "quantity": 60 },
-        { "dayOffset": -2, "quantity": 60 },
-        { "dayOffset": -1, "quantity": 60 },
-        { "dayOffset": 0, "quantity": 60 }
+      "lines": [
+        { "code": "DC-01", "plan": [30, 30, 30, 30, 30] },
+        { "code": "DC-03", "plan": [30, 30, 30, 30, 30] }
+      ],
+      "cells": [
+        { "line": "DC-01", "dayOffset": -4, "entries": [30], "close": true },
+        { "line": "DC-03", "dayOffset": -4, "entries": [30], "close": true },
+        { "line": "DC-01", "dayOffset": -3, "entries": [30], "close": true },
+        { "line": "DC-03", "dayOffset": -3, "entries": [30], "close": true },
+        { "line": "DC-01", "dayOffset": -2, "entries": [30], "close": true },
+        { "line": "DC-03", "dayOffset": -2, "entries": [30], "close": true },
+        { "line": "DC-01", "dayOffset": -1, "entries": [30], "close": true },
+        { "line": "DC-03", "dayOffset": -1, "entries": [30], "close": true },
+        { "line": "DC-01", "dayOffset": 0, "entries": [30], "close": true },
+        { "line": "DC-03", "dayOffset": 0, "entries": [30], "close": true }
       ],
       "adjustments": []
     },
 
     {
-      "orderCode": "ORD-2026-006",
-      "label": "Quá hạn nhưng chưa hoàn thành",
-      "uiState": "Order list: badge đỏ 'Quá hạn'. Chi tiết: 'Đã quá hạn' ở ô Deadline.",
+      "shoeCode": "ORD-2026-006",
+      "label": "Quá hạn nhưng chưa hoàn thành — chưa có sản lượng",
+      "uiState": "isOverdue = true, đơn chỉ đọc. Không có sản lượng vì API chặn mọi ghi nhận vào đơn đã qua ngày hạn.",
       "startOffset": -8,
-      "plan": [80, 80, 80, 80, 80],
-      "actuals": [
-        { "dayOffset": -8, "quantity": 80 },
-        { "dayOffset": -7, "quantity": 80 },
-        { "dayOffset": -6, "quantity": 50 }
+      "lines": [
+        { "code": "DC-03", "plan": [80, 80, 80, 80, 80] }
       ],
+      "cells": [],
       "adjustments": []
     },
 
     {
-      "orderCode": "ORD-2026-007",
-      "label": "Chưa nhập sản lượng nào — đơn bắt đầu ngày mai",
-      "uiState": "Toàn bộ timeline hiển thị '—' và badge 'Chờ sản xuất', không phải số 0.",
+      "shoeCode": "ORD-2026-007",
+      "label": "Chưa nhập sản lượng nào — đơn bắt đầu ngày mai, chạy 3 dây chuyền",
+      "uiState": "Mọi ô là ngày tương lai: hiển thị '—' chứ không phải số 0, không ghi nhận được.",
       "startOffset": 1,
-      "plan": [100, 100, 100, 100, 100],
-      "actuals": [],
+      "lines": [
+        { "code": "DC-01", "plan": [40, 40, 40, 40, 40] },
+        { "code": "DC-02", "plan": [30, 30, 30, 30, 30] },
+        { "code": "DC-03", "plan": [30, 30, 30, 30, 30] }
+      ],
+      "cells": [],
       "adjustments": []
     },
 
     {
-      "orderCode": "ORD-2026-008",
-      "label": "Có ngày nghỉ, kế hoạch = 0",
-      "uiState": "Ngày mai: badge 'Không sản xuất', không có nút nhập sản lượng.",
+      "shoeCode": "ORD-2026-008",
+      "label": "Có ngày nghỉ — ngày mai cả hai dây chuyền kế hoạch = 0",
+      "uiState": "Ngày mai không có ô kế hoạch nào: không ghi nhận, không Xuất hàng được.",
       "startOffset": 0,
-      "plan": [100, 0, 100, 100, 100],
-      "actuals": [],
+      "lines": [
+        { "code": "DC-01", "plan": [60, 0, 60, 60, 60] },
+        { "code": "DC-02", "plan": [40, 0, 40, 40, 40] }
+      ],
+      "cells": [],
+      "adjustments": []
+    },
+
+    {
+      "shoeCode": "ORD-2026-009",
+      "label": "Mới nhập hàng — chưa lập tiến độ",
+      "uiState": "status Pending: chưa có ngày, dây chuyền, kế hoạch. Dùng để thử luồng Lập tiến độ.",
+      "quantity": 600,
+      "lines": [],
+      "cells": [],
+      "adjustments": []
+    },
+
+    {
+      "shoeCode": "ORD-2026-010",
+      "label": "Chờ chốt tiến độ — đã tới ngày bắt đầu nhưng chưa chốt",
+      "uiState": "Badge Chờ chốt, không tính chậm. Chi tiết có Sửa / Xoá / Chốt tiến độ, ma trận khoá nhập. Dashboard: khối Chờ chốt tiến độ.",
+      "confirmed": false,
+      "startOffset": -2,
+      "lines": [
+        { "code": "DC-01", "plan": [100, 100, 100, 100, 100, 100, 100] }
+      ],
+      "cells": [],
+      "adjustments": []
+    },
+
+    {
+      "shoeCode": "ORD-2026-011",
+      "label": "Chờ chốt nhưng đã qua ngày kết thúc",
+      "uiState": "Dashboard: badge Quá hạn — không chốt được. Chi tiết có Sửa / Xoá tiến độ, không có Chốt.",
+      "confirmed": false,
+      "startOffset": -5,
+      "lines": [
+        { "code": "DC-03", "plan": [100, 100, 100] }
+      ],
+      "cells": [],
       "adjustments": []
     }
   ]
