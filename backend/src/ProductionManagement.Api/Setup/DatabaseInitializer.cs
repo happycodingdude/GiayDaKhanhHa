@@ -9,8 +9,9 @@ namespace ProductionManagement.Api.Setup;
 
 /// <summary>
 /// Chạy migration và tạo tài khoản quản lý đầu tiên.
-/// Không bao giờ hard-code mật khẩu trong migration (Step 3 §15): mật khẩu lấy từ cấu hình, và khi
-/// không cấu hình gì thì sinh ngẫu nhiên rồi ghi log đúng một lần.
+/// Không bao giờ hard-code mật khẩu trong migration (Step 3 §15): mật khẩu lấy từ cấu hình. Chỉ ở
+/// Development, khi không cấu hình gì thì sinh ngẫu nhiên rồi ghi log đúng một lần; ngoài Development
+/// thiếu <c>Bootstrap__Password</c> thì dừng khởi động, để mật khẩu không bao giờ nằm trong log.
 /// </summary>
 public static class DatabaseInitializer
 {
@@ -38,6 +39,13 @@ public static class DatabaseInitializer
         var displayName = configuration["Bootstrap:DisplayName"] ?? "Quản lý sản xuất";
 
         var configuredPassword = configuration["Bootstrap:Password"];
+        if (string.IsNullOrWhiteSpace(configuredPassword)
+            && !scope.ServiceProvider.GetRequiredService<IHostEnvironment>().IsDevelopment())
+        {
+            throw new InvalidOperationException(
+                "Bootstrap__Password must be set to create the initial account outside Development.");
+        }
+
         var password = string.IsNullOrWhiteSpace(configuredPassword)
             ? GeneratePassword()
             : configuredPassword;

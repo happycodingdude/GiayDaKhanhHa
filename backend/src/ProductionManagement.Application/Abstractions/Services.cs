@@ -6,6 +6,9 @@ public interface IPasswordHasher
     string Hash(string password);
 
     bool Verify(string password, string hash);
+
+    /// <summary>Hash được tạo với tham số yếu hơn hiện hành, nên băm lại khi người dùng đăng nhập thành công.</summary>
+    bool NeedsRehash(string hash);
 }
 
 /// <summary>

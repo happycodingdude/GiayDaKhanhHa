@@ -10,7 +10,8 @@ namespace ProductionManagement.Application.Features.Auth;
 /// Xác thực bằng username + mật khẩu (Step 4 §2). Tầng API biến một lần đăng nhập thành công thành
 /// cookie xác thực HttpOnly; không bao giờ trao token nào cho JavaScript.
 /// </summary>
-public sealed class AuthService(IAppDbContext db, IPasswordHasher passwordHasher, ICurrentUser currentUser)
+public sealed class AuthService(
+    IAppDbContext db, IPasswordHasher passwordHasher, ICurrentUser currentUser, IClock clock)
 {
     public async Task<(User User, CurrentUserDto Dto)> LoginAsync(LoginRequest request, CancellationToken ct = default)
     {
@@ -50,6 +51,14 @@ public sealed class AuthService(IAppDbContext db, IPasswordHasher passwordHasher
         if (!user.IsActive)
         {
             throw new ForbiddenException(ErrorCodes.UserInactive, "This account is inactive.");
+        }
+
+        // Hash tạo với tham số cũ (ít vòng hơn) được nâng lên tham số hiện hành ngay khi có mật khẩu gốc.
+        if (passwordHasher.NeedsRehash(user.PasswordHash))
+        {
+            db.Users.Attach(user);
+            user.ChangePassword(passwordHasher.Hash(request.Password!), clock.UtcNow);
+            await db.SaveChangesAsync(ct);
         }
 
         return (user, ToDto(user));

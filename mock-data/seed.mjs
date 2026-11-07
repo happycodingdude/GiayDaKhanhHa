@@ -12,8 +12,10 @@
  * chỉ vào ngày còn mở phía sau trên cùng dây chuyền, chia đều dồn phần dư lên ngày sớm.
  *
  * Cách dùng (app phải đã chạy ít nhất một lần để có schema, tài khoản quản lý và dây chuyền mẫu):
- *   node mock-data/seed.mjs                            # nạp mọi kịch bản
- *   node mock-data/seed.mjs ORD-2026-009 ORD-2026-011  # chỉ nạp các kịch bản được liệt kê
+ *   node mock-data/seed.mjs --yes                            # nạp mọi kịch bản
+ *   node mock-data/seed.mjs --yes ORD-2026-009 ORD-2026-011  # chỉ nạp các kịch bản được liệt kê
+ *
+ * Bắt buộc có --yes: script xoá sạch đơn hàng hiện có, thiếu cờ này thì dừng mà không ghi gì.
  *
  * Biến môi trường tuỳ chọn: PM_DB_CONTAINER (mặc định giayda-postgres), POSTGRES_DB
  * (production_management), POSTGRES_USER (postgres), PM_USERNAME (manager — người ghi nhận),
@@ -482,7 +484,15 @@ async function main() {
     await readFile(join(here, 'scenarios.json'), 'utf8'),
   )
 
-  const requested = process.argv.slice(2)
+  const args = process.argv.slice(2)
+  if (!args.includes('--yes')) {
+    log.fail(`Script sẽ XOÁ SẠCH mọi đơn hàng (kèm tiến độ, sản lượng, bù) trong ${CONTAINER}/${DATABASE}.`)
+    log.info('Chạy lại kèm --yes để xác nhận, ví dụ: node mock-data/seed.mjs --yes')
+    process.exitCode = 1
+    return
+  }
+
+  const requested = args.filter((arg) => arg !== '--yes')
   const unknown = requested.filter((code) => !allScenarios.some((scenario) => scenario.shoeCode === code))
   if (unknown.length > 0) {
     log.fail(`Không có kịch bản: ${unknown.join(', ')}`)

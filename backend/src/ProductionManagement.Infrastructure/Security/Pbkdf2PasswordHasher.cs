@@ -11,8 +11,19 @@ public sealed class Pbkdf2PasswordHasher : IPasswordHasher
 {
     private const int SaltSize = 16;
     private const int KeySize = 32;
-    private const int Iterations = 210_000;
+    // OWASP khuyến nghị 600.000 vòng cho PBKDF2-HMAC-SHA256. Hash cũ (210.000 vòng) vẫn verify được
+    // vì số vòng đọc từ chính hash, và được băm lại khi đăng nhập thành công (NeedsRehash).
+    private const int Iterations = 600_000;
     private const string Prefix = "pbkdf2$sha256";
+
+    public bool NeedsRehash(string hash)
+    {
+        var parts = hash.Split('$');
+        return parts.Length != 5
+               || $"{parts[0]}${parts[1]}" != Prefix
+               || !int.TryParse(parts[2], out var iterations)
+               || iterations < Iterations;
+    }
 
     public string Hash(string password)
     {
