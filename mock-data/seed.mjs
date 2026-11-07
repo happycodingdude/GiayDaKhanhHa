@@ -9,7 +9,7 @@
  *
  * Cách dùng:
  *   node mock-data/seed.mjs
- *   PM_PASSWORD='...' node mock-data/seed.mjs
+ *   Mật khẩu đọc từ biến môi trường PM_PASSWORD hoặc tham số đầu tiên của lệnh.
  *   PM_API=http://localhost:5080 PM_USERNAME=manager node mock-data/seed.mjs
  */
 
@@ -99,7 +99,7 @@ async function login() {
   if (!PASSWORD) {
     throw new Error(
       'Thiếu mật khẩu.\n' +
-        "  Dùng:  PM_PASSWORD='<mật-khẩu>' node mock-data/seed.mjs\n" +
+        "  Đặt biến môi trường PM_PASSWORD rồi chạy lại: node mock-data/seed.mjs\n" +
         '  Mật khẩu là chuỗi backend in ra log lần đầu khởi động,\n' +
         '  hoặc giá trị bạn đặt ở biến môi trường Bootstrap__Password.',
     )
