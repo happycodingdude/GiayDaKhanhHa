@@ -72,10 +72,13 @@ pnpm-debug.log*
 # =========================
 .env
 .env.*
-!.env.example
 *.pem
 *.pfx
 *.key
+# File mẫu của env/config (không commit, kể cả giá trị giả)
+*.example
+*.sample
+*.template
 
 # =========================
 # Docker
@@ -101,3 +104,5 @@ Desktop.ini
 # Tài liệu: không theo dõi trong repo
 # =========================
 README.md
+docs/
+CLAUDE.md
