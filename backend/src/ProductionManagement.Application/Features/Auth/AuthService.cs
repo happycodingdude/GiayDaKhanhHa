@@ -34,8 +34,15 @@ public sealed class AuthService(IAppDbContext db, IPasswordHasher passwordHasher
         var user = await db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Username == username, ct);
 
         // Username không tồn tại và mật khẩu sai được báo lỗi giống hệt nhau, để response không tiết
-        // lộ username nào đang tồn tại.
-        if (user is null || !passwordHasher.Verify(request.Password!, user.PasswordHash))
+        // lộ username nào đang tồn tại. Username không tồn tại vẫn phải chạy PBKDF2 (băm thử chính mật
+        // khẩu vừa gửi) để thời gian phản hồi cũng không tiết lộ điều đó.
+        if (user is null)
+        {
+            _ = passwordHasher.Hash(request.Password!);
+            throw new UnauthenticatedException(ErrorCodes.InvalidCredentials, "Invalid username or password.");
+        }
+
+        if (!passwordHasher.Verify(request.Password!, user.PasswordHash))
         {
             throw new UnauthenticatedException(ErrorCodes.InvalidCredentials, "Invalid username or password.");
         }

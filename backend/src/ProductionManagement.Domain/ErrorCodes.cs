@@ -13,6 +13,16 @@ public static class ErrorCodes
     public const string UserInactive = "USER_INACTIVE";
     public const string NotAuthenticated = "NOT_AUTHENTICATED";
 
+    /// <summary>Đăng nhập quá số lần cho phép trong một khoảng thời gian (chống dò mật khẩu).</summary>
+    public const string TooManyLoginAttempts = "TOO_MANY_LOGIN_ATTEMPTS";
+
+    // Bảo vệ request
+    /// <summary>Request ghi dữ liệu xuất phát từ một trang khác (chống CSRF).</summary>
+    public const string CrossSiteRequestBlocked = "CROSS_SITE_REQUEST_BLOCKED";
+
+    /// <summary>Body của request vượt giới hạn kích thước.</summary>
+    public const string RequestTooLarge = "REQUEST_TOO_LARGE";
+
     // Đơn hàng
     public const string OrderNotFound = "ORDER_NOT_FOUND";
     public const string ShoeCodeAlreadyExists = "SHOE_CODE_ALREADY_EXISTS";

@@ -1,2 +1,7 @@
 node_modules/
 dist/
+# Không đóng file cấu hình/bí mật trên máy vào image
+.env*
+*.local
+*.pem
+*.key

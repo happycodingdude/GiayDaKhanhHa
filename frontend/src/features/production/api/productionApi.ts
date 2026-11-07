@@ -10,12 +10,12 @@ import type {
 
 /** Đường dẫn của một ô: đơn hàng → ngày → dây chuyền (CR-001 §6.7). */
 const cellPath = (orderId: string, productionDate: IsoDate, productionLineId: string) =>
-  `/orders/${orderId}/production-days/${productionDate}/lines/${productionLineId}`
+  `/orders/${encodeURIComponent(orderId)}/production-days/${encodeURIComponent(productionDate)}/lines/${encodeURIComponent(productionLineId)}`
 
 /** Toàn bộ hàm gọi API của feature production nằm trong file này (CR-01 §7.2). */
 export const productionApi = {
   getMatrix: (orderId: string, signal?: AbortSignal) =>
-    apiClient.get<ProductionMatrixDto>(`/orders/${orderId}/production-plans`, { signal }),
+    apiClient.get<ProductionMatrixDto>(`/orders/${encodeURIComponent(orderId)}/production-plans`, { signal }),
 
   getCell: (orderId: string, productionDate: IsoDate, productionLineId: string, signal?: AbortSignal) =>
     apiClient.get<ProductionCellDetailDto>(cellPath(orderId, productionDate, productionLineId), { signal }),
@@ -36,15 +36,15 @@ export const productionApi = {
     ),
 
   updateEntry: (entryId: string, request: UpdateProductionEntryRequest) =>
-    apiClient.put<ProductionCellDetailDto>(`/production-entries/${entryId}`, request),
+    apiClient.put<ProductionCellDetailDto>(`/production-entries/${encodeURIComponent(entryId)}`, request),
 
   deleteEntry: (entryId: string) =>
-    apiClient.delete<ProductionCellDetailDto>(`/production-entries/${entryId}`),
+    apiClient.delete<ProductionCellDetailDto>(`/production-entries/${encodeURIComponent(entryId)}`),
 
   /**
    * Xuất hàng — chốt sổ cả ngày, mọi dây chuyền cùng lúc. Body rỗng: sản lượng do server tính,
    * client không gửi lên (CR-01 N-11).
    */
   closeDay: (orderId: string, productionDate: IsoDate) =>
-    apiClient.post<CloseProductionDayDto>(`/orders/${orderId}/production-days/${productionDate}/close`),
+    apiClient.post<CloseProductionDayDto>(`/orders/${encodeURIComponent(orderId)}/production-days/${encodeURIComponent(productionDate)}/close`),
 }

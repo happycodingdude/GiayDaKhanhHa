@@ -153,7 +153,8 @@ public sealed class ProductionScheduleService(IAppDbContext db, IClock clock, Or
         // allocationMode chỉ để khai báo ý định; backend luôn validate con số thật (BR-N16).
         // Vẫn kiểm giá trị hợp lệ để một client gõ sai không lặng lẽ trôi qua.
         if (!string.IsNullOrWhiteSpace(request.AllocationMode)
-            && !Enum.TryParse<AllocationMode>(request.AllocationMode, ignoreCase: true, out _))
+            && (!Enum.TryParse<AllocationMode>(request.AllocationMode, ignoreCase: true, out var allocationMode)
+                || !Enum.IsDefined(allocationMode)))
         {
             throw new ValidationException(
                 "allocationMode", "INVALID_VALUE", "Allocation mode must be 'Even' or 'Manual'.");

@@ -28,11 +28,11 @@ export const ordersApi = {
     if (request.image) form.append('image', request.image)
     if (request.removeImage) form.append('removeImage', 'true')
 
-    return apiClient.upload<OrderDetailDto>('PUT', `/orders/${orderId}`, form)
+    return apiClient.upload<OrderDetailDto>('PUT', `/orders/${encodeURIComponent(orderId)}`, form)
   },
 
   /** Xoá đơn nhập hàng. Chỉ đơn chưa lập tiến độ mới xoá được; server trả 204. */
-  remove: (orderId: string) => apiClient.delete<void>(`/orders/${orderId}`),
+  remove: (orderId: string) => apiClient.delete<void>(`/orders/${encodeURIComponent(orderId)}`),
 
   list: (filters: OrderListFilters, signal?: AbortSignal) =>
     apiClient.get<PagedResult<OrderListItemDto>>('/orders', {
@@ -47,21 +47,21 @@ export const ordersApi = {
     }),
 
   getById: (orderId: string, signal?: AbortSignal) =>
-    apiClient.get<OrderDetailDto>(`/orders/${orderId}`, { signal }),
+    apiClient.get<OrderDetailDto>(`/orders/${encodeURIComponent(orderId)}`, { signal }),
 
   /** Lập tiến độ: dây chuyền + khoảng ngày + phân bổ 2 tầng, một lần duy nhất (BR-N05). */
   createSchedule: (orderId: string, request: CreateProductionScheduleRequest) =>
-    apiClient.post<OrderDetailDto>(`/orders/${orderId}/production-schedule`, request),
+    apiClient.post<OrderDetailDto>(`/orders/${encodeURIComponent(orderId)}/production-schedule`, request),
 
   /** Sửa tiến độ chưa chốt: body giống lúc lập, bộ mới thay toàn bộ bộ cũ. */
   updateSchedule: (orderId: string, request: CreateProductionScheduleRequest) =>
-    apiClient.put<OrderDetailDto>(`/orders/${orderId}/production-schedule`, request),
+    apiClient.put<OrderDetailDto>(`/orders/${encodeURIComponent(orderId)}/production-schedule`, request),
 
   /** Xoá tiến độ chưa chốt: đơn quay về "Chưa lập tiến độ". Trả về đơn sau khi xoá. */
   deleteSchedule: (orderId: string) =>
-    apiClient.delete<OrderDetailDto>(`/orders/${orderId}/production-schedule`),
+    apiClient.delete<OrderDetailDto>(`/orders/${encodeURIComponent(orderId)}/production-schedule`),
 
   /** Chốt tiến độ. Một chiều: không bỏ chốt được. */
   confirmSchedule: (orderId: string) =>
-    apiClient.post<OrderDetailDto>(`/orders/${orderId}/production-schedule/confirm`),
+    apiClient.post<OrderDetailDto>(`/orders/${encodeURIComponent(orderId)}/production-schedule/confirm`),
 }

@@ -42,6 +42,11 @@ const MESSAGES: Record<string, string> = {
   INVALID_CREDENTIALS: 'Tên đăng nhập hoặc mật khẩu không đúng.',
   USER_INACTIVE: 'Tài khoản đã bị vô hiệu hoá.',
   NOT_AUTHENTICATED: 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.',
+  TOO_MANY_LOGIN_ATTEMPTS: 'Bạn đã thử đăng nhập quá nhiều lần. Vui lòng đợi 1 phút rồi thử lại.',
+
+  // Bảo vệ request
+  CROSS_SITE_REQUEST_BLOCKED: 'Thao tác bị chặn vì không được gửi từ chính trang của ứng dụng.',
+  REQUEST_TOO_LARGE: 'Dữ liệu gửi lên quá lớn. Vui lòng giảm bớt rồi thử lại.',
 
   ORDER_NOT_FOUND: 'Không tìm thấy đơn hàng.',
   SHOE_CODE_ALREADY_EXISTS: 'Mã giày đã tồn tại. Vui lòng chọn mã khác.',

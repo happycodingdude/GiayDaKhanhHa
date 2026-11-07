@@ -9,16 +9,16 @@ import type {
 export const adjustmentsApi = {
   preview: (productionPlanId: string, request: PreviewAdjustmentRequest) =>
     apiClient.post<AdjustmentPreviewDto>(
-      `/production-plans/${productionPlanId}/adjustments/preview`,
+      `/production-plans/${encodeURIComponent(productionPlanId)}/adjustments/preview`,
       request,
     ),
 
   apply: (productionPlanId: string, request: ApplyAdjustmentRequest) =>
-    apiClient.post<PlanAdjustmentDto>(`/production-plans/${productionPlanId}/adjustments`, request),
+    apiClient.post<PlanAdjustmentDto>(`/production-plans/${encodeURIComponent(productionPlanId)}/adjustments`, request),
 
   reverse: (adjustmentId: string) =>
-    apiClient.post<PlanAdjustmentDto>(`/plan-adjustments/${adjustmentId}/reverse`),
+    apiClient.post<PlanAdjustmentDto>(`/plan-adjustments/${encodeURIComponent(adjustmentId)}/reverse`),
 
   history: (orderId: string, signal?: AbortSignal) =>
-    apiClient.get<PlanAdjustmentDto[]>(`/orders/${orderId}/plan-adjustments`, { signal }),
+    apiClient.get<PlanAdjustmentDto[]>(`/orders/${encodeURIComponent(orderId)}/plan-adjustments`, { signal }),
 }

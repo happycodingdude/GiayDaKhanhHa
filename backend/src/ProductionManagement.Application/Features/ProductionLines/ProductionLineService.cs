@@ -19,7 +19,7 @@ public sealed class ProductionLineService(IAppDbContext db, IClock clock)
 
         if (!string.IsNullOrWhiteSpace(status) && !string.Equals(status, "All", StringComparison.OrdinalIgnoreCase))
         {
-            if (!Enum.TryParse<ProductionLineStatus>(status, ignoreCase: true, out var parsed))
+            if (!Enum.TryParse<ProductionLineStatus>(status, ignoreCase: true, out var parsed) || !Enum.IsDefined(parsed))
             {
                 throw new ValidationException(
                     "status", "INVALID_VALUE", "Status must be 'Active', 'Inactive' or 'All'.");
@@ -87,7 +87,7 @@ public sealed class ProductionLineService(IAppDbContext db, IClock clock)
     public async Task<ProductionLineDto> ChangeStatusAsync(
         Guid productionLineId, UpdateProductionLineStatusRequest request, CancellationToken ct = default)
     {
-        if (!Enum.TryParse<ProductionLineStatus>(request.Status, ignoreCase: true, out var status))
+        if (!Enum.TryParse<ProductionLineStatus>(request.Status, ignoreCase: true, out var status) || !Enum.IsDefined(status))
         {
             throw new ValidationException("status", "INVALID_VALUE", "Status must be 'Active' or 'Inactive'.");
         }

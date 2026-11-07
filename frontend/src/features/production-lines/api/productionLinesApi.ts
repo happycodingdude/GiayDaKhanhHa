@@ -15,8 +15,8 @@ export const productionLinesApi = {
     apiClient.post<ProductionLineDto>('/production-lines', request),
 
   update: (productionLineId: string, request: SaveProductionLineRequest) =>
-    apiClient.put<ProductionLineDto>(`/production-lines/${productionLineId}`, request),
+    apiClient.put<ProductionLineDto>(`/production-lines/${encodeURIComponent(productionLineId)}`, request),
 
   changeStatus: (productionLineId: string, status: ProductionLineStatus) =>
-    apiClient.patch<ProductionLineDto>(`/production-lines/${productionLineId}/status`, { status }),
+    apiClient.patch<ProductionLineDto>(`/production-lines/${encodeURIComponent(productionLineId)}/status`, { status }),
 }

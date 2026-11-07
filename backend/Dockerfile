@@ -17,5 +17,9 @@ RUN dotnet publish src/ProductionManagement.Api/ProductionManagement.Api.csproj 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0
 WORKDIR /app
 COPY --from=build /app ./
+# Chạy bằng user không phải root ($APP_UID có sẵn trong image aspnet). Thư mục App_Data (ảnh mẫu,
+# khoá DataProtection) phải thuộc user này thì volume tạo mới mới ghi được.
+RUN mkdir -p App_Data/order-images App_Data/dataprotection-keys && chown -R $APP_UID App_Data
+USER $APP_UID
 EXPOSE 5080
 ENTRYPOINT ["dotnet", "ProductionManagement.Api.dll"]

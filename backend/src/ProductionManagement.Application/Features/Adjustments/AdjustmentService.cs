@@ -529,7 +529,7 @@ public sealed class AdjustmentService(
 
     private static AdjustmentType ParseAdjustmentType(string? value)
     {
-        if (!Enum.TryParse<AdjustmentType>(value, ignoreCase: true, out var parsed))
+        if (!Enum.TryParse<AdjustmentType>(value, ignoreCase: true, out var parsed) || !Enum.IsDefined(parsed))
         {
             throw new ValidationException(
                 "adjustmentType", "INVALID_VALUE", "Adjustment type must be 'Manual' or 'Automatic'.");

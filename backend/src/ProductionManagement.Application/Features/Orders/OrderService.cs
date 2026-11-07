@@ -164,7 +164,8 @@ public sealed class OrderService(IAppDbContext db, IClock clock, IOrderImageStor
         string? status, string? search, Guid? productionLineId, int page, int pageSize,
         CancellationToken ct = default)
     {
-        page = page < 1 ? 1 : page;
+        // Chặn trên để (page - 1) * pageSize không tràn int thành OFFSET âm.
+        page = Math.Clamp(page, 1, 1_000_000);
         pageSize = pageSize is < 1 or > 200 ? 20 : pageSize;
 
         var query = db.Orders.AsNoTracking();
@@ -192,7 +193,7 @@ public sealed class OrderService(IAppDbContext db, IClock clock, IOrderImageStor
             {
                 query = query.InProductionOn(today);
             }
-            else if (Enum.TryParse<OrderStatus>(status, ignoreCase: true, out var parsedStatus))
+            else if (Enum.TryParse<OrderStatus>(status, ignoreCase: true, out var parsedStatus) && Enum.IsDefined(parsedStatus))
             {
                 query = query.Where(o => o.Status == parsedStatus);
             }

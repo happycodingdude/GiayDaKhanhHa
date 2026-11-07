@@ -51,6 +51,15 @@ public sealed class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<Ex
 
     private static (int Status, ApiError Error) Map(Exception exception) => exception switch
     {
+        // Kestrel ném lỗi này khi body vượt MaxRequestBodySize (413) hoặc request hỏng (400).
+        BadHttpRequestException { StatusCode: StatusCodes.Status413PayloadTooLarge } => (
+            StatusCodes.Status413PayloadTooLarge,
+            new ApiError(ErrorCodes.RequestTooLarge, "The request body is too large.", null)),
+
+        BadHttpRequestException ex => (
+            ex.StatusCode,
+            new ApiError(ErrorCodes.ValidationError, "The request is invalid.", null)),
+
         ValidationException ex => (
             StatusCodes.Status400BadRequest,
             new ApiError(

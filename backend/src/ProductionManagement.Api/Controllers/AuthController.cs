@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using ProductionManagement.Application.Contracts;
 using ProductionManagement.Application.Features.Auth;
 
@@ -12,11 +13,15 @@ namespace ProductionManagement.Api.Controllers;
 [Route("api/v1/auth")]
 public sealed class AuthController(AuthService authService) : ControllerBase
 {
+    /// <summary>Tên policy giới hạn tần suất đăng nhập, khai báo trong <c>Program.cs</c>.</summary>
+    public const string LoginRateLimitPolicy = "login";
+
     /// <summary>
     /// Thiết lập cookie xác thực HttpOnly. Không trả token nào về cho client (Step 4 §2).
     /// </summary>
     [HttpPost("login")]
     [AllowAnonymous]
+    [EnableRateLimiting(LoginRateLimitPolicy)]
     public async Task<ActionResult<CurrentUserDto>> Login(LoginRequest request, CancellationToken ct)
     {
         var (user, dto) = await authService.LoginAsync(request, ct);

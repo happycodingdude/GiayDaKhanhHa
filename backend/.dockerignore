@@ -1,2 +1,10 @@
 **/bin/
 **/obj/
+# Không đóng file cấu hình/bí mật trên máy vào image
+**/appsettings*.json
+**/secrets.json
+**/.env*
+**/*.pem
+**/*.pfx
+**/*.key
+**/App_Data/

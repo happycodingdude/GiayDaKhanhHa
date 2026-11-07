@@ -31,8 +31,10 @@ services:
     volumes:
       - order-images:/app/App_Data/order-images
       - dataprotection-keys:/app/App_Data/dataprotection-keys
+    # Mặc định chỉ mở cho chính máy này (giống POSTGRES_BIND). Muốn máy khác trong mạng truy cập thì
+    # đặt API_BIND / WEB_BIND=0.0.0.0 — lưu ý app đang chạy HTTP thuần, cookie không có cờ Secure.
     ports:
-      - "5080:5080"
+      - "${API_BIND:-127.0.0.1}:5080:5080"
 
   web:
     build:
@@ -43,12 +45,14 @@ services:
       - api
     environment:
       VITE_API_PROXY_TARGET: http://api:5080
+      # Trong container phải nghe 0.0.0.0 thì port publish mới tới được; phạm vi mở ra host do WEB_BIND quyết.
+      VITE_DEV_HOST: 0.0.0.0
     volumes:
       # Mount mã nguồn để HMR hoạt động; node_modules giữ nguyên bản cài trong image.
       - ./frontend:/app
       - /app/node_modules
     ports:
-      - "5173:5173"
+      - "${WEB_BIND:-127.0.0.1}:5173:5173"
 
 volumes:
   order-images:
